@@ -2,6 +2,33 @@
 
 Respect\Relational is a package composed by two simple utilities for relational databases:
 
-* Relational\Sql, an abstraction of the SQL _syntax_, not the SQL language.
+* Relational\Sql, an abstraction of the SQL _syntax_, not the SQL commands.
 * Relational\Db, simple toolkit for using Relational\Sql in PDO connections
+
+== Abstraction of the SQL _syntax_? WTF?
+
+Instead of abstracting commands (INSERT, SELECT, UPDATE), Relational\Sql steps down 
+one level to abstract the general syntax of the language itself. It's lightweight, simple 
+to use, fast and powerful.
+
+Samples:
+
+Pure SQL:
+	SELECT * FROM table
+Relational\Sql:
+	$sql->select('*')->from('table');
+
+
+Pure SQL:
+	SELECT DISTINCT * FROM table WHERE column=123
+Relational\Sql:
+	$sql->selectDistinct('*')->from('table')->where('column=123');
+
+Pure SQL (prepared statement):
+	SELECT column, MAX(def) FROM table WHERE abc=:Abc GROUP BY abc, def HAVING SUM(abc)>10 AND AVG(def)=:AvgDef
+Relational\Sql:
+        $where = array('abc' => 10);
+        $having = array('SUM(abc)>10', 'AVG(def)' => 15);
+	$sql->select('column', 'MAX(def)')->from('table')->where($where)->groupBy('abc', 'def')->having($having);
+
 
