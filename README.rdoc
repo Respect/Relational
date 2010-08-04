@@ -1,0 +1,7 @@
+== About
+
+Respect\Relational is a package composed by two simple utilities for relational databases:
+
+* Relational\Sql, an abstraction of the SQL _syntax_, not the SQL language.
+* Relational\Db, simple toolkit for using Relational\Sql in PDO connections
+
