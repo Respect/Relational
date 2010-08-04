@@ -24,10 +24,25 @@ Relational\Sql:
  $sql->selectDistinct('*')->from('table')->where('column=123');
 
 Pure SQL (prepared statement):
- SELECT column, MAX(def) FROM table WHERE abc=:Abc GROUP BY abc, def HAVING SUM(abc)>10 AND AVG(def)=:AvgDef
+ SELECT 
+     column, MAX(def) 
+ FROM 
+     table 
+ WHERE 
+     abc=:Abc 
+ GROUP BY 
+     abc, def 
+ HAVING 
+     SUM(abc)>10 
+     AND AVG(def)=:AvgDef
 Relational\Sql:
- $where = array('abc' => 10);
- $having = array('SUM(abc)>10', 'AVG(def)' => 15);
- $sql->select('column', 'MAX(def)')->from('table')->where($where)->groupBy('abc', 'def')->having($having);
+ $sql->select('column', 'MAX(def)')
+      ->from('table')
+      ->where(array('abc' => 10))
+      ->groupBy('abc', 'def')
+      ->having(array(
+          'SUM(abc)>10', 
+          'AVG(def)' => 15
+      ));
 
 
