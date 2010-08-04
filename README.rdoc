@@ -14,20 +14,20 @@ to use, fast and powerful.
 Samples:
 
 Pure SQL:
-SELECT * FROM table
+ SELECT * FROM table
 Relational\Sql:
-$sql->select('*')->from('table');
+ $sql->select('*')->from('table');
 
 Pure SQL:
-SELECT DISTINCT * FROM table WHERE column=123
+ SELECT DISTINCT * FROM table WHERE column=123
 Relational\Sql:
-$sql->selectDistinct('*')->from('table')->where('column=123');
+ $sql->selectDistinct('*')->from('table')->where('column=123');
 
 Pure SQL (prepared statement):
-SELECT column, MAX(def) FROM table WHERE abc=:Abc GROUP BY abc, def HAVING SUM(abc)>10 AND AVG(def)=:AvgDef
+ SELECT column, MAX(def) FROM table WHERE abc=:Abc GROUP BY abc, def HAVING SUM(abc)>10 AND AVG(def)=:AvgDef
 Relational\Sql:
-$where = array('abc' => 10);
-$having = array('SUM(abc)>10', 'AVG(def)' => 15);
-$sql->select('column', 'MAX(def)')->from('table')->where($where)->groupBy('abc', 'def')->having($having);
+ $where = array('abc' => 10);
+ $having = array('SUM(abc)>10', 'AVG(def)' => 15);
+ $sql->select('column', 'MAX(def)')->from('table')->where($where)->groupBy('abc', 'def')->having($having);
 
 
