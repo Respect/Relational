@@ -28,8 +28,19 @@ use \PDO as PDO;
  * @copyright © Alexandre Gomes Gaigalas
  * @license   http://gaigalas.net/license/newbsd/ New BSD License
  * @version   1
+ * @method Respect\Relational\Db select()
+ * @method Respect\Relational\Db insertInto()
+ * @method Respect\Relational\Db update()
+ * @method Respect\Relational\Db delete()
+ * @method Respect\Relational\Db where()
+ * @method Respect\Relational\Db set()
+ * @method Respect\Relational\Db in()
+ * @method Respect\Relational\Db values()
+ * @method Respect\Relational\Db createTable()
+ * @method Respect\Relational\Db having()
+ * @method Respect\Relational\Db groupBy()
  */
-class Db
+class Db 
 {
 
     /**

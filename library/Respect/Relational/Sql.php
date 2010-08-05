@@ -26,8 +26,19 @@ namespace Respect\Relational;
  * @copyright © Alexandre Gomes Gaigalas
  * @license   http://gaigalas.net/license/newbsd/ New BSD License
  * @version   1
+ * @method Respect\Relational\Sql select()
+ * @method Respect\Relational\Sql insertInto()
+ * @method Respect\Relational\Sql update()
+ * @method Respect\Relational\Sql delete()
+ * @method Respect\Relational\Sql where()
+ * @method Respect\Relational\Sql set()
+ * @method Respect\Relational\Sql in()
+ * @method Respect\Relational\Sql values()
+ * @method Respect\Relational\Sql createTable()
+ * @method Respect\Relational\Sql having()
+ * @method Respect\Relational\Sql groupBy()
  */
-class Sql
+class Sql 
 {
 
     /**
