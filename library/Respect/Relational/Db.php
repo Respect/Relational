@@ -125,7 +125,6 @@ class Db
         } else {
             $this->statement->setFetchMode(PDO::FETCH_NAMED);
         }
-        $this->statement->execute($this->_getSqlData());
     }
 
     /**
@@ -139,6 +138,7 @@ class Db
     public function fetch($object = '\stdClass', $extra = null)
     {
         $this->_preFetch($object, $extra);
+        $this->statement->execute($this->_getSqlData());
         $r = $this->statement->fetch();
         $this->_cleanUp();
         return $r;
@@ -155,9 +155,20 @@ class Db
     public function fetchAll($object = '\stdClass', $extra = null)
     {
         $this->_preFetch($object, $extra);
+        $this->statement->execute($this->_getSqlData());
         $r = $this->statement->fetchAll();
         $this->_cleanUp();
         return $r;
+    }
+    
+    /**
+     * Returns the current statement or null if non existent
+     *
+     * @return PDOStatement
+     */
+    public function getStatement()
+    {
+        return $this->statement;
     }
 
     /**
@@ -172,5 +183,6 @@ class Db
         $this->sql = new Sql($rawSql);
         return $this;
     }
+
 
 }
