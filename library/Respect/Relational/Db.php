@@ -47,7 +47,14 @@ class Db
      * @var PDO
      */
     protected $connection;
+    /**
+     * @var Sql
+     */
     protected $sql;
+    /**
+     * @var callback
+     */
+    protected $callback = null;
 
     /**
      * Constructor
@@ -70,6 +77,7 @@ class Db
     protected function _cleanUp()
     {
         $this->sql = new Sql();
+        $this->callback = null;
     }
 
     /**
@@ -119,7 +127,10 @@ class Db
     public function prepare($queryString, $object = '\stdClass', $constructorArgs = null)
     {
         $statement = $this->connection->prepare($queryString);
-        if (is_object($object)) {
+        if (is_callable($object)) {
+            $statement->setFetchMode(PDO::FETCH_OBJ);
+            $this->map($object);
+        } elseif (is_object($object)) {
             $statement->setFetchMode(PDO::FETCH_INTO, $object);
             $mode = PDO::FETCH_INTO;
         } elseif (is_string($object)) {
@@ -144,9 +155,10 @@ class Db
      */
     public function fetch($object = '\stdClass', $extra = null)
     {
-        $statement = $this->prepare($this->_getSqlString(), $object, $extra);
-        $statement->execute($this->_getSqlData());
-        $result = $statement->fetch();
+        $result = $this->_doFetch('fetch', $object, $extra);
+        if (!is_null($this->callback)) {
+            $result = call_user_func($this->callback, $result);
+        }
         $this->_cleanUp();
         return $result;
     }
@@ -154,18 +166,45 @@ class Db
     /**
      * Fetches all the rows from the database
      *
-     * @param $object Class name or object as fetch target
+     * @param $object Class name or object as fetch<type> target
      * @param $extra  Extra arguments for pre fetching
      *
      * @return stdClass
      */
     public function fetchAll($object = '\stdClass', $extra = null)
     {
-        $statement = $this->prepare($this->_getSqlString(), $object, $extra);
-        $statement->execute($this->_getSqlData());
-        $result = $statement->fetchAll();
+        $result = $this->_doFetch('fetchAll', $object, $extra);
+        if (!is_null($this->callback)) {
+            $result = array_map($this->callback, $result);
+        }
         $this->_cleanUp();
         return $result;
+    }
+
+    /**
+     * Draft method for fetch operations
+     *
+     * @param $method Fetch method name
+     * @param $object Class name or object as fetch target
+     * @param $extra  Extra arguments for pre fetching
+     * @return <type>
+     */
+    protected function _doFetch($method, $object = '\stdClass', $extra = null)
+    {
+        $statement = $this->prepare($this->_getSqlString(), $object, $extra);
+        $statement->execute($this->_getSqlData());
+        $result = $statement->{$method}();
+        return $result;
+    }
+
+    /**
+     * Register a callback to be executed foreach line on the result
+     *
+     * @param callback $callback Callback to be executed
+     */
+    public function map($callback)
+    {
+        $this->callback = $callback;
     }
 
     /**

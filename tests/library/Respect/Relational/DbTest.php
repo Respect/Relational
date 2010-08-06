@@ -85,6 +85,16 @@ class DbTest extends \PHPUnit_Framework_TestCase
         $this->assertType('Respect\Relational\testFetchingClassArgs', $line);
         $this->assertEquals('foo', $line->testd);
     }
+    public function testFetchingCallback()
+    {
+        $line = $this->object->select('*')->from('unit')->fetch(
+            function($row) {
+                $row->acid = 'test';
+                return $row;
+            }
+        );
+        $this->assertEquals('test', $line->acid);
+    }
     
     public function testFetchingInto()
     {
