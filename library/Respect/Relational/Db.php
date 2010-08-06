@@ -40,18 +40,13 @@ use \PDO as PDO;
  * @method Respect\Relational\Db having()
  * @method Respect\Relational\Db groupBy()
  */
-class Db 
+class Db
 {
 
     /**
      * @var PDO
      */
     protected $connection;
-    /**
-     *
-     * @var PDOStatement
-     */
-    protected $statement;
     protected $sql;
 
     /**
@@ -75,7 +70,6 @@ class Db
     protected function _cleanUp()
     {
         $this->sql = new Sql();
-        $this->statement = null;
     }
 
     /**
@@ -113,29 +107,31 @@ class Db
     }
 
     /**
-     * Set options to the connection and statement before fetching
+     * Prepares a query and configures the fetch mode
      *
+     * @param mixed  $queryString     SQL to be prepared
      * @param mixed  $object          Target for pre fetching
      * @param string $constructorArgs Constructor arguments for classname pre
-     *                                fetching
+     *                                 fetching
      *
      * @return void
      */
-    protected function _preFetch($object, $constructorArgs = null)
+    public function prepare($queryString, $object = '\stdClass', $constructorArgs = null)
     {
-        $this->statement = $this->connection->prepare($this->_getSqlString());
+        $statement = $this->connection->prepare($queryString);
         if (is_object($object)) {
-            $this->statement->setFetchMode(PDO::FETCH_INTO, $object);
+            $statement->setFetchMode(PDO::FETCH_INTO, $object);
             $mode = PDO::FETCH_INTO;
         } elseif (is_string($object)) {
             if (is_null($constructorArgs)) {
-                $this->statement->setFetchMode(PDO::FETCH_CLASS, $object);
+                $statement->setFetchMode(PDO::FETCH_CLASS, $object);
             } else {
-                $this->statement->setFetchMode(PDO::FETCH_CLASS, $object, $constructorArgs);
+                $statement->setFetchMode(PDO::FETCH_CLASS, $object, $constructorArgs);
             }
         } else {
-            $this->statement->setFetchMode(PDO::FETCH_NAMED);
+            $statement->setFetchMode(PDO::FETCH_NAMED);
         }
+        return $statement;
     }
 
     /**
@@ -148,11 +144,11 @@ class Db
      */
     public function fetch($object = '\stdClass', $extra = null)
     {
-        $this->_preFetch($object, $extra);
-        $this->statement->execute($this->_getSqlData());
-        $r = $this->statement->fetch();
+        $statement = $this->prepare($this->_getSqlString(), $object, $extra);
+        $statement->execute($this->_getSqlData());
+        $result = $statement->fetch();
         $this->_cleanUp();
-        return $r;
+        return $result;
     }
 
     /**
@@ -165,21 +161,11 @@ class Db
      */
     public function fetchAll($object = '\stdClass', $extra = null)
     {
-        $this->_preFetch($object, $extra);
-        $this->statement->execute($this->_getSqlData());
-        $r = $this->statement->fetchAll();
+        $statement = $this->prepare($this->_getSqlString(), $object, $extra);
+        $statement->execute($this->_getSqlData());
+        $result = $statement->fetchAll();
         $this->_cleanUp();
-        return $r;
-    }
-    
-    /**
-     * Returns the current statement or null if non existent
-     *
-     * @return PDOStatement
-     */
-    public function getStatement()
-    {
-        return $this->statement;
+        return $result;
     }
 
     /**
@@ -194,6 +180,5 @@ class Db
         $this->sql = new Sql($rawSql);
         return $this;
     }
-
 
 }
