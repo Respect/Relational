@@ -38,7 +38,7 @@ namespace Respect\Relational;
  * @method Respect\Relational\Sql having()
  * @method Respect\Relational\Sql groupBy()
  */
-class Sql 
+class Sql
 {
 
     /**
@@ -265,14 +265,8 @@ class Sql
                     $newParts[$key] = $name;
                     $data[$key] = $value;
                 }
-            })
-
-
-
-
-
-
-        ;
+            }
+        );
         return $newParts;
     }
 

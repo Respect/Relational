@@ -10,19 +10,21 @@ class testFetchingClass
 class testFetchingInto
 {
 
-
     public $testa, $testb, $testz;
 
 }
 
 class testFetchingClassArgs
 {
+
     public $testd;
-    public function __construct($testd){
+
+    public function __construct($testd)
+    {
         $this->testd = $testd;
     }
-}
 
+}
 
 class DbTest extends \PHPUnit_Framework_TestCase
 {
@@ -52,21 +54,21 @@ class DbTest extends \PHPUnit_Framework_TestCase
     {
         unset($this->object);
     }
-    
+
     public function testBasicStatement()
     {
         $this->assertEquals(
-                        'unit',
-                        $this->object->select('*')->from('sqlite_master')->fetch()->tbl_name
+            'unit',
+            $this->object->select('*')->from('sqlite_master')->fetch()->tbl_name
         );
     }
-    
+
     public function testPassingValues()
     {
         $line = $this->object->select('*')->from('unit')->where(array('testb' => 'abc'))->fetch();
         $this->assertEquals(10, $line->testa);
     }
-    
+
     public function testFetchingAll()
     {
         $all = $this->object->select('*')->from('unit')->fetchAll();
@@ -85,33 +87,58 @@ class DbTest extends \PHPUnit_Framework_TestCase
         $this->assertType('Respect\Relational\testFetchingClassArgs', $line);
         $this->assertEquals('foo', $line->testd);
     }
+
     public function testFetchingCallback()
     {
         $line = $this->object->select('*')->from('unit')->fetch(
-            function($row) {
-                $row->acid = 'test';
-                return $row;
-            }
+                function($row) {
+                    $row->acid = 'test';
+                    return $row;
+                }
         );
         $this->assertEquals('test', $line->acid);
     }
-    
+
+    public function testFetchingMappedResult()
+    {
+        $line = $this->object->select('*')->from('unit')->map(
+                function($row) {
+                    $row->acid = 'test';
+                    return $row;
+                }
+            )->fetch();
+        $this->assertEquals('test', $line->acid);
+    }
+
     public function testFetchingInto()
     {
         $x = new testFetchingInto;
         $line = $this->object->select('*')->from('unit')->where(array('testb' => 'abc'))->fetch($x);
         $this->assertEquals('abc', $x->testb);
     }
-    
+
+    public function testFetchingMappedData()
+    {
+        $x = new testFetchingInto;
+        $line = $this->object->select('*')->from('unit')->where(array('testb' => 'ABC'))->map(
+                null,
+                function($input) {
+                    return array_map('strtolower', $input);
+                }
+            )->fetch($x);
+        $this->assertEquals('abc', $x->testb);
+    }
+
     public function testRawSql()
     {
         $all = $this->object->query('select * from unit')->fetchAll();
         $this->assertEquals(3, count($all));
     }
-    
+
     public function testFetchingArray()
     {
         $line = $this->object->select('*')->from('unit')->where(array('testb' => 'abc'))->fetch(null);
         $this->assertTrue(is_array($line));
     }
+
 }

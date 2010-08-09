@@ -54,7 +54,11 @@ class Db
     /**
      * @var callback
      */
-    protected $callback = null;
+    protected $resultCallback = null;
+    /**
+     * @var callback
+     */
+    protected $dataCallback = null;
 
     /**
      * Constructor
@@ -77,7 +81,8 @@ class Db
     protected function _cleanUp()
     {
         $this->sql = new Sql();
-        $this->callback = null;
+        $this->resultCallback = null;
+        $this->dataCallback = null;
     }
 
     /**
@@ -97,7 +102,11 @@ class Db
      */
     protected function _getSqlData()
     {
-        return $this->sql->getData();
+        $data = $this->sql->getData();
+        if (!is_null($this->dataCallback)) {
+            $data = call_user_func($this->dataCallback, $data);
+        }
+        return $data;
     }
 
     /**
@@ -151,13 +160,13 @@ class Db
      * @param $object Class name or object as fetch target
      * @param $extra  Extra arguments for pre fetching
      *
-     * @return stdClass
+     * @return mixed
      */
     public function fetch($object = '\stdClass', $extra = null)
     {
         $result = $this->_doFetch('fetch', $object, $extra);
-        if (!is_null($this->callback)) {
-            $result = call_user_func($this->callback, $result);
+        if (!is_null($this->resultCallback)) {
+            $result = call_user_func($this->resultCallback, $result);
         }
         $this->_cleanUp();
         return $result;
@@ -169,13 +178,13 @@ class Db
      * @param $object Class name or object as fetch<type> target
      * @param $extra  Extra arguments for pre fetching
      *
-     * @return stdClass
+     * @return mixed
      */
     public function fetchAll($object = '\stdClass', $extra = null)
     {
         $result = $this->_doFetch('fetchAll', $object, $extra);
-        if (!is_null($this->callback)) {
-            $result = array_map($this->callback, $result);
+        if (!is_null($this->resultCallback)) {
+            $result = array_map($this->resultCallback, $result);
         }
         $this->_cleanUp();
         return $result;
@@ -187,7 +196,8 @@ class Db
      * @param $method Fetch method name
      * @param $object Class name or object as fetch target
      * @param $extra  Extra arguments for pre fetching
-     * @return <type>
+     *
+     * @return mixed
      */
     protected function _doFetch($method, $object = '\stdClass', $extra = null)
     {
@@ -200,11 +210,16 @@ class Db
     /**
      * Register a callback to be executed foreach line on the result
      *
-     * @param callback $callback Callback to be executed
+     * @param callback $resultCallback To be executed on the result set
+     * @param callback $dataCallback   To be executed on the data sent
+     *
+     * @return Respect\Relational\Db
      */
-    public function map($callback)
+    public function map($resultCallback=null, $dataCallback=null)
     {
-        $this->callback = $callback;
+        $this->resultCallback = $resultCallback;
+        $this->dataCallback = $dataCallback;
+        return $this;
     }
 
     /**
@@ -212,7 +227,7 @@ class Db
      *
      * @param string $rawSql
      *
-     * @return Respect\Relational
+     * @return Respect\Relational\Db
      */
     public function query($rawSql)
     {
