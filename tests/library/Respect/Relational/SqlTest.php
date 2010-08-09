@@ -156,9 +156,9 @@ class SqlTest extends \PHPUnit_Framework_TestCase
     public function testAggregateFunctions()
     {
         $where = array('abc' => 10);
-        $having = array('SUM(abc)>10', 'AVG(def)' => 15);
+        $having = array('SUM(abc)>' =>'10', 'AVG(def)' => 15);
         $sql = (string) $this->object->select('column', 'MAX(def)')->from('table')->where($where)->groupBy('abc', 'def')->having($having);
-        $this->assertEquals("SELECT column, MAX(def) FROM table WHERE abc=:Abc GROUP BY abc, def HAVING SUM(abc)>10 AND AVG(def)=:AvgDef", $sql);
+        $this->assertEquals("SELECT column, MAX(def) FROM table WHERE abc=:Abc GROUP BY abc, def HAVING SUM(abc)>=:SumAbc AND AVG(def)=:AvgDef", $sql);
 
     }
     
