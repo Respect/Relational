@@ -255,8 +255,7 @@ class Sql
     {
         $data = & $this->_data;
         $newParts = array();
-        array_walk_recursive($parts,
-            function ($value, $key) use ( & $newParts, & $data) {
+        array_walk_recursive($parts, function ($value, $key) use ( & $newParts, & $data) {
                 if (is_int($key)) {
                     $name = $value;
                     $newParts[] = $name;

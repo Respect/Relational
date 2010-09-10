@@ -2,30 +2,6 @@
 
 namespace Respect\Relational;
 
-class testFetchingClass
-{
-
-}
-
-class testFetchingInto
-{
-
-    public $testa, $testb, $testz;
-
-}
-
-class testFetchingClassArgs
-{
-
-    public $testd;
-
-    public function __construct($testd)
-    {
-        $this->testd = $testd;
-    }
-
-}
-
 class DbTest extends \PHPUnit_Framework_TestCase
 {
 
@@ -44,12 +20,6 @@ class DbTest extends \PHPUnit_Framework_TestCase
         $this->object = new Db($db);
     }
 
-    /**
-     * Tears down the fixture, for example, closes a network connection.
-     * This method is called after a test is executed.
-     *
-     * @access protected
-     */
     protected function tearDown()
     {
         unset($this->object);
@@ -58,8 +28,7 @@ class DbTest extends \PHPUnit_Framework_TestCase
     public function testBasicStatement()
     {
         $this->assertEquals(
-            'unit',
-            $this->object->select('*')->from('sqlite_master')->fetch()->tbl_name
+            'unit', $this->object->select('*')->from('sqlite_master')->fetch()->tbl_name
         );
     }
 
@@ -121,8 +90,7 @@ class DbTest extends \PHPUnit_Framework_TestCase
     {
         $x = new testFetchingInto;
         $line = $this->object->select('*')->from('unit')->where(array('testb' => 'ABC'))->map(
-                null,
-                function($input) {
+                null, function($input) {
                     return array_map('strtolower', $input);
                 }
             )->fetch($x);
@@ -139,6 +107,30 @@ class DbTest extends \PHPUnit_Framework_TestCase
     {
         $line = $this->object->select('*')->from('unit')->where(array('testb' => 'abc'))->fetch(null);
         $this->assertTrue(is_array($line));
+    }
+
+}
+
+class testFetchingClass
+{
+    
+}
+
+class testFetchingInto
+{
+
+    public $testa, $testb, $testz;
+
+}
+
+class testFetchingClassArgs
+{
+
+    public $testd;
+
+    public function __construct($testd)
+    {
+        $this->testd = $testd;
     }
 
 }
