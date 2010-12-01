@@ -68,9 +68,11 @@ class Db
     public function __construct(PDO $connection)
     {
         $this->connection = $connection;
-        $this->connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $this->connection->setAttribute(PDO::ATTR_ERRMODE,
+            PDO::ERRMODE_EXCEPTION);
         $this->connection->setAttribute(PDO::ATTR_CASE, PDO::CASE_NATURAL);
-        $this->connection->setAttribute(PDO::ATTR_ORACLE_NULLS, PDO::NULL_EMPTY_STRING);
+        $this->connection->setAttribute(PDO::ATTR_ORACLE_NULLS,
+            PDO::NULL_EMPTY_STRING);
         $this->connection->setAttribute(PDO::ATTR_STRINGIFY_FETCHES, false);
         $this->_cleanUp();
     }
@@ -133,12 +135,13 @@ class Db
      *
      * @return void
      */
-    public function prepare($queryString, $object = '\stdClass', $constructorArgs = null)
+    public function prepare($queryString, $object = '\stdClass',
+        $constructorArgs = null)
     {
         $statement = $this->connection->prepare($queryString);
         if (is_callable($object)) {
             $statement->setFetchMode(PDO::FETCH_OBJ);
-            $this->map($object);
+            $this->mapOut($object);
         } elseif (is_object($object)) {
             $statement->setFetchMode(PDO::FETCH_INTO, $object);
             $mode = PDO::FETCH_INTO;
@@ -146,7 +149,8 @@ class Db
             if (is_null($constructorArgs)) {
                 $statement->setFetchMode(PDO::FETCH_CLASS, $object);
             } else {
-                $statement->setFetchMode(PDO::FETCH_CLASS, $object, $constructorArgs);
+                $statement->setFetchMode(PDO::FETCH_CLASS, $object,
+                    $constructorArgs);
             }
         } else {
             $statement->setFetchMode(PDO::FETCH_NAMED);
@@ -208,17 +212,28 @@ class Db
     }
 
     /**
-     * Register a callback to be executed foreach line on the result
+     * Register a callback to be executed foreach line on the input
      *
-     * @param callback $resultCallback To be executed on the result set
-     * @param callback $dataCallback   To be executed on the data sent
+     * @param callback $callback To be executed on the input data
      *
      * @return Respect\Relational\Db
      */
-    public function map($resultCallback=null, $dataCallback=null)
+    public function mapIn($callback=null)
     {
-        $this->resultCallback = $resultCallback;
-        $this->dataCallback = $dataCallback;
+        $this->dataCallback = $callback;
+        return $this;
+    }
+
+    /**
+     * Register a callback to be executed foreach line on the input
+     *
+     * @param callback $callback To be executed on the result set
+     *
+     * @return Respect\Relational\Db
+     */
+    public function mapOut($callback=null)
+    {
+        $this->resultCallback = $callback;
         return $this;
     }
 

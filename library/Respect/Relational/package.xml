@@ -1,8 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<package packagerversion="1.9.1" version="2.0" xmlns="http://pear.php.net/dtd/package-2.0" xmlns:tasks="http://pear.php.net/dtd/tasks-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://pear.php.net/dtd/tasks-1.0
-    http://pear.php.net/dtd/tasks-1.0.xsd
-    http://pear.php.net/dtd/package-2.0
-    http://pear.php.net/dtd/package-2.0.xsd">
+<package packagerversion="1.9.1" version="2.0" xmlns="http://pear.php.net/dtd/package-2.0" xmlns:tasks="http://pear.php.net/dtd/tasks-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://pear.php.net/dtd/tasks-1.0     http://pear.php.net/dtd/tasks-1.0.xsd     http://pear.php.net/dtd/package-2.0     http://pear.php.net/dtd/package-2.0.xsd">
  <name>Relational</name>
  <uri>http://github.com/Respect/Relational</uri>
  <summary>Relational Database Utils</summary>
@@ -13,8 +10,8 @@
   <email>alexandre@gaigalas.net</email>
   <active>yes</active>
  </lead>
- <date>2010-10-05</date>
- <time>11:07:53</time>
+ <date>2010-12-01</date>
+ <time>13:37:44</time>
  <version>
   <release>0.1.0</release>
   <api>0.1.0</api>
@@ -29,7 +26,7 @@ First Version
  </notes>
  <contents>
   <dir baseinstalldir="Respect/Relational" name="/">
-   <file baseinstalldir="Respect/Relational" md5sum="dccaddd6fa935035bdeb6707d4ebe680" name="Db.php" role="php" />
+   <file baseinstalldir="Respect/Relational" md5sum="92119687b82dd0491bc471e43e9dcc24" name="Db.php" role="php" />
    <file baseinstalldir="Respect/Relational" md5sum="42e68ce16cc23a8dcedd58b93101006f" name="Sql.php" role="php" />
   </dir>
  </contents>
@@ -54,7 +51,7 @@ First Version
     <release>alpha</release>
     <api>alpha</api>
    </stability>
-   <date>2010-10-05</date>
+   <date>2010-12-01</date>
    <license uri="http://www.opensource.org/licenses/bsd-license.php">BSD Style</license>
    <notes>
 First Version

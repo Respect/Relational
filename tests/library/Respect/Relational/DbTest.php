@@ -28,7 +28,8 @@ class DbTest extends \PHPUnit_Framework_TestCase
     public function testBasicStatement()
     {
         $this->assertEquals(
-            'unit', $this->object->select('*')->from('sqlite_master')->fetch()->tbl_name
+            'unit',
+            $this->object->select('*')->from('sqlite_master')->fetch()->tbl_name
         );
     }
 
@@ -52,7 +53,8 @@ class DbTest extends \PHPUnit_Framework_TestCase
 
     public function testFetchingClassArgs()
     {
-        $line = $this->object->select('*')->from('unit')->fetch('Respect\Relational\testFetchingClassArgs', array('foo'));
+        $line = $this->object->select('*')->from('unit')->fetch('Respect\Relational\testFetchingClassArgs',
+                array('foo'));
         $this->assertType('Respect\Relational\testFetchingClassArgs', $line);
         $this->assertEquals('foo', $line->testd);
     }
@@ -70,7 +72,7 @@ class DbTest extends \PHPUnit_Framework_TestCase
 
     public function testFetchingMappedResult()
     {
-        $line = $this->object->select('*')->from('unit')->map(
+        $line = $this->object->select('*')->from('unit')->mapOut(
                 function($row) {
                     $row->acid = 'test';
                     return $row;
@@ -86,11 +88,11 @@ class DbTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals('abc', $x->testb);
     }
 
-    public function testFetchingMappedData()
+    public function testFetchingMapIn()
     {
         $x = new testFetchingInto;
-        $line = $this->object->select('*')->from('unit')->where(array('testb' => 'ABC'))->map(
-                null, function($input) {
+        $line = $this->object->select('*')->from('unit')->where(array('testb' => 'ABC'))->mapIn(
+                function($input) {
                     return array_map('strtolower', $input);
                 }
             )->fetch($x);
