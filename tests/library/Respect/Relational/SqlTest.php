@@ -126,12 +126,6 @@ class SqlTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals("ALTER TABLE table ADD column INT, ADD other_column VARCHAR(255), ADD yet_another_column TEXT", $sql);
     }
 
-    public function testAlterTableExpanded()
-    {
-        $sql = (string) $this->object->alterTable('table')->addColumn('column INT')->dropColumn('other_column VARCHAR(255)')->alterColumn('yet_another_column VARCHAR(255)');
-        $this->assertEquals("ALTER TABLE table ADD COLUMN column INT, DROP COLUMN other_column VARCHAR(255), ALTER COLUMN other_column VARCHAR(255)", $sql);
-    }
-
     public function testGrant()
     {
         $sql = (string) $this->object->grant('SELECT', 'UPDATE')->on('table')->to('user', 'other_user');
@@ -164,7 +158,7 @@ class SqlTest extends \PHPUnit_Framework_TestCase
         $where = array('abc' => 10);
         $having = array('SUM(abc)>10', 'AVG(def)' => 15);
         $sql = (string) $this->object->select('column', 'MAX(def)')->from('table')->where($where)->groupBy('abc', 'def')->having($having);
-        $this->assertEquals(array('Abc' => 10, 'AvgDef' => 15), $this->object->getData());
+        $this->assertEquals(array('Abc' => 10, 'AvgDef' => 15), $this->object->getParams());
     }
 
 }

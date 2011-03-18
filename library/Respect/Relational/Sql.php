@@ -6,20 +6,17 @@ class Sql
 {
 
     protected $query = '';
-    protected $translation = array();
+    protected $params = array();
     protected $data = array();
-    protected $previousOperation = '';
-    protected $currentOperation = '';
 
     public function __call($operation, $parts)
     {
-        $this->currentOperation = $this->buildOperation($operation);
+        $this->buildOperation($operation);
         $parts = $this->normalizeParts($parts);
         $method = 'parse' . ucfirst($operation);
         if (!method_exists($this, $method))
             $method = 'buildParts';
         $this->{$method}($parts);
-        $this->previousOperation = $this->currentOperation;
         return $this;
     }
 
@@ -35,11 +32,11 @@ class Sql
         return $q;
     }
 
-    public function getData()
+    public function getParams()
     {
         $data = array();
         foreach ($this->data as $k => $v)
-            $data[$this->translation[$k]] = $v;
+            $data[$this->params[$k]] = $v;
         return $data;
     }
 
@@ -57,7 +54,6 @@ class Sql
     {
         $command = strtoupper(preg_replace('#[A-Z0-9]+#', ' $0', $operation));
         $this->query .= trim($command) . ' ';
-        return $command;
     }
 
     protected function buildParts($parts, $format = '%s ', $partSeparator = ', ')
@@ -71,7 +67,7 @@ class Sql
     {
         $translated = strtolower(preg_replace('#[^a-zA-Z0-9]#', ' ', $identifier));
         $translated = str_replace(' ', '', ucwords($translated));
-        return $this->translation[$identifier] = $translated;
+        return $this->params[$identifier] = $translated;
     }
 
     protected function normalizeParts($parts)
@@ -102,24 +98,6 @@ class Sql
     {
         $this->parseFirstPart($parts);
         $this->buildParts($parts, '%s ');
-    }
-
-    protected function parseAddColumn($parts)
-    {
-        $format = $this->previousOperation == 'ALTER TABLE' ? '%s, ' : '%s ';
-        $this->buildParts($parts, $format);
-    }
-
-    protected function parseAlterColumn($parts)
-    {
-        $format = $this->previousOperation == 'ALTER TABLE' ? '%s, ' : '%s ';
-        $this->buildParts($parts, $format);
-    }
-
-    protected function parseDropColumn($parts)
-    {
-        $format = $this->previousOperation == 'ALTER TABLE' ? '%s, ' : '%s ';
-        $this->buildParts($parts, $format);
     }
 
     protected function parseHaving($parts)

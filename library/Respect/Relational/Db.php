@@ -72,7 +72,7 @@ class Db
     protected function performFetch($method, $object = '\stdClass', $extra = null)
     {
         $statement = $this->prepare((string) $this->sql, $object, $extra);
-        $statement->execute($this->sql->getData());
+        $statement->execute($this->sql->getParams());
         $result = $statement->{$method}();
         $this->sql = new Sql();
         return $result;
