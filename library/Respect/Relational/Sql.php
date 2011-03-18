@@ -2,258 +2,81 @@
 
 namespace Respect\Relational;
 
-/**
- * Sql class file
- *
- * PHP version 5.3
- *
- * @author    Alexandre Gomes Gaigalas <alexandre@gaigalas.net>
- * @category  Respect
- * @package   Relational
- * @copyright © Alexandre Gomes Gaigalas
- * @license   http://gaigalas.net/license/newbsd/ New BSD License
- * @version   1
- */
-
-/**
- * SQL Builder
- *
- * Builds SQL queries using native PHP code
- *
- * @author    Alexandre Gomes Gaigalas <alexandre@gaigalas.net>
- * @category  Respect
- * @package   Relational
- * @copyright © Alexandre Gomes Gaigalas
- * @license   http://gaigalas.net/license/newbsd/ New BSD License
- * @version   1
- * @method Respect\Relational\Sql select()
- * @method Respect\Relational\Sql insertInto()
- * @method Respect\Relational\Sql update()
- * @method Respect\Relational\Sql delete()
- * @method Respect\Relational\Sql where()
- * @method Respect\Relational\Sql set()
- * @method Respect\Relational\Sql in()
- * @method Respect\Relational\Sql values()
- * @method Respect\Relational\Sql createTable()
- * @method Respect\Relational\Sql having()
- * @method Respect\Relational\Sql groupBy()
- */
 class Sql
 {
 
-    /**
-     * @var string Current query
-     */
-    protected $_query = '';
-    /**
-     * @var array Translated identifier names
-     */
-    protected $_translation = array();
-    /**
-     *
-     * @var array Column data through the whole query
-     */
-    protected $_data = array();
+    protected $query = '';
+    protected $translation = array();
+    protected $data = array();
+    protected $previousOperation = '';
+    protected $currentOperation = '';
 
-    /**
-     * Generic method for calling operations
-     *
-     * @param string $operation Method name for the operation
-     * @param array  $parts     Parameters for query parts
-     *
-     * @return Respect\Relational\Sql
-     */
     public function __call($operation, $parts)
     {
-        $this->_buildOperation($operation);
-        $parts = $this->_normalizeParts($parts);
-        $method = '_' . $operation;
+        $this->currentOperation = $this->buildOperation($operation);
+        $parts = $this->normalizeParts($parts);
+        $method = 'parse' . ucfirst($operation);
         if (!method_exists($this, $method))
-            $method = '_buildParts';
+            $method = 'buildParts';
         $this->{$method}($parts);
+        $this->previousOperation = $this->currentOperation;
         return $this;
     }
 
-    /**
-     * Constructor
-     *
-     * @param string $rawSql Raw SQL Statement
-     */
     public function __construct($rawSql = '')
     {
-        $this->_query = $rawSql;
+        $this->query = $rawSql;
     }
 
-    /**
-     * Generic getter for calling operations
-     *
-     * @param string $operation Method name for the operation
-     *
-     * @return Respect\Relational\Sql
-     */
-    public function __get($operation)
+    public function __toString()
     {
-        return $this->__call($operation, array());
+        $q = trim($this->query);
+        $this->query = '';
+        return $q;
     }
 
-    /**
-     * Wrapper for WHERE operator
-     *
-     * @param array $parts Query Parts
-     */
-    protected function _where($parts)
+    public function getData()
     {
-        $this->_buildKeyValues($parts, '%s ', ' AND ');
+        $data = array();
+        foreach ($this->data as $k => $v)
+            $data[$this->translation[$k]] = $v;
+        return $data;
     }
 
-    /**
-     * Wrapper for HAVING operator
-     *
-     * @param array $parts Query Parts
-     */
-    protected function _having($parts)
+    protected function buildKeyValues($parts, $format = '%s ', $partSeparator = ', ')
     {
-        $this->_buildKeyValues($parts, '%s ', ' AND ');
-    }
-
-    /**
-     * Wrapper for IN operator
-     *
-     * @param array $parts Query Parts
-     */
-    protected function _in($parts)
-    {
-        $parts = array_map(array($this, '_namefy'), $parts);
-        $this->_buildParts($parts, '(:%s) ', ', :');
-    }
-
-    /**
-     * Wrapper for SET operator
-     *
-     * @param array $parts Query Parts
-     */
-    protected function _set($parts)
-    {
-        $this->_buildKeyValues($parts);
-    }
-
-    /**
-     * Wrapper for INSERT INTO operator
-     *
-     * @param array $parts Query Parts
-     */
-    protected function _insertInto($parts)
-    {
-        $this->_parseFirstPart($parts);
-        $this->_buildParts($parts, '(%s) ');
-    }
-
-    /**
-     * Wrapper for VALUES operator
-     *
-     * @param array $parts Query Parts
-     */
-    protected function _values($parts)
-    {
-        $parts = array_map(array($this, '_namefy'), $parts);
-        $this->_buildParts($parts, '(:%s) ', ', :');
-    }
-
-    /**
-     * Creates names from column/table/value identifiers
-     *
-     * @param string $identifier identifier to be namefied
-     * @return string
-     */
-    protected function _namefy($identifier)
-    {
-        $translated = strtolower(preg_replace('#[^a-zA-Z0-9]#', ' ', $identifier));
-        $translated = str_replace(' ', '', ucwords($translated));
-        return $this->_translation[$identifier] = $translated;
-    }
-
-    /**
-     * Wrapper for CREATE TABLE operator
-     *
-     * @param array $parts Query Parts
-     */
-    protected function _createTable($parts)
-    {
-        $this->_parseFirstPart($parts);
-        $this->_buildParts($parts, '(%s) ');
-    }
-
-    /**
-     * Plain-parse the first query
-     *
-     * @param array $parts Query Parts
-     * @return void
-     */
-    protected function _parseFirstPart(& $parts)
-    {
-        $this->_query .= array_shift($parts) . ' ';
-    }
-
-    /**
-     * Builds key/values representation for the query parts
-     *
-     * @param array  $parts         Query Parts
-     * @param string $format        General format (sprintf style) for the
-     *                              key/values set
-     * @param string $partSeparator Separator for each key/value item
-     *
-     * @return void
-     */
-    protected function _buildKeyValues($parts, $format = '%s ', $partSeparator = ', ')
-    {
-        foreach ($parts as $key => $part) {
-            if (is_numeric($key)) {
+        foreach ($parts as $key => $part)
+            if (is_numeric($key))
                 $parts[$key] = "$part";
-            } else {
-                $namifiedPart = $this->_namefy($part);
-                $parts[$key] = "$key=:" . $namifiedPart;
-            }
-        }
-        $this->_buildParts($parts, $format, $partSeparator);
+            else
+                $parts[$key] = "$key=:" . $this->buildName($part);
+        $this->buildParts($parts, $format, $partSeparator);
     }
 
-    /**
-     * Builds the query parts
-     *
-     * @param array  $parts         Query Parts
-     * @param string $format        General format (sprintf style) for the
-     *                              parts
-     * @param string $partSeparator Separator for each part
-     * @return void
-     */
-    protected function _buildParts($parts, $format = '%s ', $partSeparator = ', ')
+    protected function buildOperation($operation)
+    {
+        $command = strtoupper(preg_replace('#[A-Z0-9]+#', ' $0', $operation));
+        $this->query .= trim($command) . ' ';
+        return $command;
+    }
+
+    protected function buildParts($parts, $format = '%s ', $partSeparator = ', ')
     {
         if (empty($parts))
             return;
-        $this->_query .= sprintf($format, implode($partSeparator, $parts));
+        $this->query .= sprintf($format, implode($partSeparator, $parts));
     }
 
-    /**
-     * Builds the main SQL operator
-     *
-     * @param string $operation Operator name
-     * @return void
-     */
-    protected function _buildOperation($operation)
+    protected function buildName($identifier)
     {
-        $command = strtoupper(preg_replace('#[A-Z0-9]+#', ' $0', $operation));
-        $this->_query .= trim($command) . ' ';
+        $translated = strtolower(preg_replace('#[^a-zA-Z0-9]#', ' ', $identifier));
+        $translated = str_replace(' ', '', ucwords($translated));
+        return $this->translation[$identifier] = $translated;
     }
 
-    /**
-     * Normalize the parts arrays into one dimension
-     *
-     * @param array $parts Query parts
-     * @return array Normalized parts
-     */
-    protected function _normalizeParts($parts)
+    protected function normalizeParts($parts)
     {
-        $data = & $this->_data;
+        $data = & $this->data;
         $newParts = array();
         array_walk_recursive($parts, function ($value, $key) use ( & $newParts, & $data) {
                 if (is_int($key)) {
@@ -269,30 +92,105 @@ class Sql
         return $newParts;
     }
 
-    /**
-     * Returns the query string representation
-     *
-     * @return string
-     */
-    public function __toString()
+    protected function parseCreateTable($parts)
     {
-        $q = trim($this->_query);
-        $this->_query = '';
-        return $q;
+        $this->parseFirstPart($parts);
+        $this->buildParts($parts, '(%s) ');
     }
 
-    /**
-     * Returns the data for query columns
-     *
-     * @return array
-     */
-    public function getData()
+    protected function parseAlterTable($parts)
     {
-        $data = array();
-        foreach ($this->_data as $k => $v) {
-            $data[$this->_translation[$k]] = $v;
-        }
-        return $data;
+        $this->parseFirstPart($parts);
+        $this->buildParts($parts, '%s ');
+    }
+
+    protected function parseAddColumn($parts)
+    {
+        $format = $this->previousOperation == 'ALTER TABLE' ? '%s, ' : '%s ';
+        $this->buildParts($parts, $format);
+    }
+
+    protected function parseAlterColumn($parts)
+    {
+        $format = $this->previousOperation == 'ALTER TABLE' ? '%s, ' : '%s ';
+        $this->buildParts($parts, $format);
+    }
+
+    protected function parseDropColumn($parts)
+    {
+        $format = $this->previousOperation == 'ALTER TABLE' ? '%s, ' : '%s ';
+        $this->buildParts($parts, $format);
+    }
+
+    protected function parseHaving($parts)
+    {
+        $this->buildKeyValues($parts, '%s ', ' AND ');
+    }
+
+    protected function parseIn($parts)
+    {
+        $parts = array_map(array($this, 'buildName'), $parts);
+        $this->buildParts($parts, '(:%s) ', ', :');
+    }
+
+    protected function parseInsertInto($parts)
+    {
+        $this->parseFirstPart($parts);
+        $this->buildParts($parts, '(%s) ');
+    }
+
+    protected function parseFirstPart(& $parts)
+    {
+        $this->query .= array_shift($parts) . ' ';
+    }
+
+    protected function parseSet($parts)
+    {
+        $this->buildKeyValues($parts);
+    }
+
+    protected function parseValues($parts)
+    {
+        $parts = array_map(array($this, 'buildName'), $parts);
+        $this->buildParts($parts, '(:%s) ', ', :');
+    }
+
+    protected function parseWhere($parts)
+    {
+        $this->buildKeyValues($parts, '%s ', ' AND ');
     }
 
 }
+
+/**
+ * LICENSE
+ *
+ * Copyright (c) 2009-2011, Alexandre Gomes Gaigalas.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *
+ *     * Redistributions of source code must retain the above copyright notice,
+ *       this list of conditions and the following disclaimer.
+ *
+ *     * Redistributions in binary form must reproduce the above copyright notice,
+ *       this list of conditions and the following disclaimer in the documentation
+ *       and/or other materials provided with the distribution.
+ *
+ *     * Neither the name of Alexandre Gomes Gaigalas nor the names of its
+ *       contributors may be used to endorse or promote products derived from this
+ *       software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ */

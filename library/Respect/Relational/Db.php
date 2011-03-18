@@ -4,250 +4,111 @@ namespace Respect\Relational;
 
 use \PDO as PDO;
 
-/**
- * Db class file
- *
- * PHP version 5.3
- *
- * @author    Alexandre Gomes Gaigalas <alexandre@gaigalas.net>
- * @category  Respect
- * @package   Relational
- * @copyright © Alexandre Gomes Gaigalas
- * @license   http://gaigalas.net/license/newbsd/ New BSD License
- * @version   1
- */
-
-/**
- * Database abstraction
- *
- * Handles database operations
- *
- * @author    Alexandre Gomes Gaigalas <alexandre@gaigalas.net>
- * @category  Respect
- * @package   Relational
- * @copyright © Alexandre Gomes Gaigalas
- * @license   http://gaigalas.net/license/newbsd/ New BSD License
- * @version   1
- * @method Respect\Relational\Db select()
- * @method Respect\Relational\Db insertInto()
- * @method Respect\Relational\Db update()
- * @method Respect\Relational\Db delete()
- * @method Respect\Relational\Db where()
- * @method Respect\Relational\Db set()
- * @method Respect\Relational\Db in()
- * @method Respect\Relational\Db values()
- * @method Respect\Relational\Db createTable()
- * @method Respect\Relational\Db having()
- * @method Respect\Relational\Db groupBy()
- */
 class Db
 {
 
-    /**
-     * @var PDO
-     */
     protected $connection;
-    /**
-     * @var Sql
-     */
     protected $sql;
-    /**
-     * @var callback
-     */
-    protected $resultCallback = null;
-    /**
-     * @var callback
-     */
-    protected $dataCallback = null;
+    protected $callback = null;
 
-    /**
-     * Constructor
-     *
-     * @param PDO $connection PDO Connection for the database
-     */
-    public function __construct(PDO $connection)
-    {
-        $this->connection = $connection;
-        $this->connection->setAttribute(PDO::ATTR_ERRMODE,
-            PDO::ERRMODE_EXCEPTION);
-        $this->connection->setAttribute(PDO::ATTR_CASE, PDO::CASE_NATURAL);
-        $this->connection->setAttribute(PDO::ATTR_ORACLE_NULLS,
-            PDO::NULL_EMPTY_STRING);
-        $this->connection->setAttribute(PDO::ATTR_STRINGIFY_FETCHES, false);
-        $this->_cleanUp();
-    }
-
-    /**
-     * Cleans up the object properties for new statements
-     */
-    protected function _cleanUp()
-    {
-        $this->sql = new Sql();
-        $this->resultCallback = null;
-        $this->dataCallback = null;
-    }
-
-    /**
-     * Returns the SQL String for the current statement
-     *
-     * @return string
-     */
-    protected function _getSqlString()
-    {
-        return $this->sql->__toString();
-    }
-
-    /**
-     * Returns the current parameters for the statement
-     *
-     * @return array
-     */
-    protected function _getSqlData()
-    {
-        $data = $this->sql->getData();
-        if (!is_null($this->dataCallback)) {
-            $data = call_user_func($this->dataCallback, $data);
-        }
-        return $data;
-    }
-
-    /**
-     * Forwards all the calls to the SQL object
-     *
-     * @param string $methodName Method name
-     * @param array  $arguments  Method arguments
-     *
-     * @return Respect\Relational\Db
-     */
     public function __call($methodName, $arguments)
     {
         $this->sql->__call($methodName, $arguments);
         return $this;
     }
 
-    /**
-     * Prepares a query and configures the fetch mode
-     *
-     * @param mixed  $queryString     SQL to be prepared
-     * @param mixed  $object          Target for pre fetching
-     * @param string $constructorArgs Constructor arguments for classname pre
-     *                                 fetching
-     *
-     * @return void
-     */
-    public function prepare($queryString, $object = '\stdClass',
-        $constructorArgs = null)
+    public function __construct(PDO $connection)
+    {
+        $this->connection = $connection;
+        $this->sql = new Sql();
+    }
+
+    public function fetch($object = '\stdClass', $extra = null)
+    {
+        $result = $this->performFetch(__FUNCTION__, $object, $extra);
+        return is_callable($object) ? $object($result) : $result;
+    }
+
+    public function fetchAll($object = '\stdClass', $extra = null)
+    {
+        $result = $this->performFetch(__FUNCTION__, $object, $extra);
+        return is_callable($object) ? array_map($object, $result) : $result;
+    }
+
+    public function getConnection()
+    {
+        return $this->connection;
+    }
+
+    public function getSql()
+    {
+        return $this->sql;
+    }
+
+    public function prepare($queryString, $object = '\stdClass', $constructorArgs = null)
     {
         $statement = $this->connection->prepare($queryString);
-        if (is_callable($object)) {
+
+        if (is_callable($object))
             $statement->setFetchMode(PDO::FETCH_OBJ);
-            $this->mapOut($object);
-        } elseif (is_object($object)) {
+        elseif (is_object($object))
             $statement->setFetchMode(PDO::FETCH_INTO, $object);
-            $mode = PDO::FETCH_INTO;
-        } elseif (is_string($object)) {
-            if (is_null($constructorArgs)) {
-                $statement->setFetchMode(PDO::FETCH_CLASS, $object);
-            } else {
-                $statement->setFetchMode(PDO::FETCH_CLASS, $object,
-                    $constructorArgs);
-            }
-        } else {
+        elseif (!is_string($object))
             $statement->setFetchMode(PDO::FETCH_NAMED);
-        }
+        elseif (is_null($constructorArgs))
+            $statement->setFetchMode(PDO::FETCH_CLASS, $object);
+        else
+            $statement->setFetchMode(PDO::FETCH_CLASS, $object, $constructorArgs);
+
         return $statement;
     }
 
-    /**
-     * Fetches a single row from the database
-     *
-     * @param $object Class name or object as fetch target
-     * @param $extra  Extra arguments for pre fetching
-     *
-     * @return mixed
-     */
-    public function fetch($object = '\stdClass', $extra = null)
-    {
-        $result = $this->_doFetch('fetch', $object, $extra);
-        if (!is_null($this->resultCallback)) {
-            $result = call_user_func($this->resultCallback, $result);
-        }
-        $this->_cleanUp();
-        return $result;
-    }
-
-    /**
-     * Fetches all the rows from the database
-     *
-     * @param $object Class name or object as fetch<type> target
-     * @param $extra  Extra arguments for pre fetching
-     *
-     * @return mixed
-     */
-    public function fetchAll($object = '\stdClass', $extra = null)
-    {
-        $result = $this->_doFetch('fetchAll', $object, $extra);
-        if (!is_null($this->resultCallback)) {
-            $result = array_map($this->resultCallback, $result);
-        }
-        $this->_cleanUp();
-        return $result;
-    }
-
-    /**
-     * Draft method for fetch operations
-     *
-     * @param $method Fetch method name
-     * @param $object Class name or object as fetch target
-     * @param $extra  Extra arguments for pre fetching
-     *
-     * @return mixed
-     */
-    protected function _doFetch($method, $object = '\stdClass', $extra = null)
-    {
-        $statement = $this->prepare($this->_getSqlString(), $object, $extra);
-        $statement->execute($this->_getSqlData());
-        $result = $statement->{$method}();
-        return $result;
-    }
-
-    /**
-     * Register a callback to be executed foreach line on the input
-     *
-     * @param callback $callback To be executed on the input data
-     *
-     * @return Respect\Relational\Db
-     */
-    public function mapIn($callback=null)
-    {
-        $this->dataCallback = $callback;
-        return $this;
-    }
-
-    /**
-     * Register a callback to be executed foreach line on the input
-     *
-     * @param callback $callback To be executed on the result set
-     *
-     * @return Respect\Relational\Db
-     */
-    public function mapOut($callback=null)
-    {
-        $this->resultCallback = $callback;
-        return $this;
-    }
-
-    /**
-     * Queries the database using raw sql
-     *
-     * @param string $rawSql
-     *
-     * @return Respect\Relational\Db
-     */
     public function query($rawSql)
     {
         $this->sql = new Sql($rawSql);
         return $this;
     }
 
+    protected function performFetch($method, $object = '\stdClass', $extra = null)
+    {
+        $statement = $this->prepare((string) $this->sql, $object, $extra);
+        $statement->execute($this->sql->getData());
+        $result = $statement->{$method}();
+        $this->sql = new Sql();
+        return $result;
+    }
+
 }
+
+/**
+ * LICENSE
+ *
+ * Copyright (c) 2009-2011, Alexandre Gomes Gaigalas.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *
+ *     * Redistributions of source code must retain the above copyright notice,
+ *       this list of conditions and the following disclaimer.
+ *
+ *     * Redistributions in binary form must reproduce the above copyright notice,
+ *       this list of conditions and the following disclaimer in the documentation
+ *       and/or other materials provided with the distribution.
+ *
+ *     * Neither the name of Alexandre Gomes Gaigalas nor the names of its
+ *       contributors may be used to endorse or promote products derived from this
+ *       software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ */

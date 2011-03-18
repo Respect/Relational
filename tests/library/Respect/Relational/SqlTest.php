@@ -20,7 +20,7 @@ class SqlTest extends \PHPUnit_Framework_TestCase
 
     public function testSelectMagicGetDistinctFromHell()
     {
-        $sql = (string) $this->object->select->distinct('*')->from('table');
+        $sql = (string) $this->object->select()->distinct('*')->from('table');
         $this->assertEquals("SELECT DISTINCT * FROM table", $sql);
     }
 
@@ -113,6 +113,23 @@ class SqlTest extends \PHPUnit_Framework_TestCase
         );
         $sql = (string) $this->object->createTable('table', $columns);
         $this->assertEquals("CREATE TABLE table (column INT, other_column VARCHAR(255), yet_another_column TEXT)", $sql);
+    }
+
+    public function testAlterTable()
+    {
+        $columns = array(
+            'ADD column INT',
+            'ADD other_column VARCHAR(255)',
+            'ADD yet_another_column TEXT'
+        );
+        $sql = (string) $this->object->alterTable('table', $columns);
+        $this->assertEquals("ALTER TABLE table ADD column INT, ADD other_column VARCHAR(255), ADD yet_another_column TEXT", $sql);
+    }
+
+    public function testAlterTableExpanded()
+    {
+        $sql = (string) $this->object->alterTable('table')->addColumn('column INT')->dropColumn('other_column VARCHAR(255)')->alterColumn('yet_another_column VARCHAR(255)');
+        $this->assertEquals("ALTER TABLE table ADD COLUMN column INT, DROP COLUMN other_column VARCHAR(255), ALTER COLUMN other_column VARCHAR(255)", $sql);
     }
 
     public function testGrant()

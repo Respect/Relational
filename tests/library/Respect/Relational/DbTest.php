@@ -70,32 +70,10 @@ class DbTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals('test', $line->acid);
     }
 
-    public function testFetchingMappedResult()
-    {
-        $line = $this->object->select('*')->from('unit')->mapOut(
-                function($row) {
-                    $row->acid = 'test';
-                    return $row;
-                }
-            )->fetch();
-        $this->assertEquals('test', $line->acid);
-    }
-
     public function testFetchingInto()
     {
         $x = new testFetchingInto;
         $line = $this->object->select('*')->from('unit')->where(array('testb' => 'abc'))->fetch($x);
-        $this->assertEquals('abc', $x->testb);
-    }
-
-    public function testFetchingMapIn()
-    {
-        $x = new testFetchingInto;
-        $line = $this->object->select('*')->from('unit')->where(array('testb' => 'ABC'))->mapIn(
-                function($input) {
-                    return array_map('strtolower', $input);
-                }
-            )->fetch($x);
         $this->assertEquals('abc', $x->testb);
     }
 
