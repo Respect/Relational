@@ -8,19 +8,20 @@ class Db
 {
 
     protected $connection;
-    protected $sql;
-    protected $callback = null;
+    protected $currentSql;
+    protected $protoSql;
 
     public function __call($methodName, $arguments)
     {
-        $this->sql->__call($methodName, $arguments);
+        $this->currentSql->__call($methodName, $arguments);
         return $this;
     }
 
-    public function __construct(PDO $connection)
+    public function __construct(PDO $connection, Sql $sqlPrototype = null)
     {
         $this->connection = $connection;
-        $this->sql = new Sql();
+        $this->protoSql = $sqlPrototype ? : new Sql();
+        $this->currentSql = clone $this->protoSql;
     }
 
     public function fetch($object = '\stdClass', $extra = null)
@@ -42,7 +43,7 @@ class Db
 
     public function getSql()
     {
-        return $this->sql;
+        return $this->currentSql;
     }
 
     public function prepare($queryString, $object = '\stdClass', $constructorArgs = null)
@@ -65,16 +66,16 @@ class Db
 
     public function query($rawSql)
     {
-        $this->sql = new Sql($rawSql);
+        $this->currentSql->setQuery($rawSql);
         return $this;
     }
 
     protected function performFetch($method, $object = '\stdClass', $extra = null)
     {
-        $statement = $this->prepare((string) $this->sql, $object, $extra);
-        $statement->execute($this->sql->getParams());
+        $statement = $this->prepare((string) $this->currentSql, $object, $extra);
+        $statement->execute($this->currentSql->getParams());
         $result = $statement->{$method}();
-        $this->sql = new Sql();
+        $this->currentSql = clone $this->protoSql;
         return $result;
     }
 

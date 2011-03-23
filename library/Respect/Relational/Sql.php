@@ -22,7 +22,7 @@ class Sql
 
     public function __construct($rawSql = '')
     {
-        $this->query = $rawSql;
+        $this->setQuery($rawSql);
     }
 
     public function __toString()
@@ -38,6 +38,11 @@ class Sql
         foreach ($this->data as $k => $v)
             $data[$this->params[$k]] = $v;
         return $data;
+    }
+
+    public function setQuery($rawSql)
+    {
+        $this->query = $rawSql;
     }
 
     protected function buildKeyValues($parts, $format = '%s ', $partSeparator = ', ')
