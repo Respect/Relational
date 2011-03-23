@@ -9,10 +9,15 @@ class Sql
     protected $params = array();
     protected $data = array();
 
+    public static function __callStatic($operation, $parts)
+    {
+        $sql = new static;
+        return call_user_func_array(array($sql, $operation), $parts);
+    }
+
     public function __call($operation, $parts)
     {
         $this->buildOperation($operation);
-        $parts = $this->normalizeParts($parts);
         $method = 'parse' . ucfirst($operation);
         if (!method_exists($this, $method))
             $method = 'buildParts';
@@ -55,6 +60,16 @@ class Sql
         $this->buildParts($parts, $format, $partSeparator);
     }
 
+    protected function buildComparators($parts, $format = '%s ', $partSeparator = ', ')
+    {
+        foreach ($parts as $key => $part)
+            if (is_numeric($key))
+                $parts[$key] = "$part";
+            else
+                $parts[$key] = "$key = $part";
+        $this->buildParts($parts, $format, $partSeparator);
+    }
+
     protected function buildOperation($operation)
     {
         $command = strtoupper(preg_replace('#[A-Z0-9]+#', ' $0', $operation));
@@ -75,12 +90,14 @@ class Sql
         return $this->params[$identifier] = $translated;
     }
 
-    protected function normalizeParts($parts)
+    protected function normalizeParts($parts, $raw=false)
     {
         $data = & $this->data;
         $newParts = array();
-        array_walk_recursive($parts, function ($value, $key) use ( & $newParts, & $data) {
-                if (is_int($key)) {
+        array_walk_recursive($parts, function ($value, $key) use ( &$newParts, &$data, &$raw) {
+                if ($raw) {
+                    $newParts[$key] = $value;
+                } elseif (is_int($key)) {
                     $name = $value;
                     $newParts[] = $name;
                 } else {
@@ -95,29 +112,34 @@ class Sql
 
     protected function parseCreateTable($parts)
     {
+        $parts = $this->normalizeParts($parts);
         $this->parseFirstPart($parts);
         $this->buildParts($parts, '(%s) ');
     }
 
     protected function parseAlterTable($parts)
     {
+        $parts = $this->normalizeParts($parts);
         $this->parseFirstPart($parts);
         $this->buildParts($parts, '%s ');
     }
 
     protected function parseHaving($parts)
     {
+        $parts = $this->normalizeParts($parts);
         $this->buildKeyValues($parts, '%s ', ' AND ');
     }
 
     protected function parseIn($parts)
     {
+        $parts = $this->normalizeParts($parts);
         $parts = array_map(array($this, 'buildName'), $parts);
         $this->buildParts($parts, '(:%s) ', ', :');
     }
 
     protected function parseInsertInto($parts)
     {
+        $parts = $this->normalizeParts($parts);
         $this->parseFirstPart($parts);
         $this->buildParts($parts, '(%s) ');
     }
@@ -129,18 +151,27 @@ class Sql
 
     protected function parseSet($parts)
     {
+        $parts = $this->normalizeParts($parts);
         $this->buildKeyValues($parts);
     }
 
     protected function parseValues($parts)
     {
+        $parts = $this->normalizeParts($parts);
         $parts = array_map(array($this, 'buildName'), $parts);
         $this->buildParts($parts, '(:%s) ', ', :');
     }
 
     protected function parseWhere($parts)
     {
+        $parts = $this->normalizeParts($parts);
         $this->buildKeyValues($parts, '%s ', ' AND ');
+    }
+
+    protected function parseOn($parts)
+    {
+        $parts = $this->normalizeParts($parts, true);
+        $this->buildComparators($parts, '%s ', ' AND ');
     }
 
 }

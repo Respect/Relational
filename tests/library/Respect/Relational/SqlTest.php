@@ -42,6 +42,12 @@ class SqlTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals("SELECT * FROM table INNER JOIN other_table ON table.column = other_table.other_column", $sql);
     }
 
+    public function testSelectInnerJoinArr()
+    {
+        $sql = (string) $this->object->select('*')->from('table')->innerJoin('other_table')->on(array('table.column' => 'other_table.other_column'));
+        $this->assertEquals("SELECT * FROM table INNER JOIN other_table ON table.column = other_table.other_column", $sql);
+    }
+
     public function testSelectWhere()
     {
         $sql = (string) $this->object->select('*')->from('table')->where('column=123');
