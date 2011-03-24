@@ -6,6 +6,8 @@ interface Schemable
 {
 
     public function findRelationships($entityName, $relatedNameOrColumn);
+
+    public function hydrate(array $entitiesNames, array $row);
 }
 
 /**

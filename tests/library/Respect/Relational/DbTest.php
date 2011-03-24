@@ -85,7 +85,13 @@ class DbTest extends \PHPUnit_Framework_TestCase
 
     public function testFetchingArray()
     {
-        $line = $this->object->select('*')->from('unit')->where(array('testb' => 'abc'))->fetch(null);
+        $line = $this->object->select('*')->from('unit')->where(array('testb' => 'abc'))->fetch(\PDO::FETCH_ASSOC);
+        $this->assertTrue(is_array($line));
+    }
+
+    public function testFetchingArray2()
+    {
+        $line = $this->object->select('*')->from('unit')->where(array('testb' => 'abc'))->fetch(array());
         $this->assertTrue(is_array($line));
     }
 

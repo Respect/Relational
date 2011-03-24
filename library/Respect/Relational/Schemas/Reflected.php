@@ -12,7 +12,13 @@ class Reflected implements Schemable
         //ReflectionClass, ReflectionProperty, etc...
     }
 
+    public function hydrate(array $entitiesNames, array $row)
+    {
+        //check properties classes, etc
+    }
+
 }
+
 /**
  * LICENSE
  *

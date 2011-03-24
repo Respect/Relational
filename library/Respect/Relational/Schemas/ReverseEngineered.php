@@ -12,6 +12,11 @@ class ReverseEngineered implements Schemable
         //SHOW COLUMNS, INFORMATION_SCHEMA, etc.
     }
 
+    public function hydrate(array $entitiesNames, array $row)
+    {
+        //check columns, etc
+    }
+
 }
 
 /**

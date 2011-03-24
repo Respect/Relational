@@ -2,6 +2,7 @@
 
 namespace Respect\Relational\Schemas;
 
+use stdClass;
 use Respect\Relational\Relationship;
 use Respect\Relational\Schemable;
 
@@ -12,8 +13,35 @@ class Infered implements Schemable
     {
         $from = $this->stripIdSuffix($entityName);
         $to = $this->stripIdSuffix($relatedNameOrColumn);
-        $keys = array("{$from}.{$to}_id" => "{$to}.id");
+        $keys = array("{$to}_id" => "id");
         return array(new Relationship($from, $to, $keys));
+    }
+
+    public function hydrate(array $entitiesNames, array $row)
+    {
+        $entities = array();
+
+        foreach ($entitiesNames as &$name) {
+            $name = $this->stripIdSuffix($name);
+            $entities[] = new stdClass;
+        }
+
+        foreach ($row as $columnName => $value)
+            if (is_array($value))
+                foreach ($value as $entityId => $subValue)
+                    $entities[$entityId]->{$columnName} = $subValue;
+            else
+                foreach ($entities as $entity)
+                    $entity->{$columnName} = $value;
+
+
+        foreach ($entities as $entity)
+            foreach ($entity as $fieldName => $field)
+                foreach ($entitiesNames as $entityId => $entityName)
+                    if ($entityName == $this->stripIdSuffix($fieldName))
+                        $entity->{$fieldName} = $entities[$entityId];
+
+        return reset($entities);
     }
 
     protected function stripIdSuffix($name)

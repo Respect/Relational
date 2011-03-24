@@ -16,12 +16,32 @@ class Relationship
         $this->keys = $keys;
     }
 
-    public function asInnerJoin($includeFrom=false)
+    public function asInnerJoin($includeFrom=false, $aliasFrom=null, $aliasTo=null)
     {
         $sql = new Sql();
         if ($includeFrom)
             $sql->from($this->from);
-        return $sql->innerJoin($this->to)->on($this->keys);
+
+        if ($aliasFrom)
+            $sql->as($aliasFrom);
+
+        $sql->innerJoin($this->to);
+
+        if ($aliasTo)
+            $sql->as($aliasTo);
+
+        return $sql->on($this->createJoinKeys($aliasFrom, $aliasTo));
+    }
+
+    protected function createJoinKeys($aliasFrom=null, $aliasTo=null)
+    {
+        $keys = array();
+
+        foreach ($this->keys as $kFrom => $kTo)
+            $keys[($aliasFrom? : $this->from) . ".$kFrom"]
+                = ($aliasTo? : $this->to) . ".$kTo";
+
+        return $keys;
     }
 
 }

@@ -46,20 +46,24 @@ class Db
         return $this->currentSql;
     }
 
-    public function prepare($queryString, $object = '\stdClass', $constructorArgs = null)
+    public function prepare($queryString, $object = '\stdClass', array $extra = null)
     {
         $statement = $this->connection->prepare($queryString);
 
-        if (is_callable($object))
+        if (is_int($object))
+            $statement->setFetchMode($object);
+        elseif ('\stdClass' === $object || 'stdClass' === $object)
+            $statement->setFetchMode(PDO::FETCH_OBJ);
+        elseif (is_callable($object))
             $statement->setFetchMode(PDO::FETCH_OBJ);
         elseif (is_object($object))
             $statement->setFetchMode(PDO::FETCH_INTO, $object);
-        elseif (!is_string($object))
-            $statement->setFetchMode(PDO::FETCH_NAMED);
-        elseif (is_null($constructorArgs))
+        elseif (is_array($object))
+            $statement->setFetchMode(PDO::FETCH_ASSOC);
+        elseif (is_null($extra))
             $statement->setFetchMode(PDO::FETCH_CLASS, $object);
         else
-            $statement->setFetchMode(PDO::FETCH_CLASS, $object, $constructorArgs);
+            $statement->setFetchMode(PDO::FETCH_CLASS, $object, $extra);
 
         return $statement;
     }
