@@ -5,24 +5,27 @@ namespace Respect\Relational\Schemas;
 use Respect\Relational\Relationship;
 use Respect\Relational\Schemable;
 
-class Infered implements Schemable
+class Inflected implements Schemable
 {
+
+    protected $schema;
+
+    public function __construct(Schemable $schema)
+    {
+        $this->schema = $schema;
+    }
 
     public function findRelationships($entityName, $relatedNameOrColumn)
     {
-        $from = $this->stripIdSuffix($entityName);
-        $to = $this->stripIdSuffix($relatedNameOrColumn);
-        $keys = array("{$from}.{$to}_id" => "{$to}.id");
-        return array(new Relationship($from, $to, $keys));
+        return $this->schema->findRelationships(
+            $this->decamelize($entityName),
+            $this->decamelize($relatedNameOrColumn)
+        );
     }
 
-    protected function stripIdSuffix($name)
+    protected function decamelize($name)
     {
-        $lastIdPos = strripos($name, '_id');
-        if (false === $lastIdPos || $lastIdPos + 3 !== strlen($name))
-            return $name;
-        else
-            return substr($name, 0, $lastIdPos);
+        return strtolower(preg_replace('/([A-Z0-9])/', '_$1', $name));
     }
 
 }

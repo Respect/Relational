@@ -48,14 +48,14 @@ class DbTest extends \PHPUnit_Framework_TestCase
     public function testFetchingClass()
     {
         $line = $this->object->select('*')->from('unit')->fetch('Respect\Relational\testFetchingClass');
-        $this->assertType('Respect\Relational\testFetchingClass', $line);
+        $this->assertInstanceOF('Respect\Relational\testFetchingClass', $line);
     }
 
     public function testFetchingClassArgs()
     {
         $line = $this->object->select('*')->from('unit')->fetch('Respect\Relational\testFetchingClassArgs',
                 array('foo'));
-        $this->assertType('Respect\Relational\testFetchingClassArgs', $line);
+        $this->assertInstanceOF('Respect\Relational\testFetchingClassArgs', $line);
         $this->assertEquals('foo', $line->testd);
     }
 
