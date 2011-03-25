@@ -25,10 +25,10 @@ class Inflected implements Schemable
 
     public function hydrate(array $entitiesNames, array $row)
     {
-        return $this->decamelizeKeys($this->schema->hydrate($entitiesNames, $row));
+        return $this->camelizeKeys($this->schema->hydrate($entitiesNames, $row));
     }
 
-    protected function decamelizeKeys($object, array &$walkedTrough=array())
+    protected function camelizeKeys($object, array &$walkedTrough=array())
     {
         if (is_scalar($object) || in_array($object, $walkedTrough))
             return $object;
@@ -37,7 +37,7 @@ class Inflected implements Schemable
 
         foreach ($object as $key => $value) {
             $camelizedKey = $this->camelize($key);
-            $object->{$camelizedKey} = $this->decamelizeKeys($value, $walkedTrough);
+            $object->{$camelizedKey} = $this->camelizeKeys($value, $walkedTrough);
             if ($camelizedKey != $key)
                 unset($object->{$key});
         }

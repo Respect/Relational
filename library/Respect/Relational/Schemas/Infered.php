@@ -11,18 +11,23 @@ class Infered implements Schemable
 
     public function findRelationships($entityName, $relatedNameOrColumn)
     {
-        $from = $this->stripIdSuffix($entityName);
-        $to = $this->stripIdSuffix($relatedNameOrColumn);
+        $from = $this->removeAffixes($entityName);
+        $to = $this->removeAffixes($relatedNameOrColumn);
         $keys = array("{$to}_id" => "id");
         return array(new Relationship($from, $to, $keys));
     }
 
-    public function hydrate(array $entitiesNames, array $row)
+    public function findPrimaryKey($entityName)
+    {
+        return $this->removeAffixes($entityName) . '_id';
+    }
+
+    public function hydrate(array $entitiesNames, array $row, $full=false)
     {
         $entities = array();
 
         foreach ($entitiesNames as &$name) {
-            $name = $this->stripIdSuffix($name);
+            $name = $this->removeAffixes($name);
             $entities[] = new stdClass;
         }
 
@@ -35,16 +40,21 @@ class Infered implements Schemable
                     $entity->{$columnName} = $value;
 
 
-        foreach ($entities as $entity)
+
+        foreach ($entities as $entity) {
+            foreach ($entities as &$entity2)
+                if ($entity->id === $entity2->id)
+                    $entity2 = $entity;
             foreach ($entity as $fieldName => $field)
                 foreach ($entitiesNames as $entityId => $entityName)
-                    if ($entityName == $this->stripIdSuffix($fieldName))
+                    if ($entityName == $this->removeAffixes($fieldName))
                         $entity->{$fieldName} = $entities[$entityId];
+        }
 
-        return reset($entities);
+        return $full ? $entities : reset($entities);
     }
 
-    protected function stripIdSuffix($name)
+    protected function removeAffixes($name)
     {
         $lastIdPos = strripos($name, '_id');
         if (false === $lastIdPos || $lastIdPos + 3 !== strlen($name))

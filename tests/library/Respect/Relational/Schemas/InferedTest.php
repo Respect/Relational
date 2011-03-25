@@ -70,4 +70,17 @@ class InferedTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals($pTitle, $freak->title);
     }
 
+    public function testHydrateDuplicateEntity()
+    {
+        //A PDO::FETCH_NAMED should return somethink like this
+        $row = array(
+            'id' => array(1, 11, 2),
+            'screen_name' => array('foo', 'bar'),
+            'user_id' => array(1, 2),
+            'follower_id' => array(2, 1)
+        );
+        $freak = $this->object->hydrate(array('user', 'follower', 'user'), $row);
+        print_r($freak);
+    }
+
 }
