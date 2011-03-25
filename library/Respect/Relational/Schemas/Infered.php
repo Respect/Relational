@@ -17,41 +17,105 @@ class Infered implements Schemable
         return array(new Relationship($from, $to, $keys));
     }
 
-    public function findPrimaryKey($entityName)
-    {
-        return $this->removeAffixes($entityName) . '_id';
-    }
-
     public function hydrate(array $entitiesNames, array $row, $full=false)
     {
-        $entities = array();
+        $totalEntities = count($entitiesNames);
 
-        foreach ($entitiesNames as &$name) {
+        if (1 === $totalEntities)
+            return (object) $row;
+
+        $this->checkInferenceIsPossible($row, $entitiesNames);
+
+        foreach ($entitiesNames as &$name)
             $name = $this->removeAffixes($name);
-            $entities[] = new stdClass;
-        }
 
+        $instances = $this->hydrateInstances($row);
+        $instances = $this->hydrateRelationships($row, $entitiesNames, $instances);
+        $instances = $this->hydrateColumns($row, $entitiesNames, $instances);
+
+        return $instances;
+    }
+
+    protected function hydrateColumns(&$row, $entitiesNames, $instances)
+    {
         foreach ($row as $columnName => $value)
-            if (is_array($value))
-                foreach ($value as $entityId => $subValue)
-                    $entities[$entityId]->{$columnName} = $subValue;
+            if (is_scalar($value))
+                foreach ($instances as $i)
+                    $i->{$columnName} = $value;
             else
-                foreach ($entities as $entity)
-                    $entity->{$columnName} = $value;
+                foreach ($value as $subValueId => $subValue)
+                    foreach ($this->calculateRepeatedInstances(count($value),
+                        $entitiesNames, $instances) as $repeated)
+                        $repeated[$subValueId]->{$columnName} = $subValue;
 
+        return $instances;
+    }
 
+    protected function hydrateRelationships(&$row, $entitiesNames, $instances)
+    {
+        $totalEntities = count($entitiesNames);
 
-        foreach ($entities as $entity) {
-            foreach ($entities as &$entity2)
-                if ($entity->id === $entity2->id)
-                    $entity2 = $entity;
-            foreach ($entity as $fieldName => $field)
-                foreach ($entitiesNames as $entityId => $entityName)
-                    if ($entityName == $this->removeAffixes($fieldName))
-                        $entity->{$fieldName} = $entities[$entityId];
-        }
+        for ($i = 0, $j = 1; $i < $totalEntities - 1; $i++, $j = $i + 1)
+            if ($this->unstackMatchedReference($row, $entitiesNames[$j], $instances[$j]))
+                $instances[$i]->{$entitiesNames[$j] . '_id'} = $instances[$j];
+            elseif ($this->unstackMatchedReference($row, $entitiesNames[$i], $instances[$i]))
+                $instances[$j]->{$entitiesNames[$i] . '_id'} = $instances[$i];
 
-        return $full ? $entities : reset($entities);
+        return $instances;
+    }
+
+    protected function hydrateInstances(&$row)
+    {
+        $instances = array();
+
+        foreach ($row['id'] as $k => $entityId)
+            $instances[] = (object) array('id' => $entityId);
+
+        unset($row['id']);
+
+        return $instances;
+    }
+
+    protected function checkInferenceIsPossible($row, $entitiesNames)
+    {
+        $totalEntities = count($entitiesNames);
+
+        if (!$totalEntities)
+            throw new \InvalidArgumentException();
+
+        if (!isset($row['id']) || count($row['id']) !== $totalEntities)
+            throw new \InvalidArgumentException();
+    }
+
+    protected function calculateRepeatedInstances($count, $entitiesNames, $instances)
+    {
+        if (count($entitiesNames) === count(array_unique($entitiesNames)))
+            return array();
+
+        $instancesByName = array();
+        $repeatedInstancesByCount = array(1 => array());
+
+        foreach ($entitiesNames as $k => $name)
+            $instancesByName[$name][] = $instances[$k];
+
+        foreach ($instancesByName as $instanceName => $is)
+            $repeatedInstancesByCount[count($is)][$instanceName] = $is;
+
+        return $repeatedInstancesByCount[$count];
+    }
+
+    protected function unstackMatchedReference(&$row, $entity, $instance)
+    {
+        $entity .= '_id';
+
+        if (!array_key_exists($entity, $row))
+            return false;
+        elseif (is_array($row[$entity]))
+            array_shift($row[$entity]);
+        else
+            unset($row[$entity]);
+
+        return true;
     }
 
     protected function removeAffixes($name)

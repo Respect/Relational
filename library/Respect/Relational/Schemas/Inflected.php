@@ -25,7 +25,10 @@ class Inflected implements Schemable
 
     public function hydrate(array $entitiesNames, array $row)
     {
-        return $this->camelizeKeys($this->schema->hydrate($entitiesNames, $row));
+        $objects = $this->schema->hydrate($entitiesNames, $row);
+        foreach ($objects as &$hydrated)
+            $hydrated = $this->camelizeKeys($hydrated);
+        return $objects;
     }
 
     protected function camelizeKeys($object, array &$walkedTrough=array())

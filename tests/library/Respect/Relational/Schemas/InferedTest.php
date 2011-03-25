@@ -53,34 +53,79 @@ class InferedTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals($sql, 'FROM bug INNER JOIN developer ON bug.developer_id = developer.id');
     }
 
-    public function testHydrate()
+    public function testHydrateSimple()
     {
-        //A PDO::FETCH_NAMED should return somethink like this
+        $entitiesNames = array('post');
         $row = array(
-            'id' => array($cId = 11, $pId = 1),
-            'text' => array($cText = 'Comment Text', $pText = 'Post Text'),
-            'post_id' => $pId,
-            'title' => $pTitle = 'Post Title'
+            'id' => 1,
+            'title' => 'foo_value',
+            'post_text' => 'foo_value2'
         );
-        $freak = $this->object->hydrate(array('comment', 'post'), $row);
-        $this->assertEquals($cId, $freak->id);
-        $this->assertEquals($pId, $freak->post_id->id);
-        $this->assertEquals($cText, $freak->text);
-        $this->assertEquals($pText, $freak->post_id->text);
-        $this->assertEquals($pTitle, $freak->title);
+        $freak = $this->object->hydrate($entitiesNames, $row);
+        $this->assertEquals(1, $freak->id);
+        $this->assertEquals('foo_value', $freak->title);
+        $this->assertEquals('foo_value2', $freak->post_text);
     }
 
-    public function testHydrateDuplicateEntity()
+    public function testHydrateTwoEntities()
     {
-        //A PDO::FETCH_NAMED should return somethink like this
+        $entitiesNames = array('comment', 'post');
         $row = array(
-            'id' => array(1, 11, 2),
-            'screen_name' => array('foo', 'bar'),
-            'user_id' => array(1, 2),
-            'follower_id' => array(2, 1)
+            'id' => array(11, 1),
+            'post_id' => 1,
+            'title' => 'foo_value',
+            'post_text' => 'foo_value2',
+            'author_id' => 22,
+            'comment_text' => 'bar_value2'
         );
-        $freak = $this->object->hydrate(array('user', 'follower', 'user'), $row);
-        print_r($freak);
+        $freaks = $this->object->hydrate($entitiesNames, $row);
+        $this->assertEquals(11, $freaks[0]->id);
+        $this->assertEquals('foo_value', $freaks[0]->title);
+        $this->assertEquals('foo_value2', $freaks[0]->post_text);
+        $this->assertEquals(1, $freaks[0]->post_id->id);
+        $this->assertEquals(22, $freaks[0]->post_id->author_id);
+        $this->assertEquals('bar_value2', $freaks[0]->post_id->comment_text);
+    }
+
+    public function testHydrateRepeatedInstances()
+    {
+        $entitiesNames = array('user', 'list_membership', 'list', 'user');
+        $row = array(
+            'id' => array(1, 2, 3, 4),
+            'user_id' => array(1, 4),
+            'list_id' => 3,
+            'screen_name' => array('foo', 'bar'),
+            'list_name' => 'Test'
+        );
+        $freaks = $this->object->hydrate($entitiesNames, $row);
+        $this->assertEquals(1, $freaks[0]->id);
+        $this->assertEquals(2, $freaks[1]->id);
+        $this->assertEquals(3, $freaks[1]->list_id->id);
+        $this->assertEquals(4, $freaks[1]->list_id->user_id->id);
+        $this->assertEquals('foo', $freaks[0]->screen_name);
+        $this->assertEquals('bar', $freaks[1]->list_id->user_id->screen_name);
+        $this->assertEquals('Test', $freaks[1]->list_id->list_name);
+    }
+
+    public function testHydrateRepeatedInstancesTwice()
+    {
+        $entitiesNames = array('list', 'user', 'list_membership', 'list', 'user');
+        $row = array(
+            'id' => array(1, 2, 3, 4, 5),
+            'user_id' => array(2, 2, 5),
+            'list_id' => 4,
+            'screen_name' => array('foo', 'bar'),
+            'list_name' => array('Haha', 'Test')
+        );
+        $freaks = $this->object->hydrate($entitiesNames, $row);
+        $this->assertEquals(1, $freaks[0]->id);
+        $this->assertEquals(2, $freaks[0]->user_id->id);
+        $this->assertEquals(3, $freaks[2]->id);
+        $this->assertEquals(4, $freaks[2]->list_id->id);
+        $this->assertEquals(5, $freaks[2]->list_id->user_id->id);
+        $this->assertEquals('foo', $freaks[1]->screen_name);
+        $this->assertEquals('bar', $freaks[2]->list_id->user_id->screen_name);
+        $this->assertEquals('Test', $freaks[2]->list_id->list_name);
     }
 
 }
