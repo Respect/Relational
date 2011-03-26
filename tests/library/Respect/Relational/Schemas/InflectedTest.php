@@ -25,7 +25,7 @@ class InflectedTest extends \PHPUnit_Framework_TestCase
 
     public function testHydrateRepeatedInstancesTwice()
     {
-        $entitiesNames = array('list', 'user', 'list_membership', 'list', 'user');
+        $entitiesNames = array('list', 'user', 'user_list', 'list', 'user');
         $row = array(
             'id' => array(1, 2, 3, 4, 5),
             'user_id' => array(2, 2, 5),

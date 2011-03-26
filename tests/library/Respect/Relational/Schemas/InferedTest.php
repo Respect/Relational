@@ -89,7 +89,7 @@ class InferedTest extends \PHPUnit_Framework_TestCase
 
     public function testHydrateRepeatedInstances()
     {
-        $entitiesNames = array('user', 'list_membership', 'list', 'user');
+        $entitiesNames = array('user', 'user_list', 'list', 'user');
         $row = array(
             'id' => array(1, 2, 3, 4),
             'user_id' => array(1, 4),
@@ -109,7 +109,7 @@ class InferedTest extends \PHPUnit_Framework_TestCase
 
     public function testHydrateRepeatedInstancesTwice()
     {
-        $entitiesNames = array('list', 'user', 'list_membership', 'list', 'user');
+        $entitiesNames = array('list', 'user', 'user_list', 'list', 'user');
         $row = array(
             'id' => array(1, 2, 3, 4, 5),
             'user_id' => array(2, 2, 5),
@@ -123,6 +123,27 @@ class InferedTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(3, $freaks[2]->id);
         $this->assertEquals(4, $freaks[2]->list_id->id);
         $this->assertEquals(5, $freaks[2]->list_id->user_id->id);
+        $this->assertEquals('foo', $freaks[1]->screen_name);
+        $this->assertEquals('bar', $freaks[2]->list_id->user_id->screen_name);
+        $this->assertEquals('Test', $freaks[2]->list_id->list_name);
+    }
+
+    public function testHydrateRepeatedInstancesTwiceConflictedIds()
+    {
+        $entitiesNames = array('list', 'user', 'user_list', 'list', 'user');
+        $row = array(
+            'id' => array(1, 1, 1, 1, 2),
+            'user_id' => array(1, 1, 2),
+            'list_id' => 1,
+            'screen_name' => array('foo', 'bar'),
+            'list_name' => array('Haha', 'Test')
+        );
+        $freaks = $this->object->hydrate($entitiesNames, $row);
+        $this->assertEquals(1, $freaks[0]->id);
+        $this->assertEquals(1, $freaks[0]->user_id->id);
+        $this->assertEquals(1, $freaks[2]->id);
+        $this->assertEquals(1, $freaks[2]->list_id->id);
+        $this->assertEquals(2, $freaks[2]->list_id->user_id->id);
         $this->assertEquals('foo', $freaks[1]->screen_name);
         $this->assertEquals('bar', $freaks[2]->list_id->user_id->screen_name);
         $this->assertEquals('Test', $freaks[2]->list_id->list_name);

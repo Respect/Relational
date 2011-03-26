@@ -1,4 +1,8 @@
-Respect\Relational is about relational databases. Keep on looking, we're working on it.
+Respect\Relational
+==================
+
+A work in progress. 
+
 
 License Information
 ===================
