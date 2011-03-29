@@ -4,17 +4,10 @@ namespace Respect\Relational\Schemas;
 
 use PDOStatement;
 use Respect\Relational\Schemable;
-use Respect\Relational\Finder;
-use Respect\Relational\FinderIterator;
 
-class Infered implements Schemable
+class Reflected implements Schemable
 {
-
-    public function fetchHydrated(Finder $finder, PDOStatement $statement)
-    {
-        $finders = new FinderIterator($finder);
-    }
-
+    
 }
 
 /**

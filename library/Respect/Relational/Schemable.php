@@ -2,9 +2,12 @@
 
 namespace Respect\Relational;
 
+use PDOStatement;
+
 interface Schemable
 {
-    
+
+    public function fetchHydrated(Finder $finder, PDOStatement $statement);
 }
 
 /**

@@ -1,18 +1,36 @@
 <?php
 
-namespace Respect\Relational\Schemas;
+namespace Respect\Relational;
 
-use PDOStatement;
-use Respect\Relational\Schemable;
-use Respect\Relational\Finder;
-use Respect\Relational\FinderIterator;
+use RecursiveArrayIterator;
+use RecursiveIteratorIterator;
 
-class Infered implements Schemable
+class FinderIterator extends RecursiveArrayIterator
 {
 
-    public function fetchHydrated(Finder $finder, PDOStatement $statement)
+    public static function recursive($target)
     {
-        $finders = new FinderIterator($finder);
+        return new RecursiveIteratorIterator(new static($target), 1);
+    }
+
+    public function __construct($target)
+    {
+        parent::__construct(is_array($target) ? $target : array($target));
+    }
+
+    public function hasChildren()
+    {
+        return (boolean) $this->current()->hasChildren() || $this->current()->hasNextSibling();
+    }
+
+    public function getChildren()
+    {
+        $pool = array();
+        if ($this->current()->hasChildren())
+            $pool = $this->current()->getChildren();
+        if ($this->current()->hasNextSibling())
+            $pool[] = $this->current()->getNextSibling();
+        return new static($pool);
     }
 
 }

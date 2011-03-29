@@ -1,19 +1,13 @@
 <?php
 
-namespace Respect\Relational\Schemas;
+namespace Respect\Relational;
 
-use PDOStatement;
-use Respect\Relational\Schemable;
-use Respect\Relational\Finder;
-use Respect\Relational\FinderIterator;
-
-class Infered implements Schemable
+class Relationship
 {
 
-    public function fetchHydrated(Finder $finder, PDOStatement $statement)
-    {
-        $finders = new FinderIterator($finder);
-    }
+    protected $from;
+    protected $to;
+    protected $keys;
 
 }
 

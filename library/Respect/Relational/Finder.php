@@ -54,6 +54,11 @@ class Finder implements ArrayAccess
         $this->children[] = $childClone;
     }
 
+    public function getChildren()
+    {
+        return $this->children;
+    }
+
     public function getCondition()
     {
         return $this->condition;
@@ -64,9 +69,19 @@ class Finder implements ArrayAccess
         return $this->entityReference;
     }
 
-    public function getSibling()
+    public function getNextSibling()
     {
         return $this->nextSibling;
+    }
+
+    public function hasChildren()
+    {
+        return!empty($this->children);
+    }
+
+    public function hasNextSibling()
+    {
+        return!is_null($this->nextSibling);
     }
 
     public function offsetExists($offset)

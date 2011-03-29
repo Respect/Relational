@@ -4,15 +4,17 @@ namespace Respect\Relational\Schemas;
 
 use PDOStatement;
 use Respect\Relational\Schemable;
-use Respect\Relational\Finder;
-use Respect\Relational\FinderIterator;
+use OutOfRangeException;
 
-class Infered implements Schemable
+/**
+ * @see http://www.imdb.com/title/tt1375666/
+ */
+class Incepted implements Schemable
 {
 
     public function fetchHydrated(Finder $finder, PDOStatement $statement)
     {
-        $finders = new FinderIterator($finder);
+        throw new OutOfRangeException('Sorry, you have to go deeper.');
     }
 
 }
