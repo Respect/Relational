@@ -33,6 +33,23 @@ class Mapper
         return $newFinder;
     }
 
+    public function fetch(Finder $finder)
+    {
+        $finderQuery = (string) $this->schema->generateQuery($finder);
+        $statement = $this->db->prepare($finderQuery, PDO::FETCH_NUM);
+        return $this->schema->fetchHydrated($finder, $statement);
+    }
+
+    public function fetchAll(Finder $finder)
+    {
+        $finderQuery = (string) $this->schema->generateQuery($finder);
+        $statement = $this->db->prepare($finderQuery, PDO::FETCH_NUM);
+        $rows = array();
+        while ($row = $this->schema->fetchHydrated($finder, $statement))
+            $rows[] = $row;
+        return $rows;
+    }
+
 }
 
 /**

@@ -79,6 +79,11 @@ class Finder implements ArrayAccess
         return!empty($this->children);
     }
 
+    public function hasMore()
+    {
+        return $this->hasChildren() || $this->hasNextSibling();
+    }
+
     public function hasNextSibling()
     {
         return!is_null($this->nextSibling);

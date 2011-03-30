@@ -8,29 +8,60 @@ use RecursiveIteratorIterator;
 class FinderIterator extends RecursiveArrayIterator
 {
 
+    protected $entityReferenceCount = array();
+    protected $parent = null;
+
     public static function recursive($target)
     {
         return new RecursiveIteratorIterator(new static($target), 1);
     }
 
-    public function __construct($target)
+    public function __construct($target, $parent=null)
     {
+        $this->parent = $parent;
         parent::__construct(is_array($target) ? $target : array($target));
+    }
+
+    protected function getAlias(Finder $finder)
+    {
+        $name = $finder->getEntityReference();
+        if (!isset($this->entityReferenceCount[$name]))
+            $this->entityReferenceCount[$name] = 1;
+        else
+            $this->entityReferenceCount[$name]++;
+
+        return $name . $this->entityReferenceCount[$name];
+    }
+
+    public function current()
+    {
+        $current = parent::current();
+
+        $finders = array(
+            $this->getAlias($current) => $current
+        );
+
+        if ($this->parent)
+            $finders[$this->getAlias($this->parent)] = $this->parent;
+
+        return $finders;
     }
 
     public function hasChildren()
     {
-        return (boolean) $this->current()->hasChildren() || $this->current()->hasNextSibling();
+        $c = parent::current();
+        return (boolean) $c->hasChildren() || $c->hasNextSibling();
     }
 
     public function getChildren()
     {
+        $c = parent::current();
         $pool = array();
-        if ($this->current()->hasChildren())
-            $pool = $this->current()->getChildren();
-        if ($this->current()->hasNextSibling())
-            $pool[] = $this->current()->getNextSibling();
-        return new static($pool);
+        if ($c->hasChildren())
+            $pool = $c->getChildren();
+        if ($c->hasNextSibling())
+            $pool[] = $c->getNextSibling();
+        return new static($pool, $c);
     }
 
 }

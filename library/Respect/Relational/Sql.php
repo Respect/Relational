@@ -37,6 +37,12 @@ class Sql
         return $q;
     }
 
+    public function appendQuery($rawSql)
+    {
+        $this->query .= " $rawSql";
+        return $this;
+    }
+
     public function getParams()
     {
         $data = array();
@@ -48,6 +54,7 @@ class Sql
     public function setQuery($rawSql)
     {
         $this->query = $rawSql;
+        return $this;
     }
 
     protected function buildKeyValues($parts, $format = '%s ', $partSeparator = ', ')
