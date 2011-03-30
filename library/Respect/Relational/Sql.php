@@ -19,8 +19,10 @@ class Sql
     {
         $this->buildOperation($operation);
         $method = 'parse' . ucfirst($operation);
-        if (!method_exists($this, $method))
+        if (!method_exists($this, $method)) {
+            $parts = $this->normalizeParts($parts);
             $method = 'buildParts';
+        }
         $this->{$method}($parts);
         return $this;
     }

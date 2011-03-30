@@ -13,7 +13,43 @@ class Infered implements Schemable
 
     public function generateQuery(Finder $finder)
     {
-        
+        $tables = iterator_to_array(FinderIterator::recursive($finder), true);
+        $tablesSelect = array_keys($tables);
+
+        foreach ($tablesSelect as &$ts)
+            $ts = "$ts.*";
+
+        $sql = Sql::select($tablesSelect);
+
+        $prevAlias = null;
+
+        foreach ($tables as $alias => $joinNode)
+            $sql = $this->appendJoin($sql, $joinNode, $alias, $prevAlias);
+
+        return $sql;
+    }
+
+    protected function appendJoin(Sql $sql, Finder $joinNode, $alias, &$prevAlias)
+    {
+        $entity = $joinNode->getEntityReference();
+        $parent = $joinNode->getParentEntityReference();
+        $sibling = $joinNode->getNextSiblingEntityReference();
+
+        if ($entity === "{$parent}_{$sibling}")
+            $sql->innerJoin($entity)
+                ->as($alias)
+                ->on(array("{$alias}.{$parent}_id" => "{$prevAlias}.id"));
+        elseif (is_null($prevAlias))
+            $sql->from($entity)
+                ->as($alias);
+        else
+            $sql->innerJoin($entity)
+                ->as($alias)
+                ->on(array("{$prevAlias}.{$entity}_id" => "{$alias}.id"));
+
+        $prevAlias = $alias;
+
+        return $sql;
     }
 
     public function fetchHydrated(Finder $finder, PDOStatement $statement)

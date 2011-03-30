@@ -81,6 +81,11 @@ class Finder implements ArrayAccess
         return $this->parent ? $this->parent->getEntityReference() : null;
     }
 
+    public function getNextSiblingEntityReference()
+    {
+        return $this->nextSibling ? $this->nextSibling->getEntityReference() : null;
+    }
+
     public function hasChildren()
     {
         return!empty($this->children);
