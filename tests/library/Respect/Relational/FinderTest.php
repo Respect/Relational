@@ -10,8 +10,8 @@ class FinderTest extends \PHPUnit_Framework_TestCase
         $f = new Finder('like');
         $x = $f->comment->user[12];
 
-        $s = new Schemas\Infered();
-        echo $s->generateQuery($f);
+        foreach (FinderIterator::recursive($f) as $x)
+            echo $x->getEntityReference() . $x->getParentEntityReference() . PHP_EOL;
     }
 
 }

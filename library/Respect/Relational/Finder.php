@@ -10,6 +10,7 @@ class Finder implements ArrayAccess
     protected $mapper;
     protected $entityReference;
     protected $condition;
+    protected $parent;
     protected $nextSibling;
     protected $lastSibling;
     protected $children = array();
@@ -51,6 +52,7 @@ class Finder implements ArrayAccess
     {
         $childClone = clone $child;
         $childClone->setMapper($this->mapper);
+        $childClone->setParent($this);
         $this->children[] = $childClone;
     }
 
@@ -72,6 +74,11 @@ class Finder implements ArrayAccess
     public function getNextSibling()
     {
         return $this->nextSibling;
+    }
+
+    public function getParentEntityReference()
+    {
+        return $this->parent ? $this->parent->getEntityReference() : null;
     }
 
     public function hasChildren()
@@ -117,14 +124,20 @@ class Finder implements ArrayAccess
         $this->mapper = $mapper;
     }
 
-    public function setSibling($sibling)
+    public function setParent($parent)
     {
+        $this->parent = $parent;
+    }
+
+    public function setNextSibling($sibling)
+    {
+        $sibling->setParent($this);
         $this->nextSibling = $sibling;
     }
 
     protected function stackSibling(Finder $sibling)
     {
-        $this->lastSibling->setSibling($sibling);
+        $this->lastSibling->setNextSibling($sibling);
         $this->lastSibling = $sibling;
         return $this;
     }

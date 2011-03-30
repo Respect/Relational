@@ -13,36 +13,7 @@ class Infered implements Schemable
 
     public function generateQuery(Finder $finder)
     {
-        $sql = new Sql;
-        foreach (FinderIterator::recursive($finder) as $entities)
-            $sql = $this->appendEntities($sql, $entities);
-
-        return $sql;
-    }
-
-    protected function appendEntities(Sql $sql, array $entities)
-    {
-        if (1 === count($entities))
-            $sql->select('*')
-                ->from(current($entities)->getEntityReference())
-                ->as(key($entities));
-        else
-            $sql = $this->appendJoin($sql, $entities);
-
-        return $sql;
-    }
-
-    protected function appendJoin(Sql $sql, $entities)
-    {
-        list($fromAlias, $fromEntity) = each($entities);
-        $toAlias = key($entities);
-        $fromEntity = $fromEntity->getEntityReference();
-
-        return $sql->innerJoin($fromEntity)
-            ->as($fromAlias)
-            ->on(array(
-                "$toAlias.{$fromEntity}_id" => "$fromAlias.id"
-            ));
+        
     }
 
     public function fetchHydrated(Finder $finder, PDOStatement $statement)

@@ -9,22 +9,20 @@ class FinderIterator extends RecursiveArrayIterator
 {
 
     protected $entityReferenceCount = array();
-    protected $parent = null;
 
     public static function recursive($target)
     {
         return new RecursiveIteratorIterator(new static($target), 1);
     }
 
-    public function __construct($target, $parent=null)
+    public function __construct($target)
     {
-        $this->parent = $parent;
         parent::__construct(is_array($target) ? $target : array($target));
     }
 
-    protected function getAlias(Finder $finder)
+    public function key()
     {
-        $name = $finder->getEntityReference();
+        $name = $this->current()->getEntityReference();
         if (!isset($this->entityReferenceCount[$name]))
             $this->entityReferenceCount[$name] = 1;
         else
@@ -33,35 +31,21 @@ class FinderIterator extends RecursiveArrayIterator
         return $name . $this->entityReferenceCount[$name];
     }
 
-    public function current()
-    {
-        $current = parent::current();
-
-        $finders = array(
-            $this->getAlias($current) => $current
-        );
-
-        if ($this->parent)
-            $finders[$this->getAlias($this->parent)] = $this->parent;
-
-        return $finders;
-    }
-
     public function hasChildren()
     {
-        $c = parent::current();
+        $c = $this->current();
         return (boolean) $c->hasChildren() || $c->hasNextSibling();
     }
 
     public function getChildren()
     {
-        $c = parent::current();
+        $c = $this->current();
         $pool = array();
         if ($c->hasChildren())
             $pool = $c->getChildren();
         if ($c->hasNextSibling())
             $pool[] = $c->getNextSibling();
-        return new static($pool, $c);
+        return new static($pool);
     }
 
 }
