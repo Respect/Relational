@@ -15,6 +15,18 @@ class Finder implements ArrayAccess
     protected $lastSibling;
     protected $children = array();
 
+    public static function __callStatic($newFinderEntityReference, $newFinderChildren)
+    {
+        $newFinder = new static($newFinderEntityReference);
+
+        foreach ($newFinderChildren as $child)
+            if ($child instanceof Finder)
+                $newFinder->addChild($child);
+            else
+                $newFinder->setCondition($child);
+        return $newFinder;
+    }
+
     public function __construct($entityReference, $condition = array())
     {
         if (!is_scalar($condition) && !is_array($condition))
@@ -32,9 +44,8 @@ class Finder implements ArrayAccess
 
     public function __call($newFinderEntityReference, $newFinderChildren)
     {
-        $newFinder = new static($newFinderEntityReference);
-        foreach ($newFinderChildren as $child)
-            $newFinder->addChild($child);
+        $newFinder = static::__callStatic($newFinderEntityReference, $newFinderChildren);
+
         return $this->stackSibling($newFinder);
     }
 
@@ -120,6 +131,11 @@ class Finder implements ArrayAccess
     public function offsetUnset($offset)
     {
         throw new \InvalidArgumentException('Unexpected'); //FIXME
+    }
+
+    public function setCondition($condition)
+    {
+        $this->condition = $condition;
     }
 
     public function setMapper($mapper)

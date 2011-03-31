@@ -35,19 +35,27 @@ class Mapper
 
     public function fetch(Finder $finder)
     {
-        $finderQuery = (string) $this->schema->generateQuery($finder);
-        $statement = $this->db->prepare($finderQuery, PDO::FETCH_NUM);
+        $statement = $this->createStatement($finder);
         return $this->schema->fetchHydrated($finder, $statement);
     }
 
     public function fetchAll(Finder $finder)
     {
-        $finderQuery = (string) $this->schema->generateQuery($finder);
-        $statement = $this->db->prepare($finderQuery, PDO::FETCH_NUM);
+        $statement = $this->createStatement($finder);
         $rows = array();
+
         while ($row = $this->schema->fetchHydrated($finder, $statement))
             $rows[] = $row;
+
         return $rows;
+    }
+
+    protected function createStatement($finder)
+    {
+        $finderQuery = $this->schema->generateQuery($finder);
+        $statement = $this->db->prepare((string) $finderQuery, PDO::FETCH_NUM);
+        $statement->execute($finderQuery->getParams());
+        return $statement;
     }
 
 }

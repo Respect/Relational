@@ -15,20 +15,21 @@ class FinderIterator extends RecursiveArrayIterator
         return new RecursiveIteratorIterator(new static($target), 1);
     }
 
-    public function __construct($target)
+    public function __construct($target, &$entityReferenceCount=array())
     {
+        $this->entityReferenceCount = &$entityReferenceCount;
         parent::__construct(is_array($target) ? $target : array($target));
     }
 
     public function key()
     {
         $name = $this->current()->getEntityReference();
-        if (!isset($this->entityReferenceCount[$name]))
-            $this->entityReferenceCount[$name] = 1;
-        else
-            $this->entityReferenceCount[$name]++;
 
-        return $name . $this->entityReferenceCount[$name];
+        if (isset($this->entityReferenceCount[$name]))
+            return $name . ++$this->entityReferenceCount[$name];
+
+        $this->entityReferenceCount[$name] = 1;
+        return $name;
     }
 
     public function hasChildren()
@@ -41,11 +42,14 @@ class FinderIterator extends RecursiveArrayIterator
     {
         $c = $this->current();
         $pool = array();
+
         if ($c->hasChildren())
             $pool = $c->getChildren();
+
         if ($c->hasNextSibling())
             $pool[] = $c->getNextSibling();
-        return new static($pool);
+
+        return new static($pool, $this->entityReferenceCount);
     }
 
 }

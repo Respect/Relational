@@ -13,48 +13,114 @@ class Infered implements Schemable
 
     public function generateQuery(Finder $finder)
     {
-        $tables = iterator_to_array(FinderIterator::recursive($finder), true);
-        $tablesSelect = array_keys($tables);
+        $finders = iterator_to_array(FinderIterator::recursive($finder), true);
+        $sql = new Sql;
 
-        foreach ($tablesSelect as &$ts)
-            $ts = "$ts.*";
-
-        $sql = Sql::select($tablesSelect);
-
-        $prevAlias = null;
-
-        foreach ($tables as $alias => $joinNode)
-            $sql = $this->appendJoin($sql, $joinNode, $alias, $prevAlias);
+        $this->buildSelectStatement($sql, $finders);
+        $this->buildTables($sql, $finders);
 
         return $sql;
     }
 
-    protected function appendJoin(Sql $sql, Finder $joinNode, $alias, &$prevAlias)
+    protected function buildSelectStatement(Sql $sql, $finders)
     {
-        $entity = $joinNode->getEntityReference();
-        $parent = $joinNode->getParentEntityReference();
-        $sibling = $joinNode->getNextSiblingEntityReference();
+        $selectTable = array_keys($finders);
+        foreach ($selectTable as &$ts)
+            $ts = "$ts.*";
 
-        if ($entity === "{$parent}_{$sibling}")
-            $sql->innerJoin($entity)
-                ->as($alias)
-                ->on(array("{$alias}.{$parent}_id" => "{$prevAlias}.id"));
-        elseif (is_null($prevAlias))
-            $sql->from($entity)
-                ->as($alias);
-        else
-            $sql->innerJoin($entity)
-                ->as($alias)
-                ->on(array("{$prevAlias}.{$entity}_id" => "{$alias}.id"));
+        return $sql->select($selectTable);
+    }
 
-        $prevAlias = $alias;
+    protected function buildTables(Sql $sql, $finders)
+    {
+        $conditions = $aliases = array();
+
+        foreach ($finders as $alias => $finder)
+            $this->parseFinder($sql, $finder, $alias, $aliases, $conditions);
+
+        if (!empty($conditions))
+            $sql->where($conditions);
 
         return $sql;
+    }
+
+    protected function parseConditions(&$conditions, $finder, $alias)
+    {
+        $entity = $finder->getEntityReference();
+        $originalConditions = $finder->getCondition();
+        $parsedConditions = array();
+
+        if (is_scalar($originalConditions))
+            $parsedConditions = array("$alias.id" => $originalConditions);
+        elseif (is_array($originalConditions))
+            foreach ($originalConditions as $column => $value)
+                if (is_numeric($column))
+                    $parsedConditions[$column] = preg_replace(
+                            "/{$entity}[.](\w+)/", "$alias.$1", $value
+                    );
+                else
+                    $parsedConditions["$alias.$column"] = $value;
+
+        return $parsedConditions;
+    }
+
+    protected function parseFinder(Sql $sql, Finder $finder, $alias, &$aliases, &$conditions)
+    {
+        $entity = $finder->getEntityReference();
+        $parent = $finder->getParentEntityReference();
+        $sibling = $finder->getNextSiblingEntityReference();
+
+        $parentAlias = $parent ? $aliases[$parent] : null;
+        $aliases[$entity] = $alias;
+        $parsedConditions = $this->parseConditions($conditions, $finder, $alias);
+
+        if (!empty($parsedConditions))
+            $conditions[] = $parsedConditions;
+
+        if (is_null($parentAlias))
+            return $sql->from($entity);
+        else
+            $sql->innerJoin($entity);
+
+        if ($alias !== $entity)
+            $sql->as($alias);
+
+        if ($entity === "{$parent}_{$sibling}")
+            return $sql->on(array("{$alias}.{$parent}_id" => "{$parentAlias}.id"));
+        else
+            return $sql->on(array("{$parentAlias}.{$entity}_id" => "{$alias}.id"));
     }
 
     public function fetchHydrated(Finder $finder, PDOStatement $statement)
     {
+        $entities = array();
+        $entityInstance = null;
+        $finders = FinderIterator::recursive($finder);
+        foreach ($statement->fetch() as $n => $value) {
 
+            $meta = $statement->getColumnMeta($n);
+
+            if ('id' === $meta['name']) {
+                if (0 !== $n)
+                    $entities[$entityName][$entityInstance->id] = $entityInstance;
+
+                $finders->next();
+                $entityName = $finders->current()->getEntityReference();
+                $entityInstance = new \stdClass;
+            }
+            $entityInstance->{$meta['name']} = $value;
+        }
+
+        if (!empty($entities))
+            $entities[$entityName][$entityInstance->id] = $entityInstance;
+
+        foreach ($entities as $table => $instances)
+            foreach ($instances as $pk => $i)
+                foreach ($i as $field => &$v)
+                    if (strlen($field) - 3 === strripos($field, '_id'))
+                        $v = $entities[substr($field, 0, -3)][$v];
+
+        print_r($entities);
     }
 
 }

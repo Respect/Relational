@@ -119,6 +119,12 @@ class Sql
         return $newParts;
     }
 
+    protected function parseAnd($parts)
+    {
+        $parts = $this->normalizeParts($parts);
+        $this->buildKeyValues($parts, '%s ', ' AND ');
+    }
+
     protected function parseCreateTable($parts)
     {
         $parts = $this->normalizeParts($parts);
@@ -153,9 +159,15 @@ class Sql
         $this->buildParts($parts, '(%s) ');
     }
 
-    protected function parseFirstPart(& $parts)
+    protected function parseFirstPart(&$parts)
     {
         $this->query .= array_shift($parts) . ' ';
+    }
+
+    protected function parseOr($parts)
+    {
+        $parts = $this->normalizeParts($parts);
+        $this->buildKeyValues($parts, '%s ', ' OR ');
     }
 
     protected function parseSet($parts)
