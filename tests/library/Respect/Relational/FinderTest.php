@@ -93,7 +93,7 @@ class FinderTest extends \PHPUnit_Framework_TestCase
         $query = $schema->generateQuery($finder);
 
         $this->assertEquals(
-            'SELECT comment.*, post.*, author.*, author2.*, company.* FROM comment INNER JOIN post ON comment.post_id = post.id INNER JOIN author ON post.author_id = author.id INNER JOIN author AS author2 ON comment.author_id = author2.id INNER JOIN company ON author2.company_id = company.id',
+            'SELECT comment.*, post.*, author.*, author2.*, company.* FROM comment LEFT JOIN post ON comment.post_id = post.id INNER JOIN author ON post.author_id = author.id INNER JOIN author AS author2 ON comment.author_id = author2.id INNER JOIN company ON author2.company_id = company.id',
             (string) $query
         );
     }
@@ -106,7 +106,7 @@ class FinderTest extends \PHPUnit_Framework_TestCase
         $query = $schema->generateQuery($finder);
 
         $this->assertEquals(
-            'SELECT comment.*, post.*, author.*, author2.*, company.* FROM comment INNER JOIN post ON comment.post_id = post.id INNER JOIN author ON post.author_id = author.id INNER JOIN author AS author2 ON comment.author_id = author2.id INNER JOIN company ON author2.company_id = company.id WHERE author.id=:AuthorId AND author2.id=:Author2Id AND company.name=:CompanyName',
+            'SELECT comment.*, post.*, author.*, author2.*, company.* FROM comment LEFT JOIN post ON comment.post_id = post.id INNER JOIN author ON post.author_id = author.id INNER JOIN author AS author2 ON comment.author_id = author2.id INNER JOIN company ON author2.company_id = company.id WHERE author.id=:AuthorId AND author2.id=:Author2Id AND company.name=:CompanyName',
             (string) $query
         );
     }
@@ -129,9 +129,36 @@ class FinderTest extends \PHPUnit_Framework_TestCase
         $finder = Finder::comment()->post();
         $schema = new Schemas\Infered();
         $conn = new \PDO('sqlite::memory:');
-        $statement = $conn->query("select 1 as id, 2 as post_id, 'comm doido' as text, 2 as id, 'post loko' as title, 'opaaa' as text");
+        $statement = $conn->query("SELECT 1 AS id, 5 AS post_id, 'comm doido' AS text, 5 AS id, 'post loko' AS title, 'opaaa' AS text");
         $statement->setFetchMode(\PDO::FETCH_NUM);
-        $schema->fetchHydrated($finder, $statement);
+        $entities = $schema->fetchHydrated($finder, $statement);
+        $this->assertArrayHasKey('comment', $entities);
+        $this->assertArrayHasKey('post', $entities);
+        $this->assertArrayHasKey(1, $entities['comment']);
+        $this->assertArrayHasKey(5, $entities['post']);
+        $this->assertEquals(5, $entities['post'][5]->id);
+        $this->assertEquals(1, $entities['comment'][1]->id);
+        $this->assertSame($entities['post'][5], $entities['comment'][1]->post_id);
+        $this->assertEquals('comm doido', $entities['comment'][1]->text);
+        $this->assertEquals('opaaa', $entities['post'][5]->text);
+        $this->assertEquals('post loko', $entities['post'][5]->title);
+        $this->assertEquals(3, count(get_object_vars($entities['post'][5])));
+        $this->assertEquals(3, count(get_object_vars($entities['comment'][1])));
+    }
+
+    public function testFetchHydratedSingle()
+    {
+        $finder = Finder::comment();
+        $schema = new Schemas\Infered();
+        $conn = new \PDO('sqlite::memory:');
+        $statement = $conn->query("SELECT 1 AS id, 5 AS post_id, 'comm doido' AS text");
+        $statement->setFetchMode(\PDO::FETCH_NUM);
+        $entities = $schema->fetchHydrated($finder, $statement);
+        $this->assertArrayHasKey('comment', $entities);
+        $this->assertArrayHasKey(1, $entities['comment']);
+        $this->assertEquals(1, $entities['comment'][1]->id);
+        $this->assertEquals('comm doido', $entities['comment'][1]->text);
+        $this->assertEquals(3, count(get_object_vars($entities['comment'][1])));
     }
 
 }

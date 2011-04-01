@@ -36,7 +36,7 @@ class Mapper
     public function fetch(Finder $finder)
     {
         $statement = $this->createStatement($finder);
-        return $this->schema->fetchHydrated($finder, $statement);
+        $this->schema->fetchHydrated($finder, $statement);
     }
 
     public function fetchAll(Finder $finder)

@@ -2,6 +2,7 @@
 
 namespace Respect\Relational\Schemas;
 
+use PDO;
 use PDOStatement;
 use Respect\Relational\Sql;
 use Respect\Relational\Schemable;
@@ -79,8 +80,10 @@ class Infered implements Schemable
 
         if (is_null($parentAlias))
             return $sql->from($entity);
-        else
+        elseif ($finder->isRequired())
             $sql->innerJoin($entity);
+        else
+            $sql->leftJoin($entity);
 
         if ($alias !== $entity)
             $sql->as($alias);
@@ -93,9 +96,28 @@ class Infered implements Schemable
 
     public function fetchHydrated(Finder $finder, PDOStatement $statement)
     {
+        if (!$finder->hasMore())
+            return $this->fetchSingle($finder, $statement);
+        else
+            return $this->fetchMulti($finder, $statement);
+    }
+
+    protected function fetchSingle(Finder $finder, PDOStatement $statement)
+    {
+        $row = $statement->fetch(PDO::FETCH_OBJ);
+        return array(
+            $finder->getEntityReference() => array(
+                $row->id => $row
+            )
+        );
+    }
+
+    protected function fetchMulti(Finder $finder, PDOStatement $statement)
+    {
         $entities = array();
         $entityInstance = null;
         $finders = FinderIterator::recursive($finder);
+
         foreach ($statement->fetch() as $n => $value) {
 
             $meta = $statement->getColumnMeta($n);
@@ -118,9 +140,10 @@ class Infered implements Schemable
             foreach ($instances as $pk => $i)
                 foreach ($i as $field => &$v)
                     if (strlen($field) - 3 === strripos($field, '_id'))
-                        $v = $entities[substr($field, 0, -3)][$v];
+                        if (isset($entities[$eName = substr($field, 0, -3)][$v]))
+                            $v = $entities[$eName][$v];
 
-        print_r($entities);
+        return $entities;
     }
 
 }

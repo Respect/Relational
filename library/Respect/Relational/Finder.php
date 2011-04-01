@@ -7,6 +7,7 @@ use ArrayAccess;
 class Finder implements ArrayAccess
 {
 
+    protected $required = true;
     protected $mapper;
     protected $entityReference;
     protected $condition;
@@ -62,9 +63,24 @@ class Finder implements ArrayAccess
     public function addChild(Finder $child)
     {
         $childClone = clone $child;
+        $childClone->setRequired(false);
         $childClone->setMapper($this->mapper);
         $childClone->setParent($this);
         $this->children[] = $childClone;
+    }
+
+    public function fetch()
+    {
+        if (!$this->mapper)
+            throw new \RuntimeException;
+        $this->mapper->fetch($this);
+    }
+
+    public function fetchAll()
+    {
+        if (!$this->mapper)
+            throw new \RuntimeException;
+        $this->mapper->fetch($this);
     }
 
     public function getChildren()
@@ -112,6 +128,11 @@ class Finder implements ArrayAccess
         return!is_null($this->nextSibling);
     }
 
+    public function isRequired()
+    {
+        return $this->required;
+    }
+
     public function offsetExists($offset)
     {
         throw new \InvalidArgumentException('Unexpected'); //FIXME
@@ -154,6 +175,11 @@ class Finder implements ArrayAccess
     {
         $sibling->setParent($this);
         $this->nextSibling = $sibling;
+    }
+
+    public function setRequired($required)
+    {
+        $this->required = $required;
     }
 
     protected function stackSibling(Finder $sibling)
