@@ -23,18 +23,60 @@ class MapperTest extends \PHPUnit_Framework_TestCase
                 'post_id INTEGER',
                 'text TEXT',
             )));
-        $post = array(
-            'id' => 5,
-            'title' => 'Post Title',
-            'text' => 'Post Text'
+        $conn->exec((string) Sql::createTable('category', array(
+                'id INTEGER PRIMARY KEY',
+                'name VARCHAR(255)'
+            )));
+        $conn->exec((string) Sql::createTable('post_category', array(
+                'id INTEGER PRIMARY KEY',
+                'post_id INTEGER',
+                'category_id INTEGER'
+            )));
+        $posts = array(
+            array(
+                'id' => 5,
+                'title' => 'Post Title',
+                'text' => 'Post Text'
+            )
         );
-        $comment = array(
-            'id' => 7,
-            'post_id' => 5,
-            'text' => 'Comment Text'
+        $comments = array(
+            array(
+                'id' => 7,
+                'post_id' => 5,
+                'text' => 'Comment Text'
+            ),
+            array(
+                'id' => 8,
+                'post_id' => 4,
+                'text' => 'Comment Text 2'
+            )
         );
-        $db->insertInto('post', $post)->values($post)->exec();
-        $db->insertInto('comment', $comment)->values($comment)->exec();
+        $categories = array(
+            array(
+                'id' => 3,
+                'name' => 'Sample Category'
+            )
+        );
+        $postsCategories = array(
+            array(
+                'id' => 66,
+                'post_id' => 5,
+                'category_id' => 3
+            )
+        );
+
+        foreach ($posts as $post)
+            $db->insertInto('post', $post)->values($post)->exec();
+
+        foreach ($comments as $comment)
+            $db->insertInto('comment', $comment)->values($comment)->exec();
+
+        foreach ($categories as $category)
+            $db->insertInto('category', $category)->values($category)->exec();
+
+        foreach ($postsCategories as $postCategory)
+            $db->insertInto('post_category', $postCategory)->values($postCategory)->exec();
+
         $schema = new Schemas\Infered();
         $mapper = new Mapper($db, $schema);
         $this->object = $mapper;
@@ -77,10 +119,40 @@ class MapperTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(3, count(get_object_vars($entities['comment'][1])));
     }
 
+    public function testBasicStatementSingle()
+    {
+        $mapper = $this->object;
+        $comments = $mapper->comment->post[5]->fetchAll();
+        $comment = current($comments);
+        $this->assertEquals(1, count($comments));
+        $this->assertEquals(7, $comment->id);
+        $this->assertEquals('Comment Text', $comment->text);
+        $this->assertEquals(3, count(get_object_vars($comment)));
+        $this->assertEquals(5, $comment->post_id->id);
+        $this->assertEquals('Post Title', $comment->post_id->title);
+        $this->assertEquals('Post Text', $comment->post_id->text);
+        $this->assertEquals(3, count(get_object_vars($comment->post_id)));
+    }
+
     public function testBasicStatement()
     {
         $mapper = $this->object;
-        $comment = $mapper->comment->post->fetch();
+        $comment = $mapper->comment->post[5]->fetch();
+        $this->assertEquals(7, $comment->id);
+        $this->assertEquals('Comment Text', $comment->text);
+        $this->assertEquals(3, count(get_object_vars($comment)));
+        $this->assertEquals(5, $comment->post_id->id);
+        $this->assertEquals('Post Title', $comment->post_id->title);
+        $this->assertEquals('Post Text', $comment->post_id->text);
+        $this->assertEquals(3, count(get_object_vars($comment->post_id)));
+    }
+
+    public function testNtoN()
+    {
+        $mapper = $this->object;
+        $comments = $mapper->comment->post->post_category->category[3]->fetchAll();
+        $comment = current($comments);
+        $this->assertEquals(1, count($comments));
         $this->assertEquals(7, $comment->id);
         $this->assertEquals('Comment Text', $comment->text);
         $this->assertEquals(3, count(get_object_vars($comment)));
