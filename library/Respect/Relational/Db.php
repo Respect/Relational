@@ -27,10 +27,7 @@ class Db
 
     public function exec()
     {
-        $statement = $this->prepare((string) $this->currentSql);
-        $ok = $statement->execute($this->currentSql->getParams());
-        $this->currentSql = clone $this->protoSql;
-        return $ok;
+        return (bool) $this->executeStatement();
     }
 
     public function fetch($object = '\stdClass', $extra = null)
@@ -83,12 +80,18 @@ class Db
         return $this;
     }
 
-    protected function performFetch($method, $object = '\stdClass', $extra = null)
+    protected function executeStatement($object = '\stdClass', $extra = null)
     {
         $statement = $this->prepare((string) $this->currentSql, $object, $extra);
         $statement->execute($this->currentSql->getParams());
-        $result = $statement->{$method}();
         $this->currentSql = clone $this->protoSql;
+        return $statement;
+    }
+
+    protected function performFetch($method, $object = '\stdClass', $extra = null)
+    {
+        $statement = $this->executeStatement($object, $extra);
+        $result = $statement->{$method}();
         return $result;
     }
 
