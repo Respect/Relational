@@ -73,14 +73,14 @@ class Finder implements ArrayAccess
     {
         if (!$this->mapper)
             throw new \RuntimeException;
-        $this->mapper->fetch($this);
+        return $this->mapper->fetch($this);
     }
 
     public function fetchAll()
     {
         if (!$this->mapper)
             throw new \RuntimeException;
-        $this->mapper->fetch($this);
+        return $this->mapper->fetchAll($this);
     }
 
     public function getChildren()

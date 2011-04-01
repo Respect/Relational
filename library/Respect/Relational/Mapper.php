@@ -2,6 +2,8 @@
 
 namespace Respect\Relational;
 
+use PDO;
+
 class Mapper
 {
 
@@ -36,7 +38,9 @@ class Mapper
     public function fetch(Finder $finder)
     {
         $statement = $this->createStatement($finder);
-        $this->schema->fetchHydrated($finder, $statement);
+        return $this->assimilate(
+            $this->schema->fetchHydrated($finder, $statement)
+        );
     }
 
     public function fetchAll(Finder $finder)
@@ -45,12 +49,20 @@ class Mapper
         $rows = array();
 
         while ($row = $this->schema->fetchHydrated($finder, $statement))
-            $rows[] = $row;
+            $rows[] = $this->assimilate($row);
 
         return $rows;
     }
 
-    protected function createStatement($finder)
+    protected function assimilate(array $resultSet)
+    {
+        if (empty($resultSet))
+            return false;
+        else
+            return reset(reset($resultSet));
+    }
+
+    protected function createStatement(Finder $finder)
     {
         $finderQuery = $this->schema->generateQuery($finder);
         $statement = $this->db->prepare((string) $finderQuery, PDO::FETCH_NUM);

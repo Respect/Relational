@@ -124,41 +124,4 @@ class FinderTest extends \PHPUnit_Framework_TestCase
         );
     }
 
-    public function testFetchHydrated()
-    {
-        $finder = Finder::comment()->post();
-        $schema = new Schemas\Infered();
-        $conn = new \PDO('sqlite::memory:');
-        $statement = $conn->query("SELECT 1 AS id, 5 AS post_id, 'comm doido' AS text, 5 AS id, 'post loko' AS title, 'opaaa' AS text");
-        $statement->setFetchMode(\PDO::FETCH_NUM);
-        $entities = $schema->fetchHydrated($finder, $statement);
-        $this->assertArrayHasKey('comment', $entities);
-        $this->assertArrayHasKey('post', $entities);
-        $this->assertArrayHasKey(1, $entities['comment']);
-        $this->assertArrayHasKey(5, $entities['post']);
-        $this->assertEquals(5, $entities['post'][5]->id);
-        $this->assertEquals(1, $entities['comment'][1]->id);
-        $this->assertSame($entities['post'][5], $entities['comment'][1]->post_id);
-        $this->assertEquals('comm doido', $entities['comment'][1]->text);
-        $this->assertEquals('opaaa', $entities['post'][5]->text);
-        $this->assertEquals('post loko', $entities['post'][5]->title);
-        $this->assertEquals(3, count(get_object_vars($entities['post'][5])));
-        $this->assertEquals(3, count(get_object_vars($entities['comment'][1])));
-    }
-
-    public function testFetchHydratedSingle()
-    {
-        $finder = Finder::comment();
-        $schema = new Schemas\Infered();
-        $conn = new \PDO('sqlite::memory:');
-        $statement = $conn->query("SELECT 1 AS id, 5 AS post_id, 'comm doido' AS text");
-        $statement->setFetchMode(\PDO::FETCH_NUM);
-        $entities = $schema->fetchHydrated($finder, $statement);
-        $this->assertArrayHasKey('comment', $entities);
-        $this->assertArrayHasKey(1, $entities['comment']);
-        $this->assertEquals(1, $entities['comment'][1]->id);
-        $this->assertEquals('comm doido', $entities['comment'][1]->text);
-        $this->assertEquals(3, count(get_object_vars($entities['comment'][1])));
-    }
-
 }

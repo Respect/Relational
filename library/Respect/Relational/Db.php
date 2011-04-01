@@ -19,9 +19,18 @@ class Db
 
     public function __construct(PDO $connection, Sql $sqlPrototype = null)
     {
+        $connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $this->connection = $connection;
         $this->protoSql = $sqlPrototype ? : new Sql();
         $this->currentSql = clone $this->protoSql;
+    }
+
+    public function exec()
+    {
+        $statement = $this->prepare((string) $this->currentSql);
+        $ok = $statement->execute($this->currentSql->getParams());
+        $this->currentSql = clone $this->protoSql;
+        return $ok;
     }
 
     public function fetch($object = '\stdClass', $extra = null)

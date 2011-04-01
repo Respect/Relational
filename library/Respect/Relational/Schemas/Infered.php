@@ -105,11 +105,14 @@ class Infered implements Schemable
     protected function fetchSingle(Finder $finder, PDOStatement $statement)
     {
         $row = $statement->fetch(PDO::FETCH_OBJ);
-        return array(
-            $finder->getEntityReference() => array(
-                $row->id => $row
-            )
-        );
+        if ($row)
+            return array(
+                $finder->getEntityReference() => array(
+                    $row->id => $row
+                )
+            );
+        else
+            return array();
     }
 
     protected function fetchMulti(Finder $finder, PDOStatement $statement)
@@ -117,8 +120,12 @@ class Infered implements Schemable
         $entities = array();
         $entityInstance = null;
         $finders = FinderIterator::recursive($finder);
+        $row = $statement->fetch(PDO::FETCH_NUM);
 
-        foreach ($statement->fetch() as $n => $value) {
+        if (!$row)
+            return array();
+
+        foreach ($row as $n => $value) {
 
             $meta = $statement->getColumnMeta($n);
 
