@@ -9,6 +9,8 @@ class Mapper
 
     protected $db;
     protected $schema;
+    protected $trackedByName = array();
+    protected $tracked = array();
 
     public function __construct(Db $db, Schemable $schema)
     {
@@ -37,29 +39,45 @@ class Mapper
 
     public function fetch(Finder $finder)
     {
-        $statement = $this->createStatement($finder);
-        return $this->assimilate(
-            $this->schema->fetchHydrated($finder, $statement)
+        return $this->parseHydrated(
+            $this->schema->fetchHydrated(
+                $finder, $this->createStatement($finder)
+            )
         );
     }
 
     public function fetchAll(Finder $finder)
     {
         $statement = $this->createStatement($finder);
-        $rows = array();
+        $entities = array();
 
-        while ($row = $this->schema->fetchHydrated($finder, $statement))
-            $rows[] = $this->assimilate($row);
+        while ($hydrated = $this->schema->fetchHydrated($finder, $statement))
+            $entities[] = $this->parseHydrated($hydrated);
 
-        return $rows;
+
+        return $entities;
     }
 
-    protected function assimilate(array $resultSet)
+    public function track($entity, $entityName)
     {
-        if (empty($resultSet))
-            return false;
+        $id = $entity->{$this->schema->findPrimaryKey($entityName)};
+        $this->trackedByName[$entityName][$id] = $entity;
+        return true;
+    }
+
+    public function isTracked($entity, $entityId=null)
+    {
+        if (is_object($entity))
+            return in_array($entity, $this->tracked);
+        return isset($this->trackedByName[$entity][$entityId]);
+    }
+
+    public function getTracked($entityName, $entityId)
+    {
+        if ($this->isTracked($entityName, $entityId))
+            return $this->trackedByName[$entityName][$entityId];
         else
-            return reset(reset($resultSet));
+            return false;
     }
 
     protected function createStatement(Finder $finder)
@@ -68,6 +86,19 @@ class Mapper
         $statement = $this->db->prepare((string) $finderQuery, PDO::FETCH_NUM);
         $statement->execute($finderQuery->getParams());
         return $statement;
+    }
+
+    protected function parseHydrated($hydrated)
+    {
+        if (!$hydrated)
+            return false;
+
+        $this->trackedByName = array_merge_recursive(
+                $this->trackedByName,
+                $hydrated
+        );
+
+        return reset(reset($hydrated));
     }
 
 }

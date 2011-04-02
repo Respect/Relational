@@ -7,6 +7,8 @@ use PDOStatement;
 interface Schemable
 {
 
+    public function findPrimaryKey($entityName);
+
     public function generateQuery(Finder $finder);
 
     public function fetchHydrated(Finder $finder, PDOStatement $statement);

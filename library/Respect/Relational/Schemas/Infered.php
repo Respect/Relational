@@ -23,6 +23,11 @@ class Infered implements Schemable
         return $sql;
     }
 
+    public function findPrimaryKey($entityName)
+    {
+        return 'id';
+    }
+
     protected function buildSelectStatement(Sql $sql, $finders)
     {
         $selectTable = array_keys($finders);

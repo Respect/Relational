@@ -162,4 +162,23 @@ class MapperTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(3, count(get_object_vars($comment->post_id)));
     }
 
+    public function testTracking()
+    {
+        $mapper = $this->object;
+        $c7 = $mapper->comment[7]->fetch();
+        $c8 = $mapper->comment[8]->fetch();
+        $p5 = $mapper->post[5]->fetch();
+        $c3 = $mapper->category[3]->fetch();
+        $this->assertTrue($mapper->isTracked('comment', 7));
+        $this->assertTrue($mapper->isTracked('comment', 8));
+        $this->assertTrue($mapper->isTracked('post', 5));
+        $this->assertTrue($mapper->isTracked('category', 3));
+        $this->assertSame($c7, $mapper->getTracked('comment', 7));
+        $this->assertSame($c8, $mapper->getTracked('comment', 8));
+        $this->assertSame($p5, $mapper->getTracked('post', 5));
+        $this->assertSame($c3, $mapper->getTracked('category', 3));
+        $this->assertFalse($mapper->getTracked('none', 3));
+        $this->assertFalse($mapper->getTracked('comment', 9889));
+    }
+
 }
