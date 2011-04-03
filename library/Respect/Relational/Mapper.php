@@ -3,19 +3,24 @@
 namespace Respect\Relational;
 
 use PDO;
+use SplObjectStorage;
+use stdClass;
 
 class Mapper
 {
 
     protected $db;
     protected $schema;
-    protected $trackedByName = array();
-    protected $tracked = array();
+    protected $tracked;
+    protected $changed;
 
     public function __construct(Db $db, Schemable $schema)
     {
         $this->db = $db;
         $this->schema = $schema;
+        $this->tracked = new SplObjectStorage;
+        $this->changed = new SplObjectStorage;
+        $this->new = new SplObjectStorage;
     }
 
     public function __get($finder)
@@ -54,30 +59,110 @@ class Mapper
         while ($hydrated = $this->schema->fetchHydrated($finder, $statement))
             $entities[] = $this->parseHydrated($hydrated);
 
-
         return $entities;
     }
 
-    public function track($entity, $entityName)
+    protected function guessName($entity)
     {
-        $id = $entity->{$this->schema->findPrimaryKey($entityName)};
-        $this->trackedByName[$entityName][$id] = $entity;
+        if ($this->isTracked($entity))
+            return $this->tracked[$entity]['name'];
+        else
+            return $this->schema->findName($entity);
+    }
+
+    public function persist(stdClass $entity, $name=null)
+    {
+        $this->changed[$entity] = true;
+
+        if (!$this->isTracked($entity))
+            $this->new[$entity] = true;
+
+        $this->track($entity, $name);
+    }
+
+    public function flush()
+    {
+        foreach ($this->changed as $entity)
+            $this->flushSingle($entity);
+    }
+
+    protected function flushSingle($entity)
+    {
+        $name = $this->tracked[$entity]['name'] ? : $this->guessName($entity);
+        $cols = $this->schema->extractColumns($entity, $name);
+
+        if ($this->new->contains($entity))
+            $this->rawInsert($cols, $name);
+        else
+            $this->rawUpdate($cols, $name);
+    }
+
+    public function remove(stdClass $entity, $name=null)
+    {
+
+        $name = $name ? : $this->guessName($entity);
+        $columns = $this->schema->extractColumns($entity, $name);
+        $condition = $this->guessCondition($columns, $name);
+
+        return $this->db
+            ->deleteFrom($name)
+            ->where($condition)
+            ->exec();
+    }
+
+    protected function guessCondition(&$columns, $name)
+    {
+        $primaryKey = $this->schema->findPrimaryKey($name);
+        $pkValue = $columns[$primaryKey];
+        $condition = array($primaryKey => $pkValue);
+        unset($columns[$primaryKey]);
+        return $condition;
+    }
+
+    protected function rawUpdate(array $columns, $name)
+    {
+        $condition = $this->guessCondition($columns, $name);
+
+        return $this->db
+            ->update($name)
+            ->set($columns)
+            ->where($condition)
+            ->exec();
+    }
+
+    protected function rawInsert(array $columns, $name)
+    {
+        return $this->db
+            ->insertInto($name, $columns)
+            ->values($columns)
+            ->exec();
+    }
+
+    public function track($entity, $name=null, $id=null)
+    {
+        $name = $name ? : $this->guessName($entity);
+        $id = $id ? : $entity->{$this->schema->findPrimaryKey($name)};
+        $this->tracked[$entity] = array(
+            'name' => $name,
+            'id' => $id,
+            'cols' => $this->schema->extractColumns($entity, $name)
+        );
         return true;
     }
 
-    public function isTracked($entity, $entityId=null)
+    public function isTracked($entity, $id=null)
     {
-        if (is_object($entity))
-            return in_array($entity, $this->tracked);
-        return isset($this->trackedByName[$entity][$entityId]);
+        return $this->tracked->contains($entity);
     }
 
-    public function getTracked($entityName, $entityId)
+    public function getTracked($name, $id)
     {
-        if ($this->isTracked($entityName, $entityId))
-            return $this->trackedByName[$entityName][$entityId];
-        else
-            return false;
+        foreach ($this->tracked as $entity)
+            if ($this->tracked[$entity]['id'] === $id
+                && $this->tracked[$entity]['name'] === $name)
+                return $entity;
+
+        return false;
     }
 
     protected function createStatement(Finder $finder)
@@ -93,10 +178,9 @@ class Mapper
         if (!$hydrated)
             return false;
 
-        $this->trackedByName = array_merge_recursive(
-                $this->trackedByName,
-                $hydrated
-        );
+        foreach ($hydrated as $name => $entities)
+            foreach ($entities as $id => $entity)
+                $this->track($entity, $name, $id);
 
         return reset(reset($hydrated));
     }

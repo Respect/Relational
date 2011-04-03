@@ -80,6 +80,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase
         $schema = new Schemas\Infered();
         $mapper = new Mapper($db, $schema);
         $this->object = $mapper;
+        $this->conn = $conn;
     }
 
     public function testFetchHydrated()
@@ -169,16 +170,62 @@ class MapperTest extends \PHPUnit_Framework_TestCase
         $c8 = $mapper->comment[8]->fetch();
         $p5 = $mapper->post[5]->fetch();
         $c3 = $mapper->category[3]->fetch();
-        $this->assertTrue($mapper->isTracked('comment', 7));
-        $this->assertTrue($mapper->isTracked('comment', 8));
-        $this->assertTrue($mapper->isTracked('post', 5));
-        $this->assertTrue($mapper->isTracked('category', 3));
+        $this->assertTrue($mapper->isTracked($c7));
+        $this->assertTrue($mapper->isTracked($c8));
+        $this->assertTrue($mapper->isTracked($p5));
+        $this->assertTrue($mapper->isTracked($c3));
         $this->assertSame($c7, $mapper->getTracked('comment', 7));
         $this->assertSame($c8, $mapper->getTracked('comment', 8));
         $this->assertSame($p5, $mapper->getTracked('post', 5));
         $this->assertSame($c3, $mapper->getTracked('category', 3));
         $this->assertFalse($mapper->getTracked('none', 3));
         $this->assertFalse($mapper->getTracked('comment', 9889));
+    }
+
+    public function testSimplePersist()
+    {
+        $mapper = $this->object;
+        $entity = (object) array('id' => 4, 'name' => 'inserted');
+        $mapper->persist(
+            $entity,
+            'category'
+        );
+        $mapper->flush();
+        $result = $this->conn->query('select * from category where id=4')->fetch(PDO::FETCH_OBJ);
+        $this->assertEquals($entity, $result);
+    }
+
+    public function testJoinedPersist()
+    {
+        $mapper = $this->object;
+        $entity = $mapper->comment[8]->fetch();
+        $entity->text = 'HeyHey';
+        $mapper->persist($entity, 'comment');
+        $mapper->flush();
+        $result = $this->conn->query('select text from comment where id=8')->fetchColumn(0);
+        $this->assertEquals('HeyHey', $result);
+    }
+
+    public function testJoinedPersistNoName()
+    {
+        $mapper = $this->object;
+        $entity = $mapper->comment[8]->fetch();
+        $entity->text = 'HeyHey';
+        $mapper->persist($entity);
+        $mapper->flush();
+        $result = $this->conn->query('select text from comment where id=8')->fetchColumn(0);
+        $this->assertEquals('HeyHey', $result);
+    }
+
+    public function testRemove()
+    {
+        $mapper = $this->object;
+        $c8 = $mapper->comment[8]->fetch();
+        $pre = $this->conn->query('select count(*) from comment')->fetchColumn(0);
+        $mapper->remove($c8);
+        $mapper->flush();
+        $total = $this->conn->query('select count(*) from comment')->fetchColumn(0);
+        $this->assertEquals($total, $pre - 1);
     }
 
 }

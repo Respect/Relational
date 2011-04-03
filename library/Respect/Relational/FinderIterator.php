@@ -8,27 +8,27 @@ use RecursiveIteratorIterator;
 class FinderIterator extends RecursiveArrayIterator
 {
 
-    protected $entityReferenceCount = array();
+    protected $nameCount = array();
 
     public static function recursive($target)
     {
         return new RecursiveIteratorIterator(new static($target), 1);
     }
 
-    public function __construct($target, &$entityReferenceCount=array())
+    public function __construct($target, &$nameCount=array())
     {
-        $this->entityReferenceCount = &$entityReferenceCount;
+        $this->nameCount = &$nameCount;
         parent::__construct(is_array($target) ? $target : array($target));
     }
 
     public function key()
     {
-        $name = $this->current()->getEntityReference();
+        $name = $this->current()->getName();
 
-        if (isset($this->entityReferenceCount[$name]))
-            return $name . ++$this->entityReferenceCount[$name];
+        if (isset($this->nameCount[$name]))
+            return $name . ++$this->nameCount[$name];
 
-        $this->entityReferenceCount[$name] = 1;
+        $this->nameCount[$name] = 1;
         return $name;
     }
 
@@ -49,7 +49,7 @@ class FinderIterator extends RecursiveArrayIterator
         if ($c->hasNextSibling())
             $pool[] = $c->getNextSibling();
 
-        return new static($pool, $this->entityReferenceCount);
+        return new static($pool, $this->nameCount);
     }
 
 }

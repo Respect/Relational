@@ -2,16 +2,21 @@
 
 namespace Respect\Relational;
 
+use stdClass;
 use PDOStatement;
 
 interface Schemable
 {
 
+    public function extractColumns(stdClass $entity, $name=null);
+
+    public function fetchHydrated(Finder $finder, PDOStatement $statement);
+
+    public function findName(stdClass $entity);
+
     public function findPrimaryKey($entityName);
 
     public function generateQuery(Finder $finder);
-
-    public function fetchHydrated(Finder $finder, PDOStatement $statement);
 }
 
 /**

@@ -2,6 +2,7 @@
 
 namespace Respect\Relational\Schemas;
 
+use stdClass;
 use PDO;
 use PDOStatement;
 use Respect\Relational\Sql;
@@ -23,9 +24,26 @@ class Infered implements Schemable
         return $sql;
     }
 
-    public function findPrimaryKey($entityName)
+    public function findPrimaryKey($name)
     {
         return 'id';
+    }
+
+    public function findName(stdClass $entity)
+    {
+        throw new \InvalidArgumentException();
+    }
+
+    public function extractColumns(stdClass $entity, $name=null)
+    {
+        $name = $name ? : $this->findName($entity);
+        $cols = get_object_vars($entity);
+
+        foreach ($cols as &$c)
+            if (is_object($c))
+                $c = $c->id;
+
+        return $cols;
     }
 
     protected function buildSelectStatement(Sql $sql, $finders)
@@ -52,12 +70,13 @@ class Infered implements Schemable
 
     protected function parseConditions(&$conditions, $finder, $alias)
     {
-        $entity = $finder->getEntityReference();
+        $entity = $finder->getName();
         $originalConditions = $finder->getCondition();
         $parsedConditions = array();
+        $aliasedPk = "$alias." . $this->findPrimaryKey($entity);
 
         if (is_scalar($originalConditions))
-            $parsedConditions = array("$alias.id" => $originalConditions);
+            $parsedConditions = array($aliasedPk => $originalConditions);
         elseif (is_array($originalConditions))
             foreach ($originalConditions as $column => $value)
                 if (is_numeric($column))
@@ -72,9 +91,9 @@ class Infered implements Schemable
 
     protected function parseFinder(Sql $sql, Finder $finder, $alias, &$aliases, &$conditions)
     {
-        $entity = $finder->getEntityReference();
-        $parent = $finder->getParentEntityReference();
-        $sibling = $finder->getNextSiblingEntityReference();
+        $entity = $finder->getName();
+        $parent = $finder->getParentName();
+        $sibling = $finder->getNextSiblingName();
 
         $parentAlias = $parent ? $aliases[$parent] : null;
         $aliases[$entity] = $alias;
@@ -93,10 +112,13 @@ class Infered implements Schemable
         if ($alias !== $entity)
             $sql->as($alias);
 
+        $aliasedPk = "$alias." . $this->findPrimaryKey($entity);
+        $aliasedParentPk = "$parentAlias." . $this->findPrimaryKey($parent);
+
         if ($entity === "{$parent}_{$sibling}")
-            return $sql->on(array("{$alias}.{$parent}_id" => "{$parentAlias}.id"));
+            return $sql->on(array("{$alias}.{$parent}_id" => $aliasedParentPk));
         else
-            return $sql->on(array("{$parentAlias}.{$entity}_id" => "{$alias}.id"));
+            return $sql->on(array("{$parentAlias}.{$entity}_id" => $aliasedPk));
     }
 
     public function fetchHydrated(Finder $finder, PDOStatement $statement)
@@ -112,7 +134,7 @@ class Infered implements Schemable
         $row = $statement->fetch(PDO::FETCH_OBJ);
         if ($row)
             return array(
-                $finder->getEntityReference() => array(
+                $finder->getName() => array(
                     $row->id => $row
                 )
             );
@@ -139,7 +161,7 @@ class Infered implements Schemable
                     $entities[$entityName][$entityInstance->id] = $entityInstance;
 
                 $finders->next();
-                $entityName = $finders->current()->getEntityReference();
+                $entityName = $finders->current()->getName();
                 $entityInstance = new \stdClass;
             }
             $entityInstance->{$meta['name']} = $value;

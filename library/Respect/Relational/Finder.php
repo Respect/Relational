@@ -9,18 +9,18 @@ class Finder implements ArrayAccess
 
     protected $required = true;
     protected $mapper;
-    protected $entityReference;
+    protected $name;
     protected $condition;
     protected $parent;
     protected $nextSibling;
     protected $lastSibling;
     protected $children = array();
 
-    public static function __callStatic($newFinderEntityReference, $newFinderChildren)
+    public static function __callStatic($name, $children)
     {
-        $newFinder = new static($newFinderEntityReference);
+        $newFinder = new static($name);
 
-        foreach ($newFinderChildren as $child)
+        foreach ($children as $child)
             if ($child instanceof Finder)
                 $newFinder->addChild($child);
             else
@@ -28,24 +28,24 @@ class Finder implements ArrayAccess
         return $newFinder;
     }
 
-    public function __construct($entityReference, $condition = array())
+    public function __construct($name, $condition = array())
     {
         if (!is_scalar($condition) && !is_array($condition))
             throw new \InvalidArgumentException('Unexpected');
 
-        $this->entityReference = $entityReference;
+        $this->name = $name;
         $this->condition = $condition;
         $this->lastSibling = $this;
     }
 
-    public function __get($newFinderEntityReference)
+    public function __get($name)
     {
-        return $this->stackSibling(new static($newFinderEntityReference));
+        return $this->stackSibling(new static($name));
     }
 
-    public function __call($newFinderEntityReference, $newFinderChildren)
+    public function __call($name, $children)
     {
-        $newFinder = static::__callStatic($newFinderEntityReference, $newFinderChildren);
+        $newFinder = static::__callStatic($name, $children);
 
         return $this->stackSibling($newFinder);
     }
@@ -93,9 +93,9 @@ class Finder implements ArrayAccess
         return $this->condition;
     }
 
-    public function getEntityReference()
+    public function getName()
     {
-        return $this->entityReference;
+        return $this->name;
     }
 
     public function getNextSibling()
@@ -103,14 +103,14 @@ class Finder implements ArrayAccess
         return $this->nextSibling;
     }
 
-    public function getParentEntityReference()
+    public function getParentName()
     {
-        return $this->parent ? $this->parent->getEntityReference() : null;
+        return $this->parent ? $this->parent->getName() : null;
     }
 
-    public function getNextSiblingEntityReference()
+    public function getNextSiblingName()
     {
-        return $this->nextSibling ? $this->nextSibling->getEntityReference() : null;
+        return $this->nextSibling ? $this->nextSibling->getName() : null;
     }
 
     public function hasChildren()
