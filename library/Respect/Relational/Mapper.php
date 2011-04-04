@@ -2,6 +2,7 @@
 
 namespace Respect\Relational;
 
+use Exception;
 use PDO;
 use SplObjectStorage;
 use stdClass;
@@ -77,13 +78,21 @@ class Mapper
         if (!$this->isTracked($entity))
             $this->new[$entity] = true;
 
-        $this->track($entity, $name);
+        $this->markTracked($entity, $name);
     }
 
     public function flush()
     {
-        foreach ($this->changed as $entity)
-            $this->flushSingle($entity);
+        $conn = $this->db->getConnection();
+        $conn->beginTransaction();
+        try {
+            foreach ($this->changed as $entity)
+                $this->flushSingle($entity);
+        } catch (Exception $e) {
+            $conn->rollback();
+            throw $e;
+        }
+        $conn->commit();
     }
 
     protected function flushSingle($entity)
@@ -138,7 +147,7 @@ class Mapper
             ->exec();
     }
 
-    public function track($entity, $name=null, $id=null)
+    public function markTracked($entity, $name=null, $id=null)
     {
         $name = $name ? : $this->guessName($entity);
         $id = $id ? : $entity->{$this->schema->findPrimaryKey($name)};
@@ -150,7 +159,7 @@ class Mapper
         return true;
     }
 
-    public function isTracked($entity, $id=null)
+    public function isTracked($entity)
     {
         return $this->tracked->contains($entity);
     }
@@ -180,7 +189,7 @@ class Mapper
 
         foreach ($hydrated as $name => $entities)
             foreach ($entities as $id => $entity)
-                $this->track($entity, $name, $id);
+                $this->markTracked($entity, $name, $id);
 
         return reset(reset($hydrated));
     }
