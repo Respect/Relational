@@ -5,6 +5,7 @@ namespace Respect\Relational\Schemas;
 use stdClass;
 use PDO;
 use PDOStatement;
+use SplObjectStorage;
 use Respect\Relational\Sql;
 use Respect\Relational\Schemable;
 use Respect\Relational\Finder;
@@ -131,20 +132,23 @@ class Infered implements Schemable
 
     protected function fetchSingle(Finder $finder, PDOStatement $statement)
     {
+        $entities = new SplObjectStorage();
+        $name = $finder->getName();
         $row = $statement->fetch(PDO::FETCH_OBJ);
+
         if ($row)
-            return array(
-                $finder->getName() => array(
-                    $row->id => $row
-                )
+            $entities[$row] = array(
+                'name' => $name,
+                'id' => $row->id,
+                'cols' => $this->extractColumns($row, $name)
             );
-        else
-            return array();
+
+        return $entities;
     }
 
     protected function fetchMulti(Finder $finder, PDOStatement $statement)
     {
-        $entities = array();
+        $entities = new SplObjectStorage;
         $entityInstance = null;
         $finders = FinderIterator::recursive($finder);
         $row = $statement->fetch(PDO::FETCH_NUM);
@@ -158,7 +162,14 @@ class Infered implements Schemable
 
             if ('id' === $meta['name']) {
                 if (0 !== $n)
-                    $entities[$entityName][$entityInstance->id] = $entityInstance;
+                    $entities[$entityInstance] = array(
+                        'name' => $entityName,
+                        'id' => $entityInstance->id,
+                        'cols' => $this->extractColumns(
+                            $entityInstance,
+                            $entityName
+                        )
+                    );
 
                 $finders->next();
                 $entityName = $finders->current()->getName();
@@ -168,14 +179,19 @@ class Infered implements Schemable
         }
 
         if (!empty($entities))
-            $entities[$entityName][$entityInstance->id] = $entityInstance;
+            $entities[$entityInstance] = array(
+                'name' => $entityName,
+                'id' => $entityInstance->id,
+                'cols' => $this->extractColumns($entityInstance, $entityName)
+            );
 
-        foreach ($entities as $table => $instances)
-            foreach ($instances as $pk => $i)
-                foreach ($i as $field => &$v)
-                    if (strlen($field) - 3 === strripos($field, '_id'))
-                        if (isset($entities[$eName = substr($field, 0, -3)][$v]))
-                            $v = $entities[$eName][$v];
+        foreach ($entities as $instance)
+            foreach ($instance as $field => &$v)
+                if (strlen($field) - 3 === strripos($field, '_id'))
+                    foreach ($entities as $sub)
+                        if ($entities[$sub]['name'] === substr($field, 0, -3)
+                            && $sub->id === $v)
+                            $v = $sub;
 
         return $entities;
     }

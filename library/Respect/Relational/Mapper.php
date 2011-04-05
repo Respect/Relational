@@ -75,10 +75,12 @@ class Mapper
     {
         $this->changed[$entity] = true;
 
-        if (!$this->isTracked($entity))
-            $this->new[$entity] = true;
+        if ($this->isTracked($entity))
+            return true;
 
+        $this->new[$entity] = true;
         $this->markTracked($entity, $name);
+        return true;
     }
 
     public function flush()
@@ -167,7 +169,7 @@ class Mapper
     public function getTracked($name, $id)
     {
         foreach ($this->tracked as $entity)
-            if ($this->tracked[$entity]['id'] === $id
+            if ($this->tracked[$entity]['id'] == $id
                 && $this->tracked[$entity]['name'] === $name)
                 return $entity;
 
@@ -182,16 +184,11 @@ class Mapper
         return $statement;
     }
 
-    protected function parseHydrated($hydrated)
+    protected function parseHydrated(SplObjectStorage $hydrated)
     {
-        if (!$hydrated)
-            return false;
-
-        foreach ($hydrated as $name => $entities)
-            foreach ($entities as $id => $entity)
-                $this->markTracked($entity, $name, $id);
-
-        return reset(reset($hydrated));
+        $this->tracked->addAll($hydrated);
+        $hydrated->rewind();
+        return $hydrated->current();
     }
 
 }
