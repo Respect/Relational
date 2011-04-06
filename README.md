@@ -36,10 +36,10 @@ This is the only provider that require database naming conventions:
 
 Samples:
 
-  > post (id, title, text)
-  > comment (id, post_id, name, text)
-  > category (id, name)
-  > post_category (id, post_id, category_id)
+  * post (id, title, text)
+  * comment (id, post_id, name, text)
+  * category (id, name)
+  * post_category (id, post_id, category_id)
 
 Usage sample:
 
