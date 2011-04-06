@@ -63,10 +63,7 @@ class Infered implements Schemable
         foreach ($finders as $alias => $finder)
             $this->parseFinder($sql, $finder, $alias, $aliases, $conditions);
 
-        if (!empty($conditions))
-            $sql->where($conditions);
-
-        return $sql;
+        return $sql->where($conditions);
     }
 
     protected function parseConditions(&$conditions, $finder, $alias)

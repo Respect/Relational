@@ -17,14 +17,47 @@ class Sql
 
     public function __call($operation, $parts)
     {
+        return $this->preBuild($operation, $parts);
+    }
+
+    protected function preBuild($operation, $parts)
+    {
+        $parts = $this->normalizeParts($parts, $operation === 'on' ? true : false);
+        if (empty($parts))
+            return $this;
         $this->buildOperation($operation);
-        $method = 'parse' . ucfirst($operation);
-        if (!method_exists($this, $method)) {
-            $parts = $this->normalizeParts($parts);
-            $method = 'buildParts';
+        return $this->build($operation, $parts);
+    }
+
+    protected function build($operation, $parts)
+    {
+        switch ($operation) { //just special cases
+            case 'alterTable':
+                $this->buildFirstPart($parts);
+                return $this->buildParts($parts, '%s ');
+            case 'in':
+                $parts = array_map(array($this, 'buildName'), $parts);
+                return $this->buildParts($parts, '(:%s) ', ', :');
+            case 'createTable':
+            case 'insertInto':
+                $this->buildFirstPart($parts);
+                return $this->buildParts($parts, '(%s) ');
+            case 'values':
+                $parts = array_map(array($this, 'buildName'), $parts);
+                return $this->buildParts($parts, '(:%s) ', ', :');
+            case 'and':
+            case 'having':
+            case 'where':
+                return $this->buildKeyValues($parts, '%s ', ' AND ');
+            case 'on':
+                return $this->buildComparators($parts, '%s ', ' AND ');
+            case 'or':
+                return $this->buildKeyValues($parts, '%s ', ' OR ');
+            case 'set':
+                return $this->buildKeyValues($parts);
+            default: //defaults to any other SQL instruction
+                return $this->buildParts($parts);
         }
-        $this->{$method}($parts);
-        return $this;
     }
 
     public function __construct($rawSql = '')
@@ -34,7 +67,7 @@ class Sql
 
     public function __toString()
     {
-        $q = trim($this->query);
+        $q = rtrim($this->query);
         $this->query = '';
         return $q;
     }
@@ -66,7 +99,7 @@ class Sql
                 $parts[$key] = "$part";
             else
                 $parts[$key] = "$key=:" . $this->buildName($part);
-        $this->buildParts($parts, $format, $partSeparator);
+        return $this->buildParts($parts, $format, $partSeparator);
     }
 
     protected function buildComparators($parts, $format = '%s ', $partSeparator = ', ')
@@ -76,25 +109,26 @@ class Sql
                 $parts[$key] = "$part";
             else
                 $parts[$key] = "$key = $part";
-        $this->buildParts($parts, $format, $partSeparator);
+        return $this->buildParts($parts, $format, $partSeparator);
     }
 
     protected function buildOperation($operation)
     {
-        $command = strtoupper(preg_replace('#[A-Z0-9]+#', ' $0', $operation));
+        $command = strtoupper(preg_replace('/[A-Z0-9]+/', ' $0', $operation));
         $this->query .= trim($command) . ' ';
     }
 
     protected function buildParts($parts, $format = '%s ', $partSeparator = ', ')
     {
-        if (empty($parts))
-            return;
-        $this->query .= sprintf($format, implode($partSeparator, $parts));
+        if (!empty($parts))
+            $this->query .= sprintf($format, implode($partSeparator, $parts));
+
+        return $this;
     }
 
     protected function buildName($identifier)
     {
-        $translated = strtolower(preg_replace('#[^a-zA-Z0-9]#', ' ', $identifier));
+        $translated = strtolower(preg_replace('/[^a-zA-Z0-9]/', ' ', $identifier));
         $translated = str_replace(' ', '', ucwords($translated));
         return $this->params[$identifier] = $translated;
     }
@@ -119,80 +153,9 @@ class Sql
         return $newParts;
     }
 
-    protected function parseAnd($parts)
-    {
-        $parts = $this->normalizeParts($parts);
-        $this->buildKeyValues($parts, '%s ', ' AND ');
-    }
-
-    protected function parseCreateTable($parts)
-    {
-        $parts = $this->normalizeParts($parts);
-        $this->parseFirstPart($parts);
-        $this->buildParts($parts, '(%s) ');
-    }
-
-    protected function parseAlterTable($parts)
-    {
-        $parts = $this->normalizeParts($parts);
-        $this->parseFirstPart($parts);
-        $this->buildParts($parts, '%s ');
-    }
-
-    protected function parseHaving($parts)
-    {
-        $parts = $this->normalizeParts($parts);
-        $this->buildKeyValues($parts, '%s ', ' AND ');
-    }
-
-    protected function parseIn($parts)
-    {
-        $parts = $this->normalizeParts($parts);
-        $parts = array_map(array($this, 'buildName'), $parts);
-        $this->buildParts($parts, '(:%s) ', ', :');
-    }
-
-    protected function parseInsertInto($parts)
-    {
-        $parts = $this->normalizeParts($parts);
-        $this->parseFirstPart($parts);
-        $this->buildParts($parts, '(%s) ');
-    }
-
-    protected function parseFirstPart(&$parts)
+    protected function buildFirstPart(&$parts)
     {
         $this->query .= array_shift($parts) . ' ';
-    }
-
-    protected function parseOr($parts)
-    {
-        $parts = $this->normalizeParts($parts);
-        $this->buildKeyValues($parts, '%s ', ' OR ');
-    }
-
-    protected function parseSet($parts)
-    {
-        $parts = $this->normalizeParts($parts);
-        $this->buildKeyValues($parts);
-    }
-
-    protected function parseValues($parts)
-    {
-        $parts = $this->normalizeParts($parts);
-        $parts = array_map(array($this, 'buildName'), $parts);
-        $this->buildParts($parts, '(:%s) ', ', :');
-    }
-
-    protected function parseWhere($parts)
-    {
-        $parts = $this->normalizeParts($parts);
-        $this->buildKeyValues($parts, '%s ', ' AND ');
-    }
-
-    protected function parseOn($parts)
-    {
-        $parts = $this->normalizeParts($parts, true);
-        $this->buildComparators($parts, '%s ', ' AND ');
     }
 
 }

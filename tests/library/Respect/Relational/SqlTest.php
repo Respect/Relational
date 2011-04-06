@@ -20,7 +20,7 @@ class SqlTest extends \PHPUnit_Framework_TestCase
 
     public function testSelectMagicGetDistinctFromHell()
     {
-        $sql = (string) $this->object->select()->distinct('*')->from('table');
+        $sql = (string) $this->object->selectDistinct('*')->from('table');
         $this->assertEquals("SELECT DISTINCT * FROM table", $sql);
     }
 
@@ -65,6 +65,13 @@ class SqlTest extends \PHPUnit_Framework_TestCase
     {
         $data = array('column' => '123', 'other_column' => '456');
         $sql = (string) $this->object->select('*')->from('table')->where($data);
+        $this->assertEquals("SELECT * FROM table WHERE column=:Column AND other_column=:OtherColumn", $sql);
+    }
+
+    public function testSelectWhereArrayEmptyAnd()
+    {
+        $data = array('column' => '123', 'other_column' => '456');
+        $sql = (string) $this->object->select('*')->from('table')->where($data)->and();
         $this->assertEquals("SELECT * FROM table WHERE column=:Column AND other_column=:OtherColumn", $sql);
     }
 
