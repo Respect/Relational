@@ -32,6 +32,17 @@ class Sql
     protected function build($operation, $parts)
     {
         switch ($operation) { //just special cases
+            case 'and':
+            case 'having':
+            case 'where':
+            case 'between':
+                return $this->buildKeyValues($parts, '%s ', ' AND ');
+            case 'or':
+                return $this->buildKeyValues($parts, '%s ', ' OR ');
+            case 'set':
+                return $this->buildKeyValues($parts);
+            case 'on':
+                return $this->buildComparators($parts, '%s ', ' AND ');
             case 'alterTable':
                 $this->buildFirstPart($parts);
                 return $this->buildParts($parts, '%s ');
@@ -45,16 +56,6 @@ class Sql
             case 'values':
                 $parts = array_map(array($this, 'buildName'), $parts);
                 return $this->buildParts($parts, '(:%s) ', ', :');
-            case 'and':
-            case 'having':
-            case 'where':
-                return $this->buildKeyValues($parts, '%s ', ' AND ');
-            case 'on':
-                return $this->buildComparators($parts, '%s ', ' AND ');
-            case 'or':
-                return $this->buildKeyValues($parts, '%s ', ' OR ');
-            case 'set':
-                return $this->buildKeyValues($parts);
             default: //defaults to any other SQL instruction
                 return $this->buildParts($parts);
         }

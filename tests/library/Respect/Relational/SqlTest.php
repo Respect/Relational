@@ -54,6 +54,12 @@ class SqlTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals("SELECT * FROM table WHERE column=123", $sql);
     }
 
+    public function testSelectWhereBetween()
+    {
+        $sql = (string) $this->object->select('*')->from('table')->where('column')->between(1, 2);
+        $this->assertEquals("SELECT * FROM table WHERE column BETWEEN 1 AND 2", $sql);
+    }
+
     public function testSelectWhereIn()
     {
         $data = array('key' => '123', 'other_key' => '456');
