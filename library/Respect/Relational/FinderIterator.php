@@ -35,7 +35,7 @@ class FinderIterator extends RecursiveArrayIterator
     public function hasChildren()
     {
         $c = $this->current();
-        return (boolean) $c->hasChildren() || $c->hasNextSibling();
+        return (boolean) $c->hasChildren() || $c->hasNext();
     }
 
     public function getChildren()
@@ -46,8 +46,8 @@ class FinderIterator extends RecursiveArrayIterator
         if ($c->hasChildren())
             $pool = $c->getChildren();
 
-        if ($c->hasNextSibling())
-            $pool[] = $c->getNextSibling();
+        if ($c->hasNext())
+            $pool[] = $c->getNext();
 
         return new static($pool, $this->nameCount);
     }

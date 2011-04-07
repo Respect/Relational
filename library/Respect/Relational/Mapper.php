@@ -24,23 +24,23 @@ class Mapper
         $this->new = new SplObjectStorage;
     }
 
-    public function __get($finder)
+    public function __get($name)
     {
-        $newFinder = new Finder($finder);
-        $newFinder->setMapper($this);
+        $finder = new Finder($name);
+        $finder->setMapper($this);
 
-        return $newFinder;
+        return $finder;
     }
 
-    public function __call($finder, $children)
+    public function __call($name, $children)
     {
-        $newFinder = new Finder($finder);
-        $newFinder->setMapper($this);
+        $finder = new Finder($name);
+        $finder->setMapper($this);
 
         foreach ($children as $child)
-            $newFinder->addChild($child);
+            $finder->addChild($child);
 
-        return $newFinder;
+        return $finder;
     }
 
     public function fetch(Finder $finder)
@@ -63,7 +63,7 @@ class Mapper
         return $entities;
     }
 
-    protected function guessName($entity)
+    protected function guessName(stdClass $entity)
     {
         if ($this->isTracked($entity))
             return $this->tracked[$entity]['name'];
@@ -97,7 +97,7 @@ class Mapper
         $conn->commit();
     }
 
-    protected function flushSingle($entity)
+    protected function flushSingle(stdClass $entity)
     {
         $name = $this->tracked[$entity]['name'] ? : $this->guessName($entity);
         $cols = $this->schema->extractColumns($entity, $name);
@@ -171,7 +171,7 @@ class Mapper
         return true;
     }
 
-    public function markTracked($entity, $name=null, $id=null)
+    public function markTracked(stdClass $entity, $name=null, $id=null)
     {
         $name = $name ? : $this->guessName($entity);
         $id = $id ? : $entity->{$this->schema->findPrimaryKey($name)};

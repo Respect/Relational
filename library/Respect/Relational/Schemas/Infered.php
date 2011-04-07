@@ -91,7 +91,7 @@ class Infered implements Schemable
     {
         $entity = $finder->getName();
         $parent = $finder->getParentName();
-        $sibling = $finder->getNextSiblingName();
+        $next = $finder->getNextName();
 
         $parentAlias = $parent ? $aliases[$parent] : null;
         $aliases[$entity] = $alias;
@@ -113,7 +113,7 @@ class Infered implements Schemable
         $aliasedPk = "$alias." . $this->findPrimaryKey($entity);
         $aliasedParentPk = "$parentAlias." . $this->findPrimaryKey($parent);
 
-        if ($entity === "{$parent}_{$sibling}")
+        if ($entity === "{$parent}_{$next}")
             return $sql->on(array("{$alias}.{$parent}_id" => $aliasedParentPk));
         else
             return $sql->on(array("{$parentAlias}.{$entity}_id" => $aliasedPk));

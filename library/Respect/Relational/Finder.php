@@ -12,20 +12,20 @@ class Finder implements ArrayAccess
     protected $name;
     protected $condition;
     protected $parent;
-    protected $nextSibling;
-    protected $lastSibling;
+    protected $next;
+    protected $last;
     protected $children = array();
 
     public static function __callStatic($name, $children)
     {
-        $newFinder = new static($name);
+        $finder = new static($name);
 
         foreach ($children as $child)
             if ($child instanceof Finder)
-                $newFinder->addChild($child);
+                $finder->addChild($child);
             else
-                $newFinder->setCondition($child);
-        return $newFinder;
+                $finder->setCondition($child);
+        return $finder;
     }
 
     public function __construct($name, $condition = array())
@@ -35,26 +35,26 @@ class Finder implements ArrayAccess
 
         $this->name = $name;
         $this->condition = $condition;
-        $this->lastSibling = $this;
+        $this->last = $this;
     }
 
     public function __get($name)
     {
-        return $this->stackSibling(new static($name));
+        return $this->stack(new static($name));
     }
 
     public function __call($name, $children)
     {
-        $newFinder = static::__callStatic($name, $children);
+        $finder = static::__callStatic($name, $children);
 
-        return $this->stackSibling($newFinder);
+        return $this->stack($finder);
     }
 
     public function __invoke()
     {
         foreach (func_get_args () as $child)
             if ($child instanceof static)
-                $this->lastSibling->addChild($child);
+                $this->last->addChild($child);
             else
                 throw new \InvalidArgumentException('Unexpected');
         return $this;
@@ -62,11 +62,11 @@ class Finder implements ArrayAccess
 
     public function addChild(Finder $child)
     {
-        $childClone = clone $child;
-        $childClone->setRequired(false);
-        $childClone->setMapper($this->mapper);
-        $childClone->setParent($this);
-        $this->children[] = $childClone;
+        $clone = clone $child;
+        $clone->setRequired(false);
+        $clone->setMapper($this->mapper);
+        $clone->setParent($this);
+        $this->children[] = $clone;
     }
 
     public function fetch()
@@ -98,9 +98,9 @@ class Finder implements ArrayAccess
         return $this->name;
     }
 
-    public function getNextSibling()
+    public function getNext()
     {
-        return $this->nextSibling;
+        return $this->next;
     }
 
     public function getParentName()
@@ -108,9 +108,9 @@ class Finder implements ArrayAccess
         return $this->parent ? $this->parent->getName() : null;
     }
 
-    public function getNextSiblingName()
+    public function getNextName()
     {
-        return $this->nextSibling ? $this->nextSibling->getName() : null;
+        return $this->next ? $this->next->getName() : null;
     }
 
     public function hasChildren()
@@ -120,12 +120,12 @@ class Finder implements ArrayAccess
 
     public function hasMore()
     {
-        return $this->hasChildren() || $this->hasNextSibling();
+        return $this->hasChildren() || $this->hasNext();
     }
 
-    public function hasNextSibling()
+    public function hasNext()
     {
-        return!is_null($this->nextSibling);
+        return!is_null($this->next);
     }
 
     public function isRequired()
@@ -140,7 +140,7 @@ class Finder implements ArrayAccess
 
     public function offsetGet($condition)
     {
-        $this->lastSibling->condition = $condition;
+        $this->last->condition = $condition;
         return $this;
     }
 
@@ -159,22 +159,22 @@ class Finder implements ArrayAccess
         $this->condition = $condition;
     }
 
-    public function setMapper($mapper)
+    public function setMapper(Mapper $mapper=null)
     {
         foreach ($this->children as $child)
             $child->setMapper($mapper);
         $this->mapper = $mapper;
     }
 
-    public function setParent($parent)
+    public function setParent(Finder $parent)
     {
         $this->parent = $parent;
     }
 
-    public function setNextSibling($sibling)
+    public function setNext(Finder $finder)
     {
-        $sibling->setParent($this);
-        $this->nextSibling = $sibling;
+        $finder->setParent($this);
+        $this->next = $finder;
     }
 
     public function setRequired($required)
@@ -182,10 +182,10 @@ class Finder implements ArrayAccess
         $this->required = $required;
     }
 
-    protected function stackSibling(Finder $sibling)
+    protected function stack(Finder $finder)
     {
-        $this->lastSibling->setNextSibling($sibling);
-        $this->lastSibling = $sibling;
+        $this->last->setNext($finder);
+        $this->last = $finder;
         return $this;
     }
 
