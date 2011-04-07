@@ -103,7 +103,7 @@ class Mapper
         $cols = $this->schema->extractColumns($entity, $name);
 
         if ($this->new->contains($entity))
-            $this->rawInsert($cols, $name);
+            $this->rawInsert($cols, $name, $entity);
         else
             $this->rawUpdate($cols, $name);
     }
@@ -141,12 +141,34 @@ class Mapper
             ->exec();
     }
 
-    protected function rawInsert(array $columns, $name)
+    protected function rawInsert(array $columns, $name, stdClass $entity=null)
     {
-        return $this->db
-            ->insertInto($name, $columns)
-            ->values($columns)
-            ->exec();
+        $isInserted = $this->db
+                ->insertInto($name, $columns)
+                ->values($columns)
+                ->exec();
+
+        if (!is_null($entity))
+            $this->checkNewIdentity($entity);
+
+        return $isInserted;
+    }
+
+    protected function checkNewIdentity(stdClass $entity, $name=null)
+    {
+        $name = $name ? : $this->guessName($entity);
+        $identity = null;
+        try {
+            $identity = $this->db->getConnection()->lastInsertId();
+        } catch (PDOException $e) {
+            //some drivers may throw an exception here, it is just irrelevant
+            return false;
+        }
+        if (!$identity)
+            return false;
+
+        $entity->{$this->schema->findPrimaryKey($name)} = $identity;
+        return true;
     }
 
     public function markTracked($entity, $name=null, $id=null)
@@ -161,7 +183,7 @@ class Mapper
         return true;
     }
 
-    public function isTracked($entity)
+    public function isTracked(stdClass $entity)
     {
         return $this->tracked->contains($entity);
     }

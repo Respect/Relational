@@ -53,7 +53,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase
         );
         $categories = array(
             array(
-                'id' => 3,
+                'id' => 2,
                 'name' => 'Sample Category'
             )
         );
@@ -61,7 +61,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase
             array(
                 'id' => 66,
                 'post_id' => 5,
-                'category_id' => 3
+                'category_id' => 2
             )
         );
 
@@ -152,7 +152,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase
     public function testNtoN()
     {
         $mapper = $this->object;
-        $comments = $mapper->comment->post->post_category->category[3]->fetchAll();
+        $comments = $mapper->comment->post->post_category->category[2]->fetchAll();
         $comment = current($comments);
         $this->assertEquals(1, count($comments));
         $this->assertEquals(7, $comment->id);
@@ -170,7 +170,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase
         $c7 = $mapper->comment[7]->fetch();
         $c8 = $mapper->comment[8]->fetch();
         $p5 = $mapper->post[5]->fetch();
-        $c3 = $mapper->category[3]->fetch();
+        $c3 = $mapper->category[2]->fetch();
         $this->assertTrue($mapper->isTracked($c7));
         $this->assertTrue($mapper->isTracked($c8));
         $this->assertTrue($mapper->isTracked($p5));
@@ -178,7 +178,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase
         $this->assertSame($c7, $mapper->getTracked('comment', 7));
         $this->assertSame($c8, $mapper->getTracked('comment', 8));
         $this->assertSame($p5, $mapper->getTracked('post', 5));
-        $this->assertSame($c3, $mapper->getTracked('category', 3));
+        $this->assertSame($c3, $mapper->getTracked('category', 2));
         $this->assertFalse($mapper->getTracked('none', 3));
         $this->assertFalse($mapper->getTracked('comment', 9889));
     }
@@ -194,6 +194,20 @@ class MapperTest extends \PHPUnit_Framework_TestCase
         $mapper->flush();
         $result = $this->conn->query('select * from category where id=4')->fetch(PDO::FETCH_OBJ);
         $this->assertEquals($entity, $result);
+    }
+
+    public function testAutoIncrementPersist()
+    {
+        $mapper = $this->object;
+        $entity = (object) array('id' => null, 'name' => 'inserted');
+        $mapper->persist(
+            $entity,
+            'category'
+        );
+        $mapper->flush();
+        $result = $this->conn->query('select * from category where name="inserted"')->fetch(PDO::FETCH_OBJ);
+        $this->assertEquals($entity, $result);
+        $this->assertEquals(3, $result->id);
     }
 
     public function testJoinedPersist()
