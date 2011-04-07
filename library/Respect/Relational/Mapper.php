@@ -95,6 +95,8 @@ class Mapper
             $conn->rollback();
             throw $e;
         }
+        $this->changed = new SplObjectStorage;
+        $this->new = new SplObjectStorage;
         $conn->commit();
     }
 
