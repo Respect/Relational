@@ -129,32 +129,34 @@ class Infered implements Schemable
 
     protected function fetchSingle(Finder $finder, PDOStatement $statement)
     {
-        $entities = new SplObjectStorage();
         $name = $finder->getName();
         $row = $statement->fetch(PDO::FETCH_OBJ);
 
-        if ($row)
-            $entities[$row] = array(
-                'name' => $name,
-                'id' => $row->id,
-                'cols' => $this->extractColumns($row, $name)
-            );
+        if (!$row)
+            return false;
+
+        $entities = new SplObjectStorage();
+        $entities[$row] = array(
+            'name' => $name,
+            'id' => $row->id,
+            'cols' => $this->extractColumns($row, $name)
+        );
 
         return $entities;
     }
 
     protected function fetchMulti(Finder $finder, PDOStatement $statement)
     {
-        $entities = new SplObjectStorage;
         $entityInstance = null;
         $finders = FinderIterator::recursive($finder);
         $row = $statement->fetch(PDO::FETCH_NUM);
 
         if (!$row)
-            return array();
+            return false;
+
+        $entities = new SplObjectStorage();
 
         foreach ($row as $n => $value) {
-
             $meta = $statement->getColumnMeta($n);
 
             if ('id' === $meta['name']) {

@@ -25,7 +25,8 @@ class MapperTest extends \PHPUnit_Framework_TestCase
             )));
         $conn->exec((string) Sql::createTable('category', array(
                 'id INTEGER PRIMARY KEY',
-                'name VARCHAR(255)'
+                'name VARCHAR(255)',
+                'category_id INTEGER'
             )));
         $conn->exec((string) Sql::createTable('post_category', array(
                 'id INTEGER PRIMARY KEY',
@@ -186,7 +187,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase
     public function testSimplePersist()
     {
         $mapper = $this->object;
-        $entity = (object) array('id' => 4, 'name' => 'inserted');
+        $entity = (object) array('id' => 4, 'name' => 'inserted', 'category_id' => null);
         $mapper->persist(
             $entity,
             'category'
@@ -196,10 +197,26 @@ class MapperTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals($entity, $result);
     }
 
+    public function testSubCategory()
+    {
+        $mapper = $this->object;
+        $entity = (object) array('id' => 8, 'name' => 'inserted', 'category_id' => 2);
+        $mapper->persist(
+            $entity,
+            'category'
+        );
+        $mapper->flush();
+        $result = $this->conn->query('select * from category where id=8')->fetch(PDO::FETCH_OBJ);
+        $result2 = $mapper->category[8]->category->fetch();
+        $this->assertEquals($result->id, $result2->id);
+        $this->assertEquals($result->name, $result2->name);
+        $this->assertEquals($entity, $result);
+    }
+
     public function testAutoIncrementPersist()
     {
         $mapper = $this->object;
-        $entity = (object) array('id' => null, 'name' => 'inserted');
+        $entity = (object) array('id' => null, 'name' => 'inserted', 'category_id' => null);
         $mapper->persist(
             $entity,
             'category'
