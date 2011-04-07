@@ -150,6 +150,13 @@ class MapperTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(3, count(get_object_vars($comment->post_id)));
     }
 
+    public function testExtraQuery()
+    {
+        $mapper = $this->object;
+        $comment = $mapper->comment->fetchAll(Sql::limit(1));
+        $this->assertEquals(1, count($comment));
+    }
+
     public function testNtoN()
     {
         $mapper = $this->object;

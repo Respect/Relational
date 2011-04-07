@@ -69,18 +69,18 @@ class Finder implements ArrayAccess
         $this->children[] = $clone;
     }
 
-    public function fetch()
+    public function fetch(Sql $sqlExtra=null)
     {
         if (!$this->mapper)
             throw new \RuntimeException;
-        return $this->mapper->fetch($this);
+        return $this->mapper->fetch($this, $sqlExtra);
     }
 
-    public function fetchAll()
+    public function fetchAll(Sql $sqlExtra=null)
     {
         if (!$this->mapper)
             throw new \RuntimeException;
-        return $this->mapper->fetchAll($this);
+        return $this->mapper->fetchAll($this, $sqlExtra);
     }
 
     public function getChildren()

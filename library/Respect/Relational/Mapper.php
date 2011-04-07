@@ -43,7 +43,7 @@ class Mapper
         return $finder;
     }
 
-    public function fetch(Finder $finder)
+    public function fetch(Finder $finder, Sql $sqlExtra=null)
     {
         $statement = $this->createStatement($finder);
         $hydrated = $this->schema->fetchHydrated($finder, $statement);
@@ -53,9 +53,9 @@ class Mapper
         return $this->parseHydrated($hydrated);
     }
 
-    public function fetchAll(Finder $finder)
+    public function fetchAll(Finder $finder, Sql $sqlExtra=null)
     {
-        $statement = $this->createStatement($finder);
+        $statement = $this->createStatement($finder, $sqlExtra);
         $entities = array();
 
         while ($hydrated = $this->schema->fetchHydrated($finder, $statement))
@@ -199,9 +199,11 @@ class Mapper
         return false;
     }
 
-    protected function createStatement(Finder $finder)
+    protected function createStatement(Finder $finder, Sql $sqlExtra=null)
     {
         $finderQuery = $this->schema->generateQuery($finder);
+        if ($sqlExtra)
+            $finderQuery->appendQuery($sqlExtra);
         $statement = $this->db->prepare((string) $finderQuery, PDO::FETCH_NUM);
         $statement->execute($finderQuery->getParams());
         return $statement;
