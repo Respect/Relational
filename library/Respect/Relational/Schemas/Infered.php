@@ -30,12 +30,12 @@ class Infered implements Schemable
         return 'id';
     }
 
-    public function findName(stdClass $entity)
+    public function findName($entity)
     {
         throw new \InvalidArgumentException();
     }
 
-    public function extractColumns(stdClass $entity, $name=null)
+    public function extractColumns($entity, $name=null)
     {
         $name = $name ? : $this->findName($entity);
         $cols = get_object_vars($entity);
@@ -172,7 +172,7 @@ class Infered implements Schemable
 
                 $finders->next();
                 $entityName = $finders->current()->getName();
-                $entityInstance = new \stdClass;
+                $entityInstance = new stdClass;
             }
             $entityInstance->{$meta['name']} = $value;
         }

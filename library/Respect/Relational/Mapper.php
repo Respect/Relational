@@ -5,7 +5,6 @@ namespace Respect\Relational;
 use Exception;
 use PDO;
 use SplObjectStorage;
-use stdClass;
 
 class Mapper
 {
@@ -64,7 +63,7 @@ class Mapper
         return $entities;
     }
 
-    protected function guessName(stdClass $entity)
+    protected function guessName($entity)
     {
         if ($this->isTracked($entity))
             return $this->tracked[$entity]['name'];
@@ -72,7 +71,7 @@ class Mapper
             return $this->schema->findName($entity);
     }
 
-    public function persist(stdClass $entity, $name=null)
+    public function persist($entity, $name=null)
     {
         $this->changed[$entity] = true;
 
@@ -100,7 +99,7 @@ class Mapper
         $conn->commit();
     }
 
-    protected function flushSingle(stdClass $entity)
+    protected function flushSingle($entity)
     {
         $name = $this->tracked[$entity]['name'] ? : $this->guessName($entity);
         $cols = $this->schema->extractColumns($entity, $name);
@@ -111,7 +110,7 @@ class Mapper
             $this->rawUpdate($cols, $name);
     }
 
-    public function remove(stdClass $entity, $name=null)
+    public function remove($entity, $name=null)
     {
 
         $name = $name ? : $this->guessName($entity);
@@ -144,7 +143,7 @@ class Mapper
             ->exec();
     }
 
-    protected function rawInsert(array $columns, $name, stdClass $entity=null)
+    protected function rawInsert(array $columns, $name, $entity=null)
     {
         $isInserted = $this->db
                 ->insertInto($name, $columns)
@@ -157,7 +156,7 @@ class Mapper
         return $isInserted;
     }
 
-    protected function checkNewIdentity(stdClass $entity, $name=null)
+    protected function checkNewIdentity($entity, $name=null)
     {
         $name = $name ? : $this->guessName($entity);
         $identity = null;
@@ -174,7 +173,7 @@ class Mapper
         return true;
     }
 
-    public function markTracked(stdClass $entity, $name=null, $id=null)
+    public function markTracked($entity, $name=null, $id=null)
     {
         $name = $name ? : $this->guessName($entity);
         $id = $id ? : $entity->{$this->schema->findPrimaryKey($name)};
@@ -186,7 +185,7 @@ class Mapper
         return true;
     }
 
-    public function isTracked(stdClass $entity)
+    public function isTracked($entity)
     {
         return $this->tracked->contains($entity);
     }
