@@ -33,12 +33,8 @@ class Mapper
 
     public function __call($name, $children)
     {
-        $finder = new Finder($name);
+        $finder = Finder::__callstatic($name, $children);
         $finder->setMapper($this);
-
-        foreach ($children as $child)
-            $finder->addChild($child);
-
         return $finder;
     }
 
@@ -146,9 +142,9 @@ class Mapper
     protected function rawInsert(array $columns, $name, $entity=null)
     {
         $isInserted = $this->db
-                ->insertInto($name, $columns)
-                ->values($columns)
-                ->exec();
+            ->insertInto($name, $columns)
+            ->values($columns)
+            ->exec();
 
         if (!is_null($entity))
             $this->checkNewIdentity($entity);

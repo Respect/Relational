@@ -14,6 +14,9 @@ use Respect\Relational\FinderIterator;
 class Infered implements Schemable
 {
 
+    protected $typed = false;
+    protected $typePrefix = '\\';
+
     public function generateQuery(Finder $finder)
     {
         $finders = iterator_to_array(FinderIterator::recursive($finder), true);
@@ -28,6 +31,16 @@ class Infered implements Schemable
     public function findPrimaryKey($name)
     {
         return 'id';
+    }
+
+    public function findClass($name)
+    {
+        $name = str_replace(' ', '_',
+            ucwords(str_replace('_', ' ', strtolower($name))));
+        if (!$this->typed)
+            return '\stdClass';
+        else
+            return $this->typePrefix . $name;
     }
 
     public function findName($entity)
@@ -45,6 +58,16 @@ class Infered implements Schemable
                 $c = $c->id;
 
         return $cols;
+    }
+
+    public function setTyped($typed)
+    {
+        $this->typed = $typed;
+    }
+
+    public function setTypePrefix($typePrefix)
+    {
+        $this->typePrefix = $typePrefix;
     }
 
     protected function buildSelectStatement(Sql $sql, $finders)
@@ -130,7 +153,11 @@ class Infered implements Schemable
     protected function fetchSingle(Finder $finder, PDOStatement $statement)
     {
         $name = $finder->getName();
-        $row = $statement->fetch(PDO::FETCH_OBJ);
+        $statement->setFetchMode(
+            PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, $this->findClass($name)
+        );
+
+        $row = $statement->fetch();
 
         if (!$row)
             return false;
@@ -172,7 +199,7 @@ class Infered implements Schemable
 
                 $finders->next();
                 $entityName = $finders->current()->getName();
-                $entityInstance = new stdClass;
+                $entityInstance = $this->findClass($entityName);
             }
             $entityInstance->{$meta['name']} = $value;
         }

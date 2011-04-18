@@ -13,6 +13,8 @@ interface Schemable
 
     public function findName($entity);
 
+    public function findClass($name);
+
     public function findPrimaryKey($entityName);
 
     public function generateQuery(Finder $finder);
