@@ -13,6 +13,7 @@ class Mapper
     protected $schema;
     protected $tracked;
     protected $changed;
+    protected $removed;
 
     public function __construct(Db $db, Schemable $schema)
     {
@@ -20,6 +21,7 @@ class Mapper
         $this->schema = $schema;
         $this->tracked = new SplObjectStorage;
         $this->changed = new SplObjectStorage;
+        $this->removed = new SplObjectStorage;
         $this->new = new SplObjectStorage;
     }
 
@@ -91,6 +93,7 @@ class Mapper
             throw $e;
         }
         $this->changed = new SplObjectStorage;
+        $this->removed = new SplObjectStorage;
         $this->new = new SplObjectStorage;
         $conn->commit();
     }
@@ -100,7 +103,9 @@ class Mapper
         $name = $this->tracked[$entity]['name'] ? : $this->guessName($entity);
         $cols = $this->schema->extractColumns($entity, $name);
 
-        if ($this->new->contains($entity))
+        if ($this->removed->contains($entity))
+            $this->rawDelete($cols, $name, $entity);
+        elseif ($this->new->contains($entity))
             $this->rawInsert($cols, $name, $entity);
         else
             $this->rawUpdate($cols, $name);
@@ -108,15 +113,14 @@ class Mapper
 
     public function remove($entity, $name=null)
     {
+        $this->changed[$entity] = true;
+        $this->removed[$entity] = true;
 
-        $name = $name ? : $this->guessName($entity);
-        $columns = $this->schema->extractColumns($entity, $name);
-        $condition = $this->guessCondition($columns, $name);
+        if ($this->isTracked($entity))
+            return true;
 
-        return $this->db
-            ->deleteFrom($name)
-            ->where($condition)
-            ->exec();
+        $this->markTracked($entity, $name);
+        return true;
     }
 
     protected function guessCondition(&$columns, $name)
@@ -126,6 +130,18 @@ class Mapper
         $condition = array($primaryKey => $pkValue);
         unset($columns[$primaryKey]);
         return $condition;
+    }
+
+    protected function rawDelete(array $condition, $name, $entity)
+    {
+        $name = $name ? : $this->guessName($entity);
+        $columns = $this->schema->extractColumns($entity, $name);
+        $condition = $this->guessCondition($columns, $name);
+
+        return $this->db
+            ->deleteFrom($name)
+            ->where($condition)
+            ->exec();
     }
 
     protected function rawUpdate(array $columns, $name)
@@ -142,9 +158,9 @@ class Mapper
     protected function rawInsert(array $columns, $name, $entity=null)
     {
         $isInserted = $this->db
-            ->insertInto($name, $columns)
-            ->values($columns)
-            ->exec();
+                ->insertInto($name, $columns)
+                ->values($columns)
+                ->exec();
 
         if (!is_null($entity))
             $this->checkNewIdentity($entity);
@@ -172,10 +188,10 @@ class Mapper
     public function markTracked($entity, $name=null, $id=null)
     {
         $name = $name ? : $this->guessName($entity);
-        $id = $id ? : $entity->{$this->schema->findPrimaryKey($name)};
+        $id = &$entity->{$this->schema->findPrimaryKey($name)} ? : $id;
         $this->tracked[$entity] = array(
             'name' => $name,
-            'id' => $id,
+            'id' => &$id,
             'cols' => $this->schema->extractColumns($entity, $name)
         );
         return true;

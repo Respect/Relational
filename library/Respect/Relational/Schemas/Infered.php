@@ -35,17 +35,21 @@ class Infered implements Schemable
 
     public function findClass($name)
     {
-        $name = str_replace(' ', '_',
-            ucwords(str_replace('_', ' ', strtolower($name))));
         if (!$this->typed)
             return '\stdClass';
-        else
-            return $this->typePrefix . $name;
+
+        $name = str_replace(' ', '_',
+                ucwords(str_replace('_', ' ', strtolower($name))));
+        return $this->typePrefix . $name;
     }
 
     public function findName($entity)
     {
-        throw new \InvalidArgumentException();
+        if (!$this->typed)
+            throw new \InvalidArgumentException();
+
+        $parts = explode('\\', get_class($entity));
+        return strtolower(end($parts));
     }
 
     public function extractColumns($entity, $name=null)
@@ -199,7 +203,8 @@ class Infered implements Schemable
 
                 $finders->next();
                 $entityName = $finders->current()->getName();
-                $entityInstance = $this->findClass($entityName);
+                $entityClass = $this->findClass($entityName);
+                $entityInstance = new $entityClass;
             }
             $entityInstance->{$meta['name']} = $value;
         }

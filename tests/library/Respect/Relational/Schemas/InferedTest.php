@@ -234,6 +234,34 @@ class MapperTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(3, $result->id);
     }
 
+    public function testPassedIdentity()
+    {
+        $mapper = $this->object;
+
+        $post = new \stdClass;
+        $post->id = null;
+        $post->title = 12345;
+        $post->text = 'text abc';
+
+        $comment = new \stdClass;
+        $comment = null;
+        $comment->post_id = $post;
+        $comment->text = 'abc';
+
+        $mapper->persist($post, 'post');
+        $mapper->persist($comment, 'comment');
+        $mapper->flush();
+
+        $postId = $this->conn
+                ->query('select id from post where title = 12345')
+                ->fetchColumn(0);
+
+        $comment = $this->conn->query('select * from comment where post_id = ' . $postId)
+                ->fetchObject();
+
+        $this->assertEquals('abc', $comment->text);
+    }
+
     public function testJoinedPersist()
     {
         $mapper = $this->object;
