@@ -8,7 +8,8 @@ class FinderTest extends \PHPUnit_Framework_TestCase
     protected function formatSql($sql)
     {
         return preg_replace(
-            '/(select|from|(inner|left) join|where|limit|update|set|insert|values)/i', "\n$1\n    ", str_replace("\n", "", $sql)
+            '/(select|from|(inner|left) join|where|limit|update|set|insert|values)/i',
+            "\n$1\n    ", str_replace("\n", "", $sql)
         );
     }
 
@@ -19,8 +20,7 @@ class FinderTest extends \PHPUnit_Framework_TestCase
         $query = $schema->generateQuery($finder);
 
         $this->assertEquals(
-            'SELECT like.* FROM like',
-            (string) $query
+            'SELECT like.* FROM like', (string) $query
         );
     }
 
@@ -33,8 +33,7 @@ class FinderTest extends \PHPUnit_Framework_TestCase
         $params = $query->getParams();
 
         $this->assertEquals(
-            'SELECT like.* FROM like WHERE like.id=:LikeId',
-            (string) $query
+            'SELECT like.* FROM like WHERE like.id=:LikeId', (string) $query
         );
         $this->assertEquals(12, $params['LikeId']);
     }

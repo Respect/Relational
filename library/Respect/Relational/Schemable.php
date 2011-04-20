@@ -7,13 +7,11 @@ use PDOStatement;
 interface Schemable
 {
 
-    public function extractColumns($entity, $name=null);
+    public function extractColumns($entity, $name);
 
     public function fetchHydrated(Finder $finder, PDOStatement $statement);
 
     public function findName($entity);
-
-    public function findClass($name);
 
     public function findPrimaryKey($entityName);
 

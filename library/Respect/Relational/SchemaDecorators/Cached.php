@@ -2,7 +2,6 @@
 
 namespace Respect\Relational\SchemaDecorators;
 
-use PDOStatement;
 use Respect\Relational\Schemable;
 
 class Cached implements Schemable

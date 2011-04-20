@@ -14,9 +14,6 @@ use Respect\Relational\FinderIterator;
 class Infered implements Schemable
 {
 
-    protected $typed = false;
-    protected $typePrefix = '\\';
-
     public function generateQuery(Finder $finder)
     {
         $finders = iterator_to_array(FinderIterator::recursive($finder), true);
@@ -33,28 +30,13 @@ class Infered implements Schemable
         return 'id';
     }
 
-    public function findClass($name)
-    {
-        if (!$this->typed)
-            return '\stdClass';
-
-        $name = str_replace(' ', '_',
-                ucwords(str_replace('_', ' ', strtolower($name))));
-        return $this->typePrefix . $name;
-    }
-
     public function findName($entity)
     {
-        if (!$this->typed)
-            throw new \InvalidArgumentException();
-
-        $parts = explode('\\', get_class($entity));
-        return strtolower(end($parts));
+        throw new \InvalidArgumentException(); //TODO
     }
 
-    public function extractColumns($entity, $name=null)
+    public function extractColumns($entity, $name)
     {
-        $name = $name ? : $this->findName($entity);
         $cols = get_object_vars($entity);
 
         foreach ($cols as &$c)
@@ -62,16 +44,6 @@ class Infered implements Schemable
                 $c = $c->id;
 
         return $cols;
-    }
-
-    public function setTyped($typed)
-    {
-        $this->typed = $typed;
-    }
-
-    public function setTypePrefix($typePrefix)
-    {
-        $this->typePrefix = $typePrefix;
     }
 
     protected function buildSelectStatement(Sql $sql, $finders)
@@ -106,7 +78,7 @@ class Infered implements Schemable
             foreach ($originalConditions as $column => $value)
                 if (is_numeric($column))
                     $parsedConditions[$column] = preg_replace(
-                            "/{$entity}[.](\w+)/", "$alias.$1", $value
+                        "/{$entity}[.](\w+)/", "$alias.$1", $value
                     );
                 else
                     $parsedConditions["$alias.$column"] = $value;
@@ -114,7 +86,8 @@ class Infered implements Schemable
         return $parsedConditions;
     }
 
-    protected function parseFinder(Sql $sql, Finder $finder, $alias, &$aliases, &$conditions)
+    protected function parseFinder(Sql $sql, Finder $finder, $alias, &$aliases,
+                                   &$conditions)
     {
         $entity = $finder->getName();
         $parent = $finder->getParentName();
@@ -157,11 +130,7 @@ class Infered implements Schemable
     protected function fetchSingle(Finder $finder, PDOStatement $statement)
     {
         $name = $finder->getName();
-        $statement->setFetchMode(
-            PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, $this->findClass($name)
-        );
-
-        $row = $statement->fetch();
+        $row = $statement->fetch(PDO::FETCH_OBJ);
 
         if (!$row)
             return false;
@@ -196,15 +165,13 @@ class Infered implements Schemable
                         'name' => $entityName,
                         'id' => $entityInstance->id,
                         'cols' => $this->extractColumns(
-                            $entityInstance,
-                            $entityName
+                            $entityInstance, $entityName
                         )
                     );
 
                 $finders->next();
                 $entityName = $finders->current()->getName();
-                $entityClass = $this->findClass($entityName);
-                $entityInstance = new $entityClass;
+                $entityInstance = new stdClass;
             }
             $entityInstance->{$meta['name']} = $value;
         }

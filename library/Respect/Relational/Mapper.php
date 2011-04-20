@@ -158,9 +158,9 @@ class Mapper
     protected function rawInsert(array $columns, $name, $entity=null)
     {
         $isInserted = $this->db
-                ->insertInto($name, $columns)
-                ->values($columns)
-                ->exec();
+            ->insertInto($name, $columns)
+            ->values($columns)
+            ->exec();
 
         if (!is_null($entity))
             $this->checkNewIdentity($entity);

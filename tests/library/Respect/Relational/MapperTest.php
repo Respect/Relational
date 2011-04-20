@@ -13,22 +13,26 @@ class MapperTest extends \PHPUnit_Framework_TestCase
     {
         $conn = new PDO('sqlite::memory:');
         $db = new Db($conn);
-        $conn->exec((string) Sql::createTable('post', array(
+        $conn->exec((string) Sql::createTable('post',
+                array(
                 'id INTEGER PRIMARY KEY',
                 'title VARCHAR(255)',
                 'text TEXT',
             )));
-        $conn->exec((string) Sql::createTable('comment', array(
+        $conn->exec((string) Sql::createTable('comment',
+                array(
                 'id INTEGER PRIMARY KEY',
                 'post_id INTEGER',
                 'text TEXT',
             )));
-        $conn->exec((string) Sql::createTable('category', array(
+        $conn->exec((string) Sql::createTable('category',
+                array(
                 'id INTEGER PRIMARY KEY',
                 'name VARCHAR(255)',
                 'category_id INTEGER'
             )));
-        $conn->exec((string) Sql::createTable('post_category', array(
+        $conn->exec((string) Sql::createTable('post_category',
+                array(
                 'id INTEGER PRIMARY KEY',
                 'post_id INTEGER',
                 'category_id INTEGER'
@@ -196,8 +200,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase
         $mapper = $this->object;
         $entity = (object) array('id' => 4, 'name' => 'inserted', 'category_id' => null);
         $mapper->persist(
-            $entity,
-            'category'
+            $entity, 'category'
         );
         $mapper->flush();
         $result = $this->conn->query('select * from category where id=4')->fetch(PDO::FETCH_OBJ);
@@ -209,8 +212,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase
         $mapper = $this->object;
         $entity = (object) array('id' => 8, 'name' => 'inserted', 'category_id' => 2);
         $mapper->persist(
-            $entity,
-            'category'
+            $entity, 'category'
         );
         $mapper->flush();
         $result = $this->conn->query('select * from category where id=8')->fetch(PDO::FETCH_OBJ);
@@ -225,8 +227,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase
         $mapper = $this->object;
         $entity = (object) array('id' => null, 'name' => 'inserted', 'category_id' => null);
         $mapper->persist(
-            $entity,
-            'category'
+            $entity, 'category'
         );
         $mapper->flush();
         $result = $this->conn->query('select * from category where name="inserted"')->fetch(PDO::FETCH_OBJ);
@@ -253,11 +254,11 @@ class MapperTest extends \PHPUnit_Framework_TestCase
         $mapper->flush();
 
         $postId = $this->conn
-                ->query('select id from post where title = 12345')
-                ->fetchColumn(0);
+            ->query('select id from post where title = 12345')
+            ->fetchColumn(0);
 
         $comment = $this->conn->query('select * from comment where post_id = ' . $postId)
-                ->fetchObject();
+            ->fetchObject();
 
         $this->assertEquals('abc', $comment->text);
     }
@@ -295,4 +296,36 @@ class MapperTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals($total, $pre - 1);
     }
 
+    public function testTyped()
+    {
+        $db = new Db($this->conn);
+        $schema = new SchemaDecorators\Typed(new Schemas\Infered(), __NAMESPACE__);
+        $mapper = new Mapper($db, $schema);
+        $c8 = $mapper->comment[8]->fetch();
+        $c8->text = 'abc';
+        $mapper->persist($c8, 'comment');
+        $mapper->flush();
+        $this->assertInstanceOf(__NAMESPACE__ . '\\Comment', $c8);
+    }
+
+    public function testInflected()
+    {
+        $db = new Db($this->conn);
+        $schema = new SchemaDecorators\Inflected(new Schemas\Infered(), __NAMESPACE__);
+        $mapper = new Mapper($db, $schema);
+        $c8 = $mapper->comment[8]->fetch();
+        $c8->postId = 333;
+        $mapper->persist($c8, 'comment');
+        $mapper->flush();
+        $result = $this->conn->query('select post_id from comment where id=8')->fetchColumn(0);
+        $this->assertEquals(333, $result);
+        $this->assertObjectHasAttribute('postId', $c8);
+        $this->assertFalse(isset($c8->post_id));
+    }
+
+}
+
+class Comment //used on testTyped
+{
+    
 }

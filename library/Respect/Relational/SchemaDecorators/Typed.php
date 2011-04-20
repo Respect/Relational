@@ -7,51 +7,41 @@ use Respect\Relational\Schemable;
 use SplObjectStorage;
 use Respect\Relational\Finder;
 
-class Inflected implements Schemable
+class Typed implements Schemable
 {
 
     protected $decorated;
+    protected $namespace = '\\';
 
-    public static function camelize($string)
+    public static function normalize($string)
     {
-        return lcfirst(str_replace(' ', '',
-                ucwords(str_replace('_', ' ', strtolower($string)))));
+        return str_replace(' ', '_',
+            ucwords(str_replace('_', ' ', strtolower($string))));
     }
 
-    public static function decamelize($string)
-    {
-        return strtolower(implode('_',
-                preg_split('/(?<=\\w)(?=[A-Z])/', $string)));
-    }
-
-    public function __construct(Schemable $decorated)
+    public function __construct(Schemable $decorated, $namespace='\\')
     {
         $this->decorated = $decorated;
+        $this->namespace = $namespace;
     }
 
     public function extractColumns($entity, $name)
     {
-        $columns = $this->decorated->extractColumns($entity, $name);
-        $newColumns = array();
-
-        foreach ($columns as $name => $value)
-            $newColumns[static::decamelize($name)] = $value;
-
-        return $newColumns;
+        return $this->decorated->extractColumns($entity, $name);
     }
 
     public function fetchHydrated(Finder $finder, PDOStatement $statement)
     {
-        $uninflected = $this->decorated->fetchHydrated($finder, $statement);
-        $inflected = new SplObjectStorage();
-        foreach ($uninflected as $e) {
-            $className = get_class($e);
+        $untyped = $this->decorated->fetchHydrated($finder, $statement);
+        $typed = new SplObjectStorage();
+        foreach ($untyped as $e) {
+            $className = $this->namespace . '\\' . static::normalize($untyped[$e]['name']);
             $newEntity = new $className;
-            foreach ($uninflected[$e]['cols'] as $name => $value)
-                $newEntity->{static::camelize($name)} = $value;
-            $inflected[$newEntity] = $uninflected[$e];
+            foreach ($untyped[$e]['cols'] as $name => $value)
+                $newEntity->{$name} = $value;
+            $typed[$newEntity] = $untyped[$e];
         }
-        return $inflected;
+        return $typed;
     }
 
     public function findName($entity)
