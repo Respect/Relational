@@ -33,6 +33,10 @@ class Typed implements Schemable
     public function fetchHydrated(Finder $finder, PDOStatement $statement)
     {
         $untyped = $this->decorated->fetchHydrated($finder, $statement);
+
+        if (!$untyped)
+            return $untyped;
+
         $typed = new SplObjectStorage();
         foreach ($untyped as $e) {
             $className = $this->namespace . '\\' . static::normalize($untyped[$e]['name']);

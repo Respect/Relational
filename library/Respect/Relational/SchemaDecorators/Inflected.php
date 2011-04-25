@@ -43,6 +43,10 @@ class Inflected implements Schemable
     public function fetchHydrated(Finder $finder, PDOStatement $statement)
     {
         $uninflected = $this->decorated->fetchHydrated($finder, $statement);
+
+        if (!$uninflected)
+            return $uninflected;
+
         $inflected = new SplObjectStorage();
         foreach ($uninflected as $e) {
             $className = get_class($e);
