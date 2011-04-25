@@ -82,8 +82,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase
         foreach ($postsCategories as $postCategory)
             $db->insertInto('post_category', $postCategory)->values($postCategory)->exec();
 
-        $schema = new Schemas\Infered();
-        $mapper = new Mapper($db, $schema);
+        $mapper = new Mapper($conn);
         $this->object = $mapper;
         $this->conn = $conn;
     }

@@ -5,6 +5,8 @@ namespace Respect\Relational;
 use Exception;
 use PDO;
 use SplObjectStorage;
+use InvalidArgumentException;
+use Respect\Relational\Schemas\Infered;
 
 class Mapper
 {
@@ -15,9 +17,18 @@ class Mapper
     protected $changed;
     protected $removed;
 
-    public function __construct(Db $db, Schemable $schema)
+    public function __construct($db, Schemable $schema=null)
     {
-        $this->db = $db;
+        if ($db instanceof PDO)
+            $this->db = new Db($db);
+        elseif ($db instanceof Db)
+            $this->db = $db;
+        else
+            throw new InvalidArgumentException('$db must be either an instance of Respect\Relational\Db or a PDO instance.');
+
+        if (is_null($schema))
+            $schema = new Infered;
+
         $this->schema = $schema;
         $this->tracked = new SplObjectStorage;
         $this->changed = new SplObjectStorage;

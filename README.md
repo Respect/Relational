@@ -1,158 +1,150 @@
 Respect\Relational
 ==================
 
-A tool for any relational database that grows complex according to your needs.
+Kinda ORM, but less bitchy.
 
-This package is composed of the following components:
+Quintessential sample
+---------------------
 
- * **Sql**, an abstraction of the SQL Language Syntax.
- * **Db**, a simple database toolkit.
- * **Mapper**, an ORM.
+Tables used:
 
-Mapper
-------
+  * author (id, name)
+  * post (id, author_id, title, text)
+  * comment (id, post_id, author_id, text)
 
-The Mapper itself relies on different *Schema Providers*:
-
- * **Infered** infers entity information from naming conventions
- * **ReverseEngineered** extract entity information from the database itself
-   (through clauses like `SHOW TABLES`)
- * **Reflected** extract entity information from PHP classes
-
-These schemas have different levels of complexity, and you can migrate from a
-simpler to a more complex schema seamlessly.
-
-For example, you can start with the *Infered* Schema Provider that requires
-zero-configuration and migrate to a *ReverseEngineered* Schema Provider
-later, which has less limitations (but requires more configuration).
-
-### The Infered Schema Provider (implemented)
-
-This is the only provider that require database naming conventions:
-
- * Each table must have a single primary key named `id`
- * Each foreign key must be `table_id`
- * Each N-to-N table must be `table_othertable`
-
-Samples:
-
-  * post (id, title, text)
-  * comment (id, post_id, name, text)
-  * category (id, name)
-  * post_category (id, post_id, category_id)
-
-Usage sample:
+PHP:
 
     <?php
     use PDO;
     use Respect\Relational\Mapper;
-    use Respect\Relational\Db;
-    use Respect\Relational\Schemas\Infered;
 
-    $mapper = new Mapper(new Db(new PDO('my_sqlite.sq3')), new Infered());
+    $mapper = new Mapper(new PDO( /* my db conf */ ));
 
-    $commentsFromPost12 = $mapper->comment->post[12]->fetchAll();
-    $categoriesFromPost7 = $mapper->category->category_post->post[7]->fetchAll();
+    $postTwelve = $mapper->post[12]->fetch();
+    $commentsOnPostTwelve = $mapper->comment->post[12]->fetchAll();
+    $commentsOnPostsFromAuthorSeven = $mapper->comment->post->author[7]->fetchAll();
 
-    $post3 = $mapper->post[3]->fetch();
-    $post3->title = 'Hey!';
+Thats it. It doesn't need configuration, entity classes or anything else. *Plug
+and rock on*.
 
-    $mapper->persist($post3);
+Nice, but how it works?
+-----------------------
+
+If you're wondering how dirty are the SQL statements generated, well, they're 
+pretty readable and smart. The last sample above generate something like this:
+
+    SELECT
+        *
+    FROM 
+        comment
+    INNER JOIN
+        post
+        ON comment.post_id = post.id
+    INNER JOIN
+        author
+        ON comment.author_id = author.id
+    WHERE
+        author.id = 7;
+
+Seems written by a human, doesn't? The mapper is able to treat duplicated columns, 
+human readable joins and everything else without any configuration or extra SQL
+statements. It **does not** use `SHOW TABLES` or anything like it by default, 
+but you can use it if you want.
+
+More samples
+------------
+
+Edit a post:
+
+    $post = $mapper->post[12]->fetch();
+    $post->title = "New Post title";
+    $mapper->persist($post);
     $mapper->flush();
 
-More info soon...
+New comment:
 
-### The ReverseEngineered Provider (not implemented yet)
+    $comment = new stdClass;
+    $comment->post_id = 3;   //you can use a post object if you want
+    $comment->author_id = 7; //same here
+    $comment->text = "hi there";
+    $mapper->persist($comment);
+    $mapper->flush();
+    
+Edit a bunch of comments:
 
-This SP doesn't have the limitations of the above:
+    $comments = $mapper->comment->author[15]->fetchAll();
 
-  * You can have any table and column names
-  * You can have composite primary keys
-  * You can have multiple foreign keys to the same table on the same origin
+    foreach ($comments as $c) {
+        $c->text = "This user has been banned";
+        $mapper->persist($c);
+    }
 
-Configuration needed:
+    $mapper->flush();
 
-  * Cache implementation for the metadata retrieved
-  * Abstraction of the metadata provider
+Remove a previously fetched comment:
 
-More info soon...
+    $comment = $mapper->comment[1651]->fetch();
+    $mapper->remove($comment);
+    $mapper->flush();
 
-### The Reflected Provider (not implemented yet)
-
-This schema allows you to:
-
-  * Use abstracted classes to specify single table inheritance
-  * Use concrete classes to specify class table inheritance
-  * Use method parameters to specify value objects
-
-Configuration needed:
-
-  * Classes for each one of the entities
-  * Cache implementation for Reflection data
-
-More info soon...
-
-SQL (implemented)
----
-
-You don't need to write SQL to use Respect\Relational, but if you *do want* to
-write SQL, we provide a great tool for that. The SQL language is a first-class
-citizen on our project, even if it runs just on the internal stuff.
-
-The *Sql* class were created just to overcome the most annoying problems of
-writing SQL:
-
- * Concatenate values
- * Optional conditions on `WHERE` clauses
- * Functions inside SQL clauses
-
-Writing SQL on Respect\Relational is something like this:
-
-    <?php
-    use Respect\Relational\Sql;
-
-    $conditions = array(
-        'foo' => 'bar',
-        'MD5(password)' => 'd1d1d1d1d1d1d1d1d1d'
-    );
-    $sql = Sql::select('my_column', 'my_column_2')
-              ->from('my_table')
-              ->where($conditions)
-              ->orderBy('my_column DESC');
-              ->limit(5,10);
-
-Relational\Sql will create the query and parse the parameters (avaliable
-on `$sql->getParams()`). If you pass an empty `$conditions` array, the `WHERE`
-clause isn't even created.
-
-Parameters, functions and everthing also works on `INSERT`, `UPDATE`, `DELETE`
-or any other clause. In fact, our implementation allows you to use clauses that
-weren't even known by our developers, because we've abstracted the language
-syntax, not its grammar.
-
-    //EXPLODE DINOSAUR ted USING tnt
-    Sql::explodeDinosaur('ted')->using('tnt');
-
-More info soon...
-
-Db (implemented)
---
-
-The Respect\Relational\Db tool is the most simple direct interaction with
-a database you could think of. It allows you to do thinks like this:
+Last 10 comments from author (full code):
 
     <?php
     use PDO;
-    use Respect\Relational\Db;
+    use Respect\Relational\Mapper;
+    use Respect\Relational\Sql;
 
-    $db = new Db(new PDO('my_sqlite.sq3'));
-    $conds = array('foo'=>'bar');
-    $myObjects = $db->select('*')->from('my_table')->where($conds)->fetchAll();
+    $mapper = new Mapper(new PDO( /* my db conf */ ));
 
-The `$conds` array is automatically parsed, the SQL is prepared and the statement
-is executed with the correct parameters.
+    $lastComments = $mapper->comment
+                           ->author[15]
+                           ->fetchAll(Sql::orderBy('id desc')->limit(10));
 
-More info soon...
+Use entity classes (full code):
+
+    <?php
+    use PDO;
+    use Respect\Relational\Mapper;
+    use Respect\Relational\Sql;
+    use Respect\Relational\SchemaDecorators\Typed;
+    use Respect\Relational\Schemas\Infered;
+
+    $schemaProvider = new Typed(new Infered, 'MyNamespace\\Entities');
+    $mapper = new Mapper(new PDO( /* my db conf */ ), $schemaProvider);
+
+    $lastComments = $mapper->comment
+                           ->author[15]
+                           ->fetchAll(Sql::orderBy('id desc')->limit(10));
+
+Entity classes must have public attributes, like this:
+
+    <?php
+
+    namespace MyNamespace\\Entities;
+
+    class Comment 
+    {
+        public $id;
+        public $author_id;
+        public $post_id;
+        public $text;
+    }
+
+Roadmap
+-------
+
+  * New Schema Providers:
+    * ReverseEngineered (from metadata tables)
+    * Config (from configuration)
+    * Reflected (extract schema info from PHP objects)
+    * DoctrineAnnotation (from Doctrine Annotations)
+    * AutoGenerated (creates and alters the tables itself, without configuration)
+  * New Schema Decorators:
+    * Cached (cache metadata for some schema providers)
+    * LazyLoaded (less joins, more small queries)
+  * Table inheritance (abstract for single table and concrete for multi table)
+  * Support for value objects
+
 
 License Information
 ===================
