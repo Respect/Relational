@@ -1,7 +1,7 @@
 Respect\Relational
 ==================
 
-Kinda ORM, but less bitchy.
+Fluent ORM
 
 Quintessential sample
 ---------------------
