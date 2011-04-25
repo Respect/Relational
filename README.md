@@ -67,7 +67,7 @@ New comment:
     $comment->post_id = 3;   //you can use a post object if you want
     $comment->author_id = 7; //same here
     $comment->text = "hi there";
-    $mapper->persist($comment);
+    $mapper->persist($comment, 'comment');
     $mapper->flush();
     
 Edit a bunch of comments:
@@ -120,7 +120,7 @@ Entity classes must have public attributes, like this:
 
     <?php
 
-    namespace MyNamespace\\Entities;
+    namespace MyNamespace\Entities;
 
     class Comment 
     {
