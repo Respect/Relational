@@ -6,6 +6,7 @@ use PDOStatement;
 use Respect\Relational\Schemable;
 use SplObjectStorage;
 use Respect\Relational\Finder;
+use Respect\Relational\FinderIterator;
 
 class Inflected implements Schemable
 {
@@ -51,16 +52,24 @@ class Inflected implements Schemable
         foreach ($uninflected as $e) {
             $className = get_class($e);
             $newEntity = new $className;
-            foreach ($uninflected[$e]['cols'] as $name => $value)
+            $inflectedData = $uninflected[$e];
+            foreach ($inflectedData['cols'] as $name => $value)
                 $newEntity->{static::camelize($name)} = $value;
-            $inflected[$newEntity] = $uninflected[$e];
+            $inflectedData['cols'] = array_combine(
+                array_map(
+                    array(__CLASS__, 'camelize'),
+                    array_keys($inflectedData['cols'])
+                ), $inflectedData['cols']
+            );
+            $inflectedData['name'] = static::camelize($inflectedData['name']);
+            $inflected[$newEntity] = $inflectedData;
         }
         return $inflected;
     }
 
-    public function findName($entity)
+    public function findTableName($entity)
     {
-        return $this->decorated->findName($entity);
+        return $this->decorated->findTableName($entity);
     }
 
     public function findPrimaryKey($entityName)
@@ -70,6 +79,9 @@ class Inflected implements Schemable
 
     public function generateQuery(Finder $finder)
     {
+        foreach (FinderIterator::recursive($finder) as $f)
+            $f->setName(static::decamelize($f->getName()));
+
         return $this->decorated->generateQuery($finder);
     }
 

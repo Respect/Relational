@@ -77,7 +77,7 @@ class Mapper
         if ($this->isTracked($entity))
             return $this->tracked[$entity]['name'];
         else
-            return $this->schema->findName($entity);
+            return $this->schema->findTableName($entity);
     }
 
     public function persist($entity, $name=null)
@@ -111,7 +111,7 @@ class Mapper
 
     protected function flushSingle($entity)
     {
-        $name = $this->tracked[$entity]['name'] ? : $this->guessName($entity);
+        $name = $this->tracked[$entity]['table_name'] ? : $this->guessName($entity);
         $cols = $this->schema->extractColumns($entity, $name);
 
         if ($this->removed->contains($entity))
@@ -202,6 +202,7 @@ class Mapper
         $id = &$entity->{$this->schema->findPrimaryKey($name)} ? : $id;
         $this->tracked[$entity] = array(
             'name' => $name,
+            'table_name' => $name,
             'id' => &$id,
             'cols' => $this->schema->extractColumns($entity, $name)
         );

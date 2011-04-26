@@ -11,7 +11,7 @@ interface Schemable
 
     public function fetchHydrated(Finder $finder, PDOStatement $statement);
 
-    public function findName($entity);
+    public function findTableName($entity);
 
     public function findPrimaryKey($entityName);
 

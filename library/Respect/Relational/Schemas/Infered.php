@@ -30,9 +30,9 @@ class Infered implements Schemable
         return 'id';
     }
 
-    public function findName($entity)
+    public function findTableName($entity)
     {
-        throw new \InvalidArgumentException(); //TODO
+        throw new \InvalidArgumentException('Infered Schema does not support finding table names'); //TODO
     }
 
     public function extractColumns($entity, $name)
@@ -138,6 +138,7 @@ class Infered implements Schemable
         $entities = new SplObjectStorage();
         $entities[$row] = array(
             'name' => $name,
+            'table_name' => $name,
             'id' => $row->id,
             'cols' => $this->extractColumns($row, $name)
         );
@@ -163,6 +164,7 @@ class Infered implements Schemable
                 if (0 !== $n)
                     $entities[$entityInstance] = array(
                         'name' => $entityName,
+                        'table_name' => $entityName,
                         'id' => $entityInstance->id,
                         'cols' => $this->extractColumns(
                             $entityInstance, $entityName
@@ -179,6 +181,7 @@ class Infered implements Schemable
         if (!empty($entities))
             $entities[$entityInstance] = array(
                 'name' => $entityName,
+                'table_name' => $entityName,
                 'id' => $entityInstance->id,
                 'cols' => $this->extractColumns($entityInstance, $entityName)
             );

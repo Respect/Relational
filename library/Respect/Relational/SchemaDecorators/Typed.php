@@ -33,7 +33,6 @@ class Typed implements Schemable
     public function fetchHydrated(Finder $finder, PDOStatement $statement)
     {
         $untyped = $this->decorated->fetchHydrated($finder, $statement);
-
         if (!$untyped)
             return $untyped;
 
@@ -48,9 +47,9 @@ class Typed implements Schemable
         return $typed;
     }
 
-    public function findName($entity)
+    public function findTableName($entity)
     {
-        return $this->decorated->findName($entity);
+        return $this->decorated->findTableName($entity);
     }
 
     public function findPrimaryKey($entityName)

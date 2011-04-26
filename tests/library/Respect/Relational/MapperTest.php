@@ -60,6 +60,10 @@ class MapperTest extends \PHPUnit_Framework_TestCase
             array(
                 'id' => 2,
                 'name' => 'Sample Category'
+            ),
+            array(
+                'id' => 3,
+                'name' => 'NONON'
             )
         );
         $postsCategories = array(
@@ -231,7 +235,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase
         $mapper->flush();
         $result = $this->conn->query('select * from category where name="inserted"')->fetch(PDO::FETCH_OBJ);
         $this->assertEquals($entity, $result);
-        $this->assertEquals(3, $result->id);
+        $this->assertEquals(4, $result->id);
     }
 
     public function testPassedIdentity()
@@ -322,9 +326,44 @@ class MapperTest extends \PHPUnit_Framework_TestCase
         $this->assertFalse(isset($c8->post_id));
     }
 
+    public function testeInflectedTypedEntityName()
+    {
+
+        $db = new Db($this->conn);
+        $schema = new SchemaDecorators\Typed(new SchemaDecorators\Inflected(new Schemas\Infered()), __NAMESPACE__);
+        $mapper = new Mapper($db, $schema);
+        $c66 = $mapper->postCategory[66]->fetch();
+        $this->assertInstanceOf(__NAMESPACE__ . '\\PostCategory', $c66);
+        $this->assertObjectHasAttribute('postId', $c66);
+        $c66->categoryId = 3;
+        $mapper->persist($c66);
+        $mapper->flush();
+    }
+
+    public function testeInflectedTypedEntityName2()
+    {
+
+        $db = new Db($this->conn);
+        $schema = new SchemaDecorators\Inflected(new SchemaDecorators\Typed(new Schemas\Infered(), __NAMESPACE__));
+        $mapper = new Mapper($db, $schema);
+        $c66 = $mapper->post_category[66]->fetch();
+        $this->assertInstanceOf(__NAMESPACE__ . '\\Post_Category', $c66);
+        $this->assertObjectHasAttribute('postId', $c66);
+    }
+
 }
 
-class Comment //used on testTyped
+class Comment
+{
+    
+}
+
+class PostCategory
+{
+    
+}
+
+class Post_Category
 {
     
 }

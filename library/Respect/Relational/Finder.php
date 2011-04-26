@@ -52,7 +52,7 @@ class Finder implements ArrayAccess
 
     public function __invoke()
     {
-        foreach (func_get_args () as $child)
+        foreach (func_get_args() as $child)
             if ($child instanceof static)
                 $this->last->addChild($child);
             else
@@ -169,6 +169,11 @@ class Finder implements ArrayAccess
     public function setParent(Finder $parent)
     {
         $this->parent = $parent;
+    }
+
+    public function setName($name)
+    {
+        $this->name = $name;
     }
 
     public function setNext(Finder $finder)
