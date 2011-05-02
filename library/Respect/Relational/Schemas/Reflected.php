@@ -2,12 +2,142 @@
 
 namespace Respect\Relational\Schemas;
 
+use ReflectionClass;
 use PDOStatement;
 use Respect\Relational\Schemable;
 
 class Reflected implements Schemable
 {
-    
+
+    protected $namespace;
+
+    public function __construct($namespace)
+    {
+        throw new \Exception('Not working yet');
+        $this->namespace = $namespace;
+    }
+
+    public function extractColumns($entity, $name)
+    {
+        $cols = array();
+        $reflection = new ReflectionClass($entity);
+        $properties = $reflection->getProperties();
+        foreach ($properties as $prop) {
+            $propValue = $prop->getValue($entity);
+            if (is_object($propValue)) {
+                $subName = $this->findTableName($propValue);
+                $subCols = $this->extractColumns($propValue, $subName);
+                $subPk = $this->findPrimaryKey($subName);
+                $propValue = $subCols[$subPk];
+            }
+            $cols[$prop->getName()] = $propValue;
+        }
+        return $cols;
+    }
+
+    public function fetchHydrated(Finder $finder, PDOStatement $statement)
+    {
+        
+    }
+
+    public function findPrimaryKey($entityName)
+    {
+        //TODO composite pks
+        $reflection = new ReflectionClass("{$this->namespace}{$entityName}");
+        $params = $reflection->getConstructor()->getParameters();
+        return $params[0]->getName();
+    }
+
+    public function findTableName($entity)
+    {
+        $parts = explode('\\', get_class($entity));
+        return end($parts);
+    }
+
+    public function generateQuery(Finder $finder)
+    {
+        $finders = iterator_to_array(FinderIterator::recursive($finder), true);
+        $sql = new Sql;
+
+        $this->buildSelectStatement($sql, $finders);
+        $this->buildTables($sql, $finders);
+
+        return $sql;
+    }
+
+    protected function buildSelectStatement(Sql $sql, $finders)
+    {
+        $selectTable = array_keys($finders);
+        foreach ($selectTable as &$ts)
+            $ts = "$ts.*";
+
+        return $sql->select($selectTable);
+    }
+
+    protected function buildTables(Sql $sql, $finders)
+    {
+        $conditions = $aliases = array();
+
+        foreach ($finders as $alias => $finder)
+            $this->parseFinder($sql, $finder, $alias, $aliases, $conditions);
+
+        return $sql->where($conditions);
+    }
+
+    protected function parseConditions(&$conditions, $finder, $alias)
+    {
+        $entity = $finder->getName();
+        $originalConditions = $finder->getCondition();
+        $parsedConditions = array();
+        $aliasedPk = "$alias." . $this->findPrimaryKey($entity);
+
+        if (is_scalar($originalConditions))
+            $parsedConditions = array($aliasedPk => $originalConditions);
+        elseif (is_array($originalConditions))
+            foreach ($originalConditions as $column => $value)
+                if (is_numeric($column))
+                    $parsedConditions[$column] = preg_replace(
+                        "/{$entity}[.](\w+)/", "$alias.$1", $value
+                    );
+                else
+                    $parsedConditions["$alias.$column"] = $value;
+
+        return $parsedConditions;
+    }
+
+    protected function parseFinder(Sql $sql, Finder $finder, $alias, &$aliases,
+                                   &$conditions)
+    {
+        $entity = $finder->getName();
+        $parent = $finder->getParentName();
+        $next = $finder->getNextName();
+
+        $parentAlias = $parent ? $aliases[$parent] : null;
+        $aliases[$entity] = $alias;
+        $parsedConditions = $this->parseConditions($conditions, $finder, $alias);
+
+        if (!empty($parsedConditions))
+            $conditions[] = $parsedConditions;
+
+        if (is_null($parentAlias))
+            return $sql->from($entity);
+        elseif ($finder->isRequired())
+            $sql->innerJoin($entity);
+        else
+            $sql->leftJoin($entity);
+
+        if ($alias !== $entity)
+            $sql->as($alias);
+
+        $aliasedPk = "$alias." . $this->findPrimaryKey($entity);
+        $aliasedParentPk = "$parentAlias." . $this->findPrimaryKey($parent);
+
+        if ($entity === "{$parent}_{$next}")
+            return $sql->on(array("{$alias}.{$parent}_id" => $aliasedParentPk));
+        else
+            return $sql->on(array("{$parentAlias}.{$entity}_id" => $aliasedPk));
+    }
+
 }
 
 /**
