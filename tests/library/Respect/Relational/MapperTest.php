@@ -311,6 +311,19 @@ class MapperTest extends \PHPUnit_Framework_TestCase
         $this->assertInstanceOf(__NAMESPACE__ . '\\Comment', $c8);
     }
 
+    public function testTypedInherited()
+    {
+        $db = new Db($this->conn);
+        $schema = new SchemaDecorators\Typed(new Schemas\Infered(), __NAMESPACE__);
+        $mapper = new Mapper($db, $schema);
+        $cc = $mapper->comment->post[5]->fetch();
+        $cc->text = 'abc';
+        $mapper->persist($cc, 'comment');
+        $mapper->flush();
+        $this->assertInstanceOf(__NAMESPACE__ . '\\Comment', $cc);
+        $this->assertInstanceOf(__NAMESPACE__ . '\\Post', $cc->post_id);
+    }
+
     public function testInflected()
     {
         $db = new Db($this->conn);
@@ -364,6 +377,11 @@ class PostCategory
 }
 
 class Post_Category
+{
+    
+}
+
+class Post
 {
     
 }

@@ -36,14 +36,20 @@ class Typed implements Schemable
         if (!$untyped)
             return $untyped;
 
+        $map = new SplObjectStorage();
         $typed = new SplObjectStorage();
         foreach ($untyped as $e) {
             $className = $this->namespace . '\\' . static::normalize($untyped[$e]['name']);
             $newEntity = new $className;
+            $map[$e] = $newEntity;
             foreach ($untyped[$e]['cols'] as $name => $value)
-                $newEntity->{$name} = $value;
+                $newEntity->{$name} = &$e->{$name};
             $typed[$newEntity] = $untyped[$e];
         }
+        foreach ($typed as $t)
+            foreach ($t as $prop => $value)
+                if (is_object($value))
+                    $t->{$prop} = $map[$value];
         return $typed;
     }
 
