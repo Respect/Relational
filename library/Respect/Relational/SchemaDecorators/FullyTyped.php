@@ -2,11 +2,41 @@
 
 namespace Respect\Relational\SchemaDecorators;
 
+use PDOStatement;
 use Respect\Relational\Schemable;
+use SplObjectStorage;
+use Respect\Relational\Finder;
 
-class Cached implements Schemable
+class FullyTyped extends Typed implements Schemable
 {
-    
+
+    protected $decorated;
+    protected $namespace = '\\';
+
+    public function fetchHydrated(Finder $finder, PDOStatement $statement)
+    {
+        $untyped = $this->decorated->fetchHydrated($finder, $statement);
+        if (!$untyped)
+            return $untyped;
+
+        $map = new SplObjectStorage();
+        $typed = new SplObjectStorage();
+        foreach ($untyped as $e) {
+            $className = $this->namespace . '\\' . static::normalize($untyped[$e]['name']);
+            $newEntity = new $className;
+            $map[$e] = $newEntity;
+        }
+        foreach ($untyped as $e) {
+            foreach ($untyped[$e]['cols'] as $name => $value)
+                if (is_object($e->{$name}))
+                    $map[$e]->{"set$name"}($map[$e->{$name}]);
+                else
+                    $map[$e]->{"set$name"}(&$e->{$name});
+            $typed[$map[$e]] = $untyped[$e];
+        }
+        return $typed;
+    }
+
 }
 
 /**
