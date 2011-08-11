@@ -2,9 +2,7 @@
 
 namespace Respect\Relational\Schemas;
 
-use Respect\Relational\Schemable;
-
-class Infered extends AbstractSchema implements Schemable
+class Infered extends AbstractExtractor
 {
 
     public function findPrimaryKey($name)

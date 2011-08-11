@@ -37,6 +37,18 @@ namespace Respect\Relational {
                         'post_id INTEGER',
                         'category_id INTEGER'
                 )));
+            $conn->exec((string) 'ATTACH DATABASE "" AS information_schema');
+            $conn->exec((string) Sql::createTable('information_schema.key_column_usage',
+                    array(
+                        'column_name VARCHAR',
+                        'table_name VARCHAR',
+                        'constraint_name VARCHAR'
+                )));
+            $conn->exec((string) Sql::createTable('information_schema.table_constraints',
+                    array(
+                        'constraint_type VARCHAR',
+                        'constraint_name VARCHAR'
+                )));
             $posts = array(
                 array(
                     'id' => 5,
@@ -73,6 +85,18 @@ namespace Respect\Relational {
                     'category_id' => 2
                 )
             );
+            $columnUsage = array(
+                array('table_name' => 'post', 'constraint_name' => 'post', 'column_name' => 'id'),
+                array('table_name' => 'comment', 'constraint_name' => 'comment', 'column_name' => 'id'),
+                array('table_name' => 'category', 'constraint_name' => 'category', 'column_name' => 'id'),
+                array('table_name' => 'post_category', 'constraint_name' => 'post_category', 'column_name' => 'id'),
+            );
+            $constraints = array(
+                array('constraint_type' => 'PRIMARY KEY', 'constraint_name' => 'post'),
+                array('constraint_type' => 'PRIMARY KEY', 'constraint_name' => 'comment'),
+                array('constraint_type' => 'PRIMARY KEY', 'constraint_name' => 'category'),
+                array('constraint_type' => 'PRIMARY KEY', 'constraint_name' => 'post_category'),
+            );
 
             foreach ($posts as $post)
                 $db->insertInto('post', $post)->values($post)->exec();
@@ -85,6 +109,12 @@ namespace Respect\Relational {
 
             foreach ($postsCategories as $postCategory)
                 $db->insertInto('post_category', $postCategory)->values($postCategory)->exec();
+            
+            foreach ($columnUsage as $cu)
+                $db->insertInto('information_schema.key_column_usage', $cu)->values($cu)->exec();
+            
+            foreach ($constraints as $c)
+                $db->insertInto('information_schema.table_constraints', $c)->values($c)->exec();
 
             $mapper = new Mapper($conn);
             $this->object = $mapper;
@@ -302,7 +332,7 @@ namespace Respect\Relational {
         public function testTyped()
         {
             $db = new Db($this->conn);
-            $schema = new SchemaDecorators\Typed(new Schemas\Infered(), __NAMESPACE__);
+            $schema = new Schemas\Typed(new Schemas\Infered(), __NAMESPACE__);
             $mapper = new Mapper($db, $schema);
             $c8 = $mapper->comment[8]->fetch();
             $c8->text = 'abc';
@@ -314,7 +344,7 @@ namespace Respect\Relational {
         public function testTypedInherited()
         {
             $db = new Db($this->conn);
-            $schema = new SchemaDecorators\Typed(new Schemas\Infered(), __NAMESPACE__);
+            $schema = new Schemas\Typed(new Schemas\Infered(), __NAMESPACE__);
             $mapper = new Mapper($db, $schema);
             $cc = $mapper->comment->post[5]->fetch();
             $cc->text = 'abc';
@@ -327,7 +357,7 @@ namespace Respect\Relational {
         public function testInflected()
         {
             $db = new Db($this->conn);
-            $schema = new SchemaDecorators\Inflected(new Schemas\Infered(), __NAMESPACE__);
+            $schema = new Schemas\Inflected(new Schemas\Infered(), __NAMESPACE__);
             $mapper = new Mapper($db, $schema);
             $c8 = $mapper->comment[8]->fetch();
             $c8->postId = 333;
@@ -343,7 +373,7 @@ namespace Respect\Relational {
         {
 
             $db = new Db($this->conn);
-            $schema = new SchemaDecorators\Typed(new SchemaDecorators\Inflected(new Schemas\Infered()), __NAMESPACE__);
+            $schema = new Schemas\Typed(new Schemas\Inflected(new Schemas\Infered()), __NAMESPACE__);
             $mapper = new Mapper($db, $schema);
             $c66 = $mapper->postCategory[66]->fetch();
             $this->assertInstanceOf(__NAMESPACE__ . '\\PostCategory', $c66);
@@ -357,24 +387,55 @@ namespace Respect\Relational {
         {
 
             $db = new Db($this->conn);
-            $schema = new SchemaDecorators\Inflected(new SchemaDecorators\Typed(new Schemas\Infered(), __NAMESPACE__));
+            $schema = new Schemas\Inflected(new Schemas\Typed(new Schemas\Infered(), __NAMESPACE__));
             $mapper = new Mapper($db, $schema);
             $c66 = $mapper->post_category[66]->fetch();
             $this->assertInstanceOf(__NAMESPACE__ . '\\Post_Category', $c66);
             $this->assertObjectHasAttribute('postId', $c66);
         }
 
-        /**
-         * @expectedException  Exception
-         */
-        public function testReflected()
+        public function testReflectedFetch()
         {
             $db = new Db($this->conn);
-            $schema = new SchemaDecorators\FullyTyped(new Schemas\Reflected('Test'), 'Test');
+            $schema = new Schemas\FullyTyped(new Schemas\Reflected('Test'), 'Test');
             $mapper = new Mapper($db, $schema);
-            $p = $mapper->comment->post[5]->fetch();
-            print_r($p);
+            $c5 = $mapper->comment->post[5]->fetch();
+            $this->assertInstanceof('Test\\Comment', $c5);
+            $this->assertObjectHasAttribute('post_id', $c5);
         }
+        
+        public function testReflectedInflectedPersistWithAutoincrement() 
+        {
+            $db = new Db($this->conn);
+            $schema = new Schemas\Inflected(new Schemas\FullyTyped(new Schemas\Reflected('Test'), 'Test'));
+            $mapper = new Mapper($db, $schema);
+            $entity = new \Test\Category;
+            $entity->setName('inserted');
+            $entity->setCategoryId(null);
+            $mapper->persist($entity);
+            $mapper->flush();
+            $result = $this->conn->query('select * from category where name="inserted"')->fetch(PDO::FETCH_OBJ);
+            $this->assertEquals($result->id, $entity->getId());
+            $this->assertEquals($result->name, $entity->getName());
+            $this->assertEquals($result->category_id, $entity->getCategoryId());
+        }
+        
+        public function testEngineeredInflectedPersistWithAutoincrement() 
+        {
+            $db = new Db($this->conn);
+            $schema = new Schemas\Inflected(new Schemas\FullyTyped(new Schemas\ReverseEngineered($db), 'Test'));
+            $mapper = new Mapper($db, $schema);
+            $entity = new \Test\Category;
+            $entity->setName('inserted');
+            $entity->setCategoryId(null);
+            $mapper->persist($entity, 'category');
+            $mapper->flush();
+            $result = $this->conn->query('select * from category where name="inserted"')->fetch(PDO::FETCH_OBJ);
+            $this->assertEquals($result->id, $entity->getId());
+            $this->assertEquals($result->name, $entity->getName());
+            $this->assertEquals($result->category_id, $entity->getCategoryId());
+        }
+        
 
     }
 
@@ -401,6 +462,47 @@ namespace Respect\Relational {
 }
 
 namespace Test {
+    
+    class Category
+    {
+        protected $id, $name, $categoryId;
+        
+        public function __construct($id=null)
+        {
+            $this->setId($id);
+        }
+        
+        public function getId()
+        {
+            return $this->id;
+        }
+
+        public function setId($id)
+        {
+            $this->id = $id;
+        }
+        
+        public function getName()
+        {
+            return $this->name;
+        }
+
+        public function setName($name)
+        {
+            $this->name = $name;
+        }
+
+        public function getCategoryId()
+        {
+            return $this->categoryId;
+        }
+
+        public function setCategoryId($categoryId)
+        {
+            $this->categoryId = $categoryId;
+        }
+
+        }
 
     class Post
     {

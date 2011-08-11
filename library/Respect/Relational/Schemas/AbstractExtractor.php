@@ -11,8 +11,18 @@ use Respect\Relational\Schemable;
 use Respect\Relational\Finder;
 use Respect\Relational\FinderIterator;
 
-abstract class AbstractSchema
+abstract class AbstractExtractor implements Schemable
 {
+    
+    public function setColumnValue(&$entity, $column, $value) 
+    {
+        $entity->{$column} = $value;
+    }
+    
+    public function getColumnValue(&$entity, $column) 
+    {
+        return $entity->{$column};
+    }
 
     public function generateQuery(Finder $finder)
     {

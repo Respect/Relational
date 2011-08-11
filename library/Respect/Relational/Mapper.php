@@ -16,7 +16,7 @@ class Mapper
     protected $tracked;
     protected $changed;
     protected $removed;
-
+    
     public function __construct($db, Schemable $schema=null)
     {
         if ($db instanceof PDO)
@@ -192,14 +192,14 @@ class Mapper
         if (!$identity)
             return false;
 
-        $entity->{$this->schema->findPrimaryKey($name)} = $identity;
+        $this->schema->setColumnValue($entity, $this->schema->findPrimaryKey($name), $identity);
         return true;
     }
 
     public function markTracked($entity, $name=null, $id=null)
     {
         $name = $name ? : $this->guessName($entity);
-        $id = &$entity->{$this->schema->findPrimaryKey($name)} ? : $id;
+        $id = $this->schema->getColumnValue($entity, $this->schema->findPrimaryKey($name)) ? : $id;
         $this->tracked[$entity] = array(
             'name' => $name,
             'table_name' => $name,

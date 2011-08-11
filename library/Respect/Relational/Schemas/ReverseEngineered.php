@@ -3,11 +3,33 @@
 namespace Respect\Relational\Schemas;
 
 use PDOStatement;
-use Respect\Relational\Schemable;
+use Respect\Relational\Db;
 
-class ReverseEngineered implements Schemable
+class ReverseEngineered extends AbstractExtractor
 {
+    protected $db;
     
+    public function __construct(Db $db) 
+    {
+        $this->db = $db;
+    }
+    public function findPrimaryKey($entityName)
+    {
+        return $this->db
+            ->select('kcu.column_name')
+            ->from('information_schema.key_column_usage as kcu')
+            ->innerJoin('information_schema.table_constraints as tc')
+            ->on('kcu.constraint_name=tc.constraint_name')
+            ->where(array(
+                'kcu.table_name' => $entityName,
+                'tc.constraint_type' => 'PRIMARY KEY'
+            ))->fetch()->column_name;
+    }
+
+    public function findTableName($entity)
+    {
+        throw new \InvalidArgumentException('ReverseEngineered Schema does not support finding table names'); //TODO
+    }
 }
 
 /**

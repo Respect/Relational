@@ -1,6 +1,6 @@
 <?php
 
-namespace Respect\Relational\SchemaDecorators;
+namespace Respect\Relational\Schemas;
 
 use PDOStatement;
 use Respect\Relational\Schemable;
@@ -12,6 +12,16 @@ class Typed implements Schemable
 
     protected $decorated;
     protected $namespace = '\\';
+    
+    public function setColumnValue(&$entity, $column, $value) 
+    {
+        $entity->{$column} = $value;
+    }
+    
+    public function getColumnValue(&$entity, $column) 
+    {
+        return $entity->{$column};
+    }
 
     public static function normalize($string)
     {

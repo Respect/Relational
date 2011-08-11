@@ -3,16 +3,14 @@
 namespace Respect\Relational\Schemas;
 
 use ReflectionClass;
-use Respect\Relational\Schemable;
 
-class Reflected extends AbstractSchema implements Schemable
+class Reflected extends AbstractExtractor
 {
 
     protected $namespace;
 
     public function __construct($namespace)
     {
-        throw new \Exception('not working yet');
         $this->namespace = $namespace;
     }
 

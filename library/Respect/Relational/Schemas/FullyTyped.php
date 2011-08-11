@@ -1,18 +1,39 @@
 <?php
 
-namespace Respect\Relational\SchemaDecorators;
+namespace Respect\Relational\Schemas;
 
 use PDOStatement;
-use Respect\Relational\Schemable;
 use SplObjectStorage;
 use Respect\Relational\Finder;
 
-class FullyTyped extends Typed implements Schemable
+class FullyTyped extends Typed 
 {
 
     protected $decorated;
     protected $namespace = '\\';
 
+    public function setColumnValue(&$entity, $column, $value) 
+    {
+        $entity->{"set$column"}($value);
+    }
+    
+    public function getColumnValue(&$entity, $column) 
+    {
+        return $entity->{"get$column"}();
+    }
+    
+    
+    public function extractColumns($entity, $name)
+    {
+        $cols = array();
+
+        foreach (get_class_methods($entity) as $c)
+            if (0 === stripos($c, 'get'))
+                $cols[$n = substr($c, 3)] = $this->getColumnValue($entity, $n);
+            
+        return $cols;
+    }
+    
     public function fetchHydrated(Finder $finder, PDOStatement $statement)
     {
         $untyped = $this->decorated->fetchHydrated($finder, $statement);

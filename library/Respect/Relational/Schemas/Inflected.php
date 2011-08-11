@@ -1,6 +1,6 @@
 <?php
 
-namespace Respect\Relational\SchemaDecorators;
+namespace Respect\Relational\Schemas;
 
 use PDOStatement;
 use Respect\Relational\Schemable;
@@ -12,6 +12,16 @@ class Inflected implements Schemable
 {
 
     protected $decorated;
+    
+    public function setColumnValue(&$entity, $column, $value) 
+    {
+        return $this->decorated->setColumnValue($entity, static::camelize($column), $value);
+    }
+    
+    public function getColumnValue(&$entity, $column) 
+    {
+        return $this->decorated->getColumnValue($entity, static::decamelize($column));
+    }
 
     public static function camelize($string)
     {

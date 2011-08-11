@@ -106,7 +106,7 @@ Use entity classes (full code):
     use PDO;
     use Respect\Relational\Mapper;
     use Respect\Relational\Sql;
-    use Respect\Relational\SchemaDecorators\Typed;
+    use Respect\Relational\Schemas\Typed;
     use Respect\Relational\Schemas\Infered;
 
     $schemaProvider = new Typed(new Infered, 'MyNamespace\\Entities');

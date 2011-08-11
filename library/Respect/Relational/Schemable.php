@@ -16,6 +16,10 @@ interface Schemable
     public function findPrimaryKey($entityName);
 
     public function generateQuery(Finder $finder);
+    
+    public function setColumnValue(&$entity, $column, $value);
+    
+    public function getColumnValue(&$entity, $column);
 }
 
 /**
