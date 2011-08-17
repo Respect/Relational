@@ -21,7 +21,7 @@ abstract class AbstractExtractor implements Schemable
     
     public function getColumnValue(&$entity, $column) 
     {
-        return $entity->{$column};
+        return isset($entity->{$column}) ? $entity->{$column} : null;
     }
 
     public function generateQuery(Finder $finder)
