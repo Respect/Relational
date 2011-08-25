@@ -10,9 +10,14 @@ class Infered extends AbstractExtractor
         return 'id';
     }
 
-    public function findTableName($entity)
+    public function findObjectTableName($entity)
     {
         throw new \InvalidArgumentException('Infered Schema does not support finding table names'); //TODO
+    }
+    
+    public function findRealTableName($finderName, $parentFinderName=null, $nextFinderName=null)
+    {
+        return $finderName;
     }
 
 

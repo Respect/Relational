@@ -12,21 +12,20 @@ class Typed implements Schemable
 
     protected $decorated;
     protected $namespace = '\\';
-    
-    public function setColumnValue(&$entity, $column, $value) 
+
+    public function setColumnValue(&$entity, $column, $value)
     {
         $entity->{$column} = $value;
     }
-    
-    public function getColumnValue(&$entity, $column) 
+
+    public function getColumnValue(&$entity, $column)
     {
         return $entity->{$column};
     }
 
     public static function normalize($string)
     {
-        return str_replace(' ', '_',
-            ucwords(str_replace('_', ' ', strtolower($string))));
+        return str_replace(' ', '_', ucwords(str_replace('_', ' ', strtolower($string))));
     }
 
     public function __construct(Schemable $decorated, $namespace='\\')
@@ -63,9 +62,14 @@ class Typed implements Schemable
         return $typed;
     }
 
-    public function findTableName($entity)
+    public function findObjectTableName($entity)
     {
-        return $this->decorated->findTableName($entity);
+        return $this->decorated->findObjectTableName($entity);
+    }
+
+    public function findRealTableName($finderName, $parentFinderName=null, $nextFinderName=null)
+    {
+        return $finderName;
     }
 
     public function findPrimaryKey($entityName)

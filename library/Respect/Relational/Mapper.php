@@ -77,7 +77,7 @@ class Mapper
         if ($this->isTracked($entity))
             return $this->tracked[$entity]['name'];
         else
-            return $this->schema->findTableName($entity);
+            return $this->schema->findObjectTableName($entity);
     }
 
     public function persist($entity, $name=null)

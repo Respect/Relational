@@ -13,41 +13,35 @@ namespace Respect\Relational {
         {
             $conn = new PDO('sqlite::memory:');
             $db = new Db($conn);
-            $conn->exec((string) Sql::createTable('post',
-                    array(
-                        'id INTEGER PRIMARY KEY',
-                        'title VARCHAR(255)',
-                        'text TEXT',
+            $conn->exec((string) Sql::createTable('post', array(
+                    'id INTEGER PRIMARY KEY',
+                    'title VARCHAR(255)',
+                    'text TEXT',
                 )));
-            $conn->exec((string) Sql::createTable('comment',
-                    array(
-                        'id INTEGER PRIMARY KEY',
-                        'post_id INTEGER',
-                        'text TEXT',
+            $conn->exec((string) Sql::createTable('comment', array(
+                    'id INTEGER PRIMARY KEY',
+                    'post_id INTEGER',
+                    'text TEXT',
                 )));
-            $conn->exec((string) Sql::createTable('category',
-                    array(
-                        'id INTEGER PRIMARY KEY',
-                        'name VARCHAR(255)',
-                        'category_id INTEGER'
+            $conn->exec((string) Sql::createTable('category', array(
+                    'id INTEGER PRIMARY KEY',
+                    'name VARCHAR(255)',
+                    'category_id INTEGER'
                 )));
-            $conn->exec((string) Sql::createTable('post_category',
-                    array(
-                        'id INTEGER PRIMARY KEY',
-                        'post_id INTEGER',
-                        'category_id INTEGER'
+            $conn->exec((string) Sql::createTable('post_category', array(
+                    'id INTEGER PRIMARY KEY',
+                    'post_id INTEGER',
+                    'category_id INTEGER'
                 )));
             $conn->exec((string) 'ATTACH DATABASE "" AS information_schema');
-            $conn->exec((string) Sql::createTable('information_schema.key_column_usage',
-                    array(
-                        'column_name VARCHAR',
-                        'table_name VARCHAR',
-                        'constraint_name VARCHAR'
+            $conn->exec((string) Sql::createTable('information_schema.key_column_usage', array(
+                    'column_name VARCHAR',
+                    'table_name VARCHAR',
+                    'constraint_name VARCHAR'
                 )));
-            $conn->exec((string) Sql::createTable('information_schema.table_constraints',
-                    array(
-                        'constraint_type VARCHAR',
-                        'constraint_name VARCHAR'
+            $conn->exec((string) Sql::createTable('information_schema.table_constraints', array(
+                    'constraint_type VARCHAR',
+                    'constraint_name VARCHAR'
                 )));
             $posts = array(
                 array(
@@ -109,10 +103,10 @@ namespace Respect\Relational {
 
             foreach ($postsCategories as $postCategory)
                 $db->insertInto('post_category', $postCategory)->values($postCategory)->exec();
-            
+
             foreach ($columnUsage as $cu)
                 $db->insertInto('information_schema.key_column_usage', $cu)->values($cu)->exec();
-            
+
             foreach ($constraints as $c)
                 $db->insertInto('information_schema.table_constraints', $c)->values($c)->exec();
 
@@ -287,11 +281,11 @@ namespace Respect\Relational {
             $mapper->flush();
 
             $postId = $this->conn
-                    ->query('select id from post where title = 12345')
-                    ->fetchColumn(0);
+                ->query('select id from post where title = 12345')
+                ->fetchColumn(0);
 
             $comment = $this->conn->query('select * from comment where post_id = ' . $postId)
-                    ->fetchObject();
+                ->fetchObject();
 
             $this->assertEquals('abc', $comment->text);
         }
@@ -403,8 +397,8 @@ namespace Respect\Relational {
             $this->assertInstanceof('Test\\Comment', $c5);
             $this->assertObjectHasAttribute('post_id', $c5);
         }
-        
-        public function testReflectedInflectedPersistWithAutoincrement() 
+
+        public function testReflectedInflectedPersistWithAutoincrement()
         {
             $db = new Db($this->conn);
             $schema = new Schemas\Inflected(new Schemas\FullyTyped(new Schemas\Reflected('Test'), 'Test'));
@@ -419,8 +413,8 @@ namespace Respect\Relational {
             $this->assertEquals($result->name, $entity->getName());
             $this->assertEquals($result->category_id, $entity->getCategoryId());
         }
-        
-        public function testEngineeredInflectedPersistWithAutoincrement() 
+
+        public function testEngineeredInflectedPersistWithAutoincrement()
         {
             $db = new Db($this->conn);
             $schema = new Schemas\Inflected(new Schemas\FullyTyped(new Schemas\ReverseEngineered($db), 'Test'));
@@ -435,13 +429,12 @@ namespace Respect\Relational {
             $this->assertEquals($result->name, $entity->getName());
             $this->assertEquals($result->category_id, $entity->getCategoryId());
         }
-        
 
     }
 
     class Comment
     {
-
+        
     }
 
     class PostCategory
@@ -451,7 +444,7 @@ namespace Respect\Relational {
 
     class Post_Category
     {
-
+        
     }
 
     class Post
@@ -462,16 +455,17 @@ namespace Respect\Relational {
 }
 
 namespace Test {
-    
+
     class Category
     {
+
         protected $id, $name, $categoryId;
-        
+
         public function __construct($id=null)
         {
             $this->setId($id);
         }
-        
+
         public function getId()
         {
             return $this->id;
@@ -481,7 +475,7 @@ namespace Test {
         {
             $this->id = $id;
         }
-        
+
         public function getName()
         {
             return $this->name;
@@ -502,7 +496,7 @@ namespace Test {
             $this->categoryId = $categoryId;
         }
 
-        }
+    }
 
     class Post
     {

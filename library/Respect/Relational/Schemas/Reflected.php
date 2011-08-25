@@ -22,10 +22,15 @@ class Reflected extends AbstractExtractor
         return $params[0]->getName();
     }
 
-    public function findTableName($entity)
+    public function findObjectTableName($entity)
     {
         $parts = explode('\\', get_class($entity));
         return end($parts);
+    }
+
+    public function findRealTableName($finderName, $parentFinderName=null, $nextFinderName=null)
+    {
+        return $finderName;
     }
 
 }

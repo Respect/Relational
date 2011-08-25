@@ -12,27 +12,25 @@ class Inflected implements Schemable
 {
 
     protected $decorated;
-    
-    public function setColumnValue(&$entity, $column, $value) 
+
+    public function setColumnValue(&$entity, $column, $value)
     {
         return $this->decorated->setColumnValue($entity, static::camelize($column), $value);
     }
-    
-    public function getColumnValue(&$entity, $column) 
+
+    public function getColumnValue(&$entity, $column)
     {
         return $this->decorated->getColumnValue($entity, static::decamelize($column));
     }
 
     public static function camelize($string)
     {
-        return lcfirst(str_replace(' ', '',
-                ucwords(str_replace('_', ' ', strtolower($string)))));
+        return lcfirst(str_replace(' ', '', ucwords(str_replace('_', ' ', strtolower($string)))));
     }
 
     public static function decamelize($string)
     {
-        return strtolower(implode('_',
-                preg_split('/(?<=\\w)(?=[A-Z])/', $string)));
+        return strtolower(implode('_', preg_split('/(?<=\\w)(?=[A-Z])/', $string)));
     }
 
     public function __construct(Schemable $decorated)
@@ -67,8 +65,7 @@ class Inflected implements Schemable
                 $newEntity->{static::camelize($name)} = $value;
             $inflectedData['cols'] = array_combine(
                 array_map(
-                    array(__CLASS__, 'camelize'),
-                    array_keys($inflectedData['cols'])
+                    array(__CLASS__, 'camelize'), array_keys($inflectedData['cols'])
                 ), $inflectedData['cols']
             );
             $inflectedData['name'] = static::camelize($inflectedData['name']);
@@ -77,9 +74,14 @@ class Inflected implements Schemable
         return $inflected;
     }
 
-    public function findTableName($entity)
+    public function findObjectTableName($entity)
     {
-        return $this->decorated->findTableName($entity);
+        return $this->decorated->findObjectTableName($entity);
+    }
+
+    public function findRealTableName($finderName, $parentFinderName=null, $nextFinderName=null)
+    {
+        return $finderName;
     }
 
     public function findPrimaryKey($entityName)

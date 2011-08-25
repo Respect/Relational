@@ -11,7 +11,9 @@ interface Schemable
 
     public function fetchHydrated(Finder $finder, PDOStatement $statement);
 
-    public function findTableName($entity);
+    public function findObjectTableName($entity);
+    
+    public function findRealTableName($finderName, $parentFinderName=null, $nextFinderName=null);
 
     public function findPrimaryKey($entityName);
 
@@ -20,6 +22,7 @@ interface Schemable
     public function setColumnValue(&$entity, $column, $value);
     
     public function getColumnValue(&$entity, $column);
+  
 }
 
 /**

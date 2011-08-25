@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<package packagerversion="1.9.4" version="2.0" xmlns="http://pear.php.net/dtd/package-2.0" xmlns:tasks="http://pear.php.net/dtd/tasks-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://pear.php.net/dtd/tasks-1.0     http://pear.php.net/dtd/tasks-1.0.xsd     http://pear.php.net/dtd/package-2.0     http://pear.php.net/dtd/package-2.0.xsd">
+ <name>Relational</name>
+ <channel>respect.github.com/pear</channel>
+ <summary>Fluent ORM</summary>
+ <description>Fluent ORM</description>
+ <lead>
+  <name>Alexandre Gomes Gaigalas</name>
+  <user>alganet</user>
+  <email>alexandre@gaigalas.net</email>
+  <active>yes</active>
+ </lead>
+ <date>2011-08-17</date>
+ <time>17:38:05</time>
+ <version>
+  <release>0.1.2</release>
+  <api>0.1.2</api>
+ </version>
+ <stability>
+  <release>alpha</release>
+  <api>alpha</api>
+ </stability>
+ <license uri="http://www.opensource.org/licenses/bsd-license.php">BSD Style</license>
+ <notes>
+CAUTION: not ready for production
+ </notes>
+ <contents>
+  <dir baseinstalldir="Respect/Relational" name="/">
+   <file baseinstalldir="Respect/Relational" md5sum="79e289fc671f195029b007c6b568ea1e" name="Schemas/AbstractExtractor.php" role="php" />
+   <file baseinstalldir="Respect/Relational" md5sum="5313994caffc5e06524549ddcebe1070" name="Schemas/FullyTyped.php" role="php" />
+   <file baseinstalldir="Respect/Relational" md5sum="3d05cc06a276e9217af0b85c60480475" name="Schemas/Infered.php" role="php" />
+   <file baseinstalldir="Respect/Relational" md5sum="7274c523add01fcf3ebbd7ad3100934a" name="Schemas/Inflected.php" role="php" />
+   <file baseinstalldir="Respect/Relational" md5sum="be2f067a7e8e69e312c9e5c111894175" name="Schemas/Reflected.php" role="php" />
+   <file baseinstalldir="Respect/Relational" md5sum="62d276863ae0a45aeee91a09d41fc0d4" name="Schemas/ReverseEngineered.php" role="php" />
+   <file baseinstalldir="Respect/Relational" md5sum="07e88af34a67c14ab2ae241e9f68f4ea" name="Schemas/Typed.php" role="php" />
+   <file baseinstalldir="Respect/Relational" md5sum="eee636becd066c8cc2e25b885ac7a00f" name="Db.php" role="php" />
+   <file baseinstalldir="Respect/Relational" md5sum="6ab18a75cfec027be50689c9e1011729" name="Finder.php" role="php" />
+   <file baseinstalldir="Respect/Relational" md5sum="f1da936200d610369dd9b6a1956a31c3" name="FinderIterator.php" role="php" />
+   <file baseinstalldir="Respect/Relational" md5sum="2543b268578e823cb9c3a56212d097ce" name="Mapper.php" role="php" />
+   <file baseinstalldir="Respect/Relational" md5sum="6dc5d803ffd21058eeabafc83d109d78" name="Schemable.php" role="php" />
+   <file baseinstalldir="Respect/Relational" md5sum="669836cf7b57e7e371e70768a18e50ee" name="Sql.php" role="php" />
+  </dir>
+ </contents>
+ <dependencies>
+  <required>
+   <php>
+    <min>5.3</min>
+   </php>
+   <pearinstaller>
+    <min>1.4.0</min>
+   </pearinstaller>
+  </required>
+ </dependencies>
+ <phprelease />
+ <changelog>
+  <release>
+   <version>
+    <release>0.1.1</release>
+    <api>0.1.1</api>
+   </version>
+   <stability>
+    <release>alpha</release>
+    <api>alpha</api>
+   </stability>
+   <date>2011-05-04</date>
+   <license uri="http://www.opensource.org/licenses/bsd-license.php">BSD Style</license>
+   <notes>
+CAUTION: not ready for production
+   </notes>
+  </release>
+  <release>
+   <version>
+    <release>0.1.2</release>
+    <api>0.1.2</api>
+   </version>
+   <stability>
+    <release>alpha</release>
+    <api>alpha</api>
+   </stability>
+   <date>2011-08-17</date>
+   <license uri="http://www.opensource.org/licenses/bsd-license.php">BSD Style</license>
+   <notes>
+CAUTION: not ready for production
+   </notes>
+  </release>
+ </changelog>
+</package>
