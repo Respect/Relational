@@ -111,9 +111,11 @@ abstract class AbstractExtractor implements Schemable
 
         $aliasedPk = "$alias." . $this->findPrimaryKey($entity);
         $aliasedParentPk = "$parentAlias." . $this->findPrimaryKey($parent);
-
+		
         if ($entity === "{$parent}_{$next}")
             return $sql->on(array("{$alias}.{$parent}_id" => $aliasedParentPk));
+        elseif ($entity === "{$next}_{$parent}")
+            return $sql->on(array("{$entity}.{$parent}_id" => $aliasedPk));
         else
             return $sql->on(array("{$parentAlias}.{$entity}_id" => $aliasedPk));
     }
