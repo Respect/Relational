@@ -187,10 +187,12 @@ abstract class AbstractExtractor implements Schemable
                 'cols' => $this->extractColumns($entityInstance, $entityName)
             );
 
+        $entitiesClone = clone $entities;
+            
         foreach ($entities as $instance)
             foreach ($instance as $field => &$v)
                 if (strlen($field) - 3 === strripos($field, '_id'))
-                    foreach ($entities as $sub)
+                    foreach ($entitiesClone as $sub)
                         if ($entities[$sub]['name'] === substr($field, 0, -3)
                             && $sub->id === $v)
                             $v = $sub;
