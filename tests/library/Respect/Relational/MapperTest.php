@@ -272,6 +272,7 @@ namespace Respect\Relational {
             $post->text = 'text abc';
 
             $comment = new \stdClass;
+            $comment->id = null;
             $comment->post_id = $post;
             $comment->text = 'abc';
 
