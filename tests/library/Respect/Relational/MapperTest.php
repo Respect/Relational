@@ -17,6 +17,11 @@ namespace Respect\Relational {
                     'id INTEGER PRIMARY KEY',
                     'title VARCHAR(255)',
                     'text TEXT',
+                    'author_id INTEGER'
+                )));
+            $conn->exec((string) Sql::createTable('author', array(
+                    'id INTEGER PRIMARY KEY',
+                    'name VARCHAR(255)'
                 )));
             $conn->exec((string) Sql::createTable('comment', array(
                     'id INTEGER PRIMARY KEY',
@@ -47,7 +52,14 @@ namespace Respect\Relational {
                 array(
                     'id' => 5,
                     'title' => 'Post Title',
-                    'text' => 'Post Text'
+                    'text' => 'Post Text',
+                    'author_id' => 1
+                )
+            );
+            $authors = array(
+                array(
+                    'id' => 1,
+                    'name' => 'Author 1'
                 )
             );
             $comments = array(
@@ -84,14 +96,19 @@ namespace Respect\Relational {
                 array('table_name' => 'comment', 'constraint_name' => 'comment', 'column_name' => 'id'),
                 array('table_name' => 'category', 'constraint_name' => 'category', 'column_name' => 'id'),
                 array('table_name' => 'post_category', 'constraint_name' => 'post_category', 'column_name' => 'id'),
+                array('table_name' => 'author', 'constraint_name' => 'author', 'column_name' => 'id')
             );
             $constraints = array(
                 array('constraint_type' => 'PRIMARY KEY', 'constraint_name' => 'post'),
                 array('constraint_type' => 'PRIMARY KEY', 'constraint_name' => 'comment'),
                 array('constraint_type' => 'PRIMARY KEY', 'constraint_name' => 'category'),
                 array('constraint_type' => 'PRIMARY KEY', 'constraint_name' => 'post_category'),
+                array('constraint_type' => 'PRIMARY KEY', 'constraint_name' => 'author')
             );
 
+            foreach ($authors as $author)
+                $db->insertInto('author', $author)->values($author)->exec();
+                
             foreach ($posts as $post)
                 $db->insertInto('post', $post)->values($post)->exec();
 
@@ -165,7 +182,7 @@ namespace Respect\Relational {
             $this->assertEquals(5, $comment->post_id->id);
             $this->assertEquals('Post Title', $comment->post_id->title);
             $this->assertEquals('Post Text', $comment->post_id->text);
-            $this->assertEquals(3, count(get_object_vars($comment->post_id)));
+            $this->assertEquals(4, count(get_object_vars($comment->post_id)));
         }
 
         public function testBasicStatement()
@@ -178,7 +195,7 @@ namespace Respect\Relational {
             $this->assertEquals(5, $comment->post_id->id);
             $this->assertEquals('Post Title', $comment->post_id->title);
             $this->assertEquals('Post Text', $comment->post_id->text);
-            $this->assertEquals(3, count(get_object_vars($comment->post_id)));
+            $this->assertEquals(4, count(get_object_vars($comment->post_id)));
         }
 
         public function testExtraQuery()
@@ -188,6 +205,24 @@ namespace Respect\Relational {
             $this->assertEquals(1, count($comment));
         }
 
+        public function testOneToN()
+        {
+            $mapper = $this->object;
+            $comments = $mapper->comment->post->author->fetchAll();
+            $comment = current($comments);
+            $this->assertEquals(1, count($comments));
+            $this->assertEquals(7, $comment->id);
+            $this->assertEquals('Comment Text', $comment->text);
+            $this->assertEquals(3, count(get_object_vars($comment)));
+            $this->assertEquals(5, $comment->post_id->id);
+            $this->assertEquals('Post Title', $comment->post_id->title);
+            $this->assertEquals('Post Text', $comment->post_id->text);
+            $this->assertEquals(4, count(get_object_vars($comment->post_id)));
+            $this->assertEquals(1, $comment->post_id->author_id->id);
+            $this->assertEquals('Author 1', $comment->post_id->author_id->name);
+            $this->assertEquals(2, count(get_object_vars($comment->post_id->author_id)));
+        }
+        
         public function testNtoN()
         {
             $mapper = $this->object;
@@ -200,7 +235,7 @@ namespace Respect\Relational {
             $this->assertEquals(5, $comment->post_id->id);
             $this->assertEquals('Post Title', $comment->post_id->title);
             $this->assertEquals('Post Text', $comment->post_id->text);
-            $this->assertEquals(3, count(get_object_vars($comment->post_id)));
+            $this->assertEquals(4, count(get_object_vars($comment->post_id)));
         }
 
         public function testTracking()
