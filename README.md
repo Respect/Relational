@@ -58,7 +58,7 @@ Edit a post:
 
     $post = $mapper->post[12]->fetch();
     $post->title = "New Post title";
-    $mapper->persist($post);
+    $mapper->persist($post, "post");
     $mapper->flush();
 
 New comment:

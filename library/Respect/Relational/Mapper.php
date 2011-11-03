@@ -49,7 +49,7 @@ class Mapper
 
     public function fetch(Collection $collection, Sql $sqlExtra=null)
     {
-        $statement = $this->createStatement($collection);
+        $statement = $this->createStatement($collection, $sqlExtra);
         $hydrated = $this->fetchHydrated($collection, $statement);
         if (!$hydrated)
             return false;

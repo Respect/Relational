@@ -6,7 +6,7 @@ use PDO;
 
 class MapperTest extends \PHPUnit_Framework_TestCase {
 
-    protected $object;
+    protected $mapper, $posts, $authors, $comments, $categories, $postsCategories;
 
     public function setUp() {
         $conn = new PDO('sqlite::memory:');
@@ -36,116 +36,101 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
                     'post_id INTEGER',
                     'category_id INTEGER'
                 )));
-        $conn->exec((string) 'ATTACH DATABASE "" AS information_schema');
-        $conn->exec((string) Sql::createTable('information_schema.key_column_usage', array(
-                    'column_name VARCHAR',
-                    'table_name VARCHAR',
-                    'constraint_name VARCHAR'
-                )));
-        $conn->exec((string) Sql::createTable('information_schema.table_constraints', array(
-                    'constraint_type VARCHAR',
-                    'constraint_name VARCHAR'
-                )));
-        $posts = array(
-            array(
+        $this->posts = array(
+            (object) array(
                 'id' => 5,
                 'title' => 'Post Title',
                 'text' => 'Post Text',
                 'author_id' => 1
             )
         );
-        $authors = array(
-            array(
+        $this->authors = array(
+            (object) array(
                 'id' => 1,
                 'name' => 'Author 1'
             )
         );
-        $comments = array(
-            array(
+        $this->comments = array(
+            (object) array(
                 'id' => 7,
                 'post_id' => 5,
                 'text' => 'Comment Text'
             ),
-            array(
+            (object) array(
                 'id' => 8,
                 'post_id' => 4,
                 'text' => 'Comment Text 2'
             )
         );
-        $categories = array(
-            array(
+        $this->categories = array(
+            (object) array(
                 'id' => 2,
-                'name' => 'Sample Category'
+                'name' => 'Sample Category',
+                'category_id' => null
             ),
-            array(
+            (object) array(
                 'id' => 3,
-                'name' => 'NONON'
+                'name' => 'NONON',
+                'category_id' => null
             )
         );
-        $postsCategories = array(
-            array(
+        $this->postsCategories = array(
+            (object) array(
                 'id' => 66,
                 'post_id' => 5,
                 'category_id' => 2
             )
         );
-        $columnUsage = array(
-            array('table_name' => 'post', 'constraint_name' => 'post', 'column_name' => 'id'),
-            array('table_name' => 'comment', 'constraint_name' => 'comment', 'column_name' => 'id'),
-            array('table_name' => 'category', 'constraint_name' => 'category', 'column_name' => 'id'),
-            array('table_name' => 'post_category', 'constraint_name' => 'post_category', 'column_name' => 'id'),
-            array('table_name' => 'author', 'constraint_name' => 'author', 'column_name' => 'id')
-        );
-        $constraints = array(
-            array('constraint_type' => 'PRIMARY KEY', 'constraint_name' => 'post'),
-            array('constraint_type' => 'PRIMARY KEY', 'constraint_name' => 'comment'),
-            array('constraint_type' => 'PRIMARY KEY', 'constraint_name' => 'category'),
-            array('constraint_type' => 'PRIMARY KEY', 'constraint_name' => 'post_category'),
-            array('constraint_type' => 'PRIMARY KEY', 'constraint_name' => 'author')
-        );
 
-        foreach ($authors as $author)
-            $db->insertInto('author', $author)->values($author)->exec();
+        foreach ($this->authors as $author)
+            $db->insertInto('author', (array) $author)->values((array) $author)->exec();
 
-        foreach ($posts as $post)
-            $db->insertInto('post', $post)->values($post)->exec();
+        foreach ($this->posts as $post)
+            $db->insertInto('post', (array) $post)->values((array) $post)->exec();
 
-        foreach ($comments as $comment)
-            $db->insertInto('comment', $comment)->values($comment)->exec();
+        foreach ($this->comments as $comment)
+            $db->insertInto('comment', (array) $comment)->values((array) $comment)->exec();
 
-        foreach ($categories as $category)
-            $db->insertInto('category', $category)->values($category)->exec();
+        foreach ($this->categories as $category)
+            $db->insertInto('category', (array) $category)->values((array) $category)->exec();
 
-        foreach ($postsCategories as $postCategory)
-            $db->insertInto('post_category', $postCategory)->values($postCategory)->exec();
-
-        foreach ($columnUsage as $cu)
-            $db->insertInto('information_schema.key_column_usage', $cu)->values($cu)->exec();
-
-        foreach ($constraints as $c)
-            $db->insertInto('information_schema.table_constraints', $c)->values($c)->exec();
+        foreach ($this->postsCategories as $postCategory)
+            $db->insertInto('post_category', (array) $postCategory)->values((array) $postCategory)->exec();
 
         $mapper = new Mapper($conn);
-        $this->object = $mapper;
+        $this->mapper = $mapper;
         $this->conn = $conn;
     }
-
-    public function testBasicStatementSingle() {
-        $mapper = $this->object;
-        $comments = $mapper->comment->post[5]->fetchAll();
-        $comment = current($comments);
-        $this->assertEquals(1, count($comments));
-        $this->assertEquals(7, $comment->id);
-        $this->assertEquals('Comment Text', $comment->text);
-        $this->assertEquals(3, count(get_object_vars($comment)));
-        $this->assertEquals(5, $comment->post_id->id);
-        $this->assertEquals('Post Title', $comment->post_id->title);
-        $this->assertEquals('Post Text', $comment->post_id->text);
-        $this->assertEquals(4, count(get_object_vars($comment->post_id)));
+    
+    public function test_fetching_single_entity_from_collection_should_return_first_record_from_table() 
+    {
+        $expectedFirstComment = reset($this->comments);
+        $fetchedFirstComment = $this->mapper->comment->fetch();
+        $this->assertEquals($expectedFirstComment, $fetchedFirstComment);
+    }
+    
+    public function test_fetching_all_entites_from_collection_should_return_all_records()
+    {
+        $expectedCategories = $this->categories;
+        $fetchedCategories = $this->mapper->category->fetchAll();
+        $this->assertEquals($expectedCategories, $fetchedCategories);
+    }
+    
+    public function test_extra_sql_on_single_fetch_should_be_applied_on_mapper_sql() 
+    {
+        $expectedLast = end($this->comments);
+        $fetchedLast = $this->mapper->comment->fetch(Sql::orderBy('id DESC'));
+        $this->assertEquals($expectedLast, $fetchedLast);
+    }
+    public function test_extra_sql_on_fetchAll_should_be_applied_on_mapper_sql() 
+    {
+        $expectedComments = array_reverse($this->comments);
+        $fetchedComments = $this->mapper->comment->fetchAll(Sql::orderBy('id DESC'));
+        $this->assertEquals($expectedComments, $fetchedComments);
     }
 
-    public function testBasicStatement() {
-        $mapper = $this->object;
+    public function test_nested_collections_should_hydrate_results() {
+        $mapper = $this->mapper;
         $comment = $mapper->comment->post[5]->fetch();
         $this->assertEquals(7, $comment->id);
         $this->assertEquals('Comment Text', $comment->text);
@@ -156,14 +141,8 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals(4, count(get_object_vars($comment->post_id)));
     }
 
-    public function testExtraQuery() {
-        $mapper = $this->object;
-        $comment = $mapper->comment->fetchAll(Sql::limit(1));
-        $this->assertEquals(1, count($comment));
-    }
-
     public function testOneToN() {
-        $mapper = $this->object;
+        $mapper = $this->mapper;
         $comments = $mapper->comment->post($mapper->author)->fetchAll();
         $comment = current($comments);
         $this->assertEquals(1, count($comments));
@@ -180,7 +159,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
     }
 
     public function testNtoN() {
-        $mapper = $this->object;
+        $mapper = $this->mapper;
         $comments = $mapper->comment->post->post_category->category[2]->fetchAll();
         $comment = current($comments);
         $this->assertEquals(1, count($comments));
@@ -194,7 +173,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
     }
 
     public function testTracking() {
-        $mapper = $this->object;
+        $mapper = $this->mapper;
         $c7 = $mapper->comment[7]->fetch();
         $c8 = $mapper->comment[8]->fetch();
         $p5 = $mapper->post[5]->fetch();
@@ -212,7 +191,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
     }
 
     public function testSimplePersist() {
-        $mapper = $this->object;
+        $mapper = $this->mapper;
         $entity = (object) array('id' => 4, 'name' => 'inserted', 'category_id' => null);
         $mapper->persist(
                 $entity, 'category'
@@ -222,7 +201,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals($entity, $result);
     }
     public function testSimplePersistCollection() {
-        $mapper = $this->object;
+        $mapper = $this->mapper;
         $entity = (object) array('id' => 4, 'name' => 'inserted', 'category_id' => null);
         $mapper->category->persist($entity);
         $mapper->flush();
@@ -230,8 +209,26 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals($entity, $result);
     }
 
+    public function testNestedPersistCollection() {
+        $postWithAuthor = (object) array(
+            'id' => null,
+            'title' => 'hi',
+            'text' => 'hi text',
+            'author_id' => (object) array(
+                'id' => null,   
+                'name' => 'New'
+            )
+        );
+        $this->mapper->post->author->persist($postWithAuthor);
+        $this->mapper->flush();
+        $author = $this->conn->query('select * from author order by id desc limit 1')->fetch(PDO::FETCH_OBJ);
+        $post = $this->conn->query('select * from post order by id desc limit 1')->fetch(PDO::FETCH_OBJ);
+        $this->assertEquals('New', $author->name);
+        $this->assertEquals('hi', $post->title);
+    }
+
     public function testSubCategory() {
-        $mapper = $this->object;
+        $mapper = $this->mapper;
         $entity = (object) array('id' => 8, 'name' => 'inserted', 'category_id' => 2);
         $mapper->persist(
                 $entity, 'category'
@@ -244,7 +241,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals($entity, $result);
     }
     public function testSubCategoryCondition() {
-        $mapper = $this->object;
+        $mapper = $this->mapper;
         $entity = (object) array('id' => 8, 'name' => 'inserted', 'category_id' => 2);
         $mapper->persist(
                 $entity, 'category'
@@ -258,7 +255,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
     }
 
     public function testAutoIncrementPersist() {
-        $mapper = $this->object;
+        $mapper = $this->mapper;
         $entity = (object) array('id' => null, 'name' => 'inserted', 'category_id' => null);
         $mapper->persist(
                 $entity, 'category'
@@ -270,7 +267,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
     }
 
     public function testPassedIdentity() {
-        $mapper = $this->object;
+        $mapper = $this->mapper;
 
         $post = new \stdClass;
         $post->id = null;
@@ -297,7 +294,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
     }
 
     public function testJoinedPersist() {
-        $mapper = $this->object;
+        $mapper = $this->mapper;
         $entity = $mapper->comment[8]->fetch();
         $entity->text = 'HeyHey';
         $mapper->persist($entity, 'comment');
@@ -308,7 +305,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
 
 
     public function testRemove() {
-        $mapper = $this->object;
+        $mapper = $this->mapper;
         $c8 = $mapper->comment[8]->fetch();
         $pre = $this->conn->query('select count(*) from comment')->fetchColumn(0);
         $mapper->remove($c8);

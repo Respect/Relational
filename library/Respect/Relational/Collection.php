@@ -61,6 +61,8 @@ class Collection implements ArrayAccess
     
     public function persist($entity) 
     {
+        if ($this->next)
+            $this->next->persist($entity->{"{$this->next->getName()}_id"});
         return $this->mapper->persist($entity, $this->name);
     }
 
@@ -169,6 +171,7 @@ class Collection implements ArrayAccess
     public function setNext(Collection $collection)
     {
         $collection->setParent($this);
+        $collection->setMapper($this->mapper);
         $this->next = $collection;
     }
 
