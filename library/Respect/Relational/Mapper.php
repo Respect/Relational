@@ -6,18 +6,18 @@ use Exception;
 use PDO;
 use SplObjectStorage;
 use InvalidArgumentException;
-use Respect\Relational\Schemas\Infered;
+use PDOStatement;
+use stdClass;
 
 class Mapper
 {
 
     protected $db;
-    protected $schema;
     protected $tracked;
     protected $changed;
     protected $removed;
     
-    public function __construct($db, Schemable $schema=null)
+    public function __construct($db)
     {
         if ($db instanceof PDO)
             $this->db = new Db($db);
@@ -26,10 +26,6 @@ class Mapper
         else
             throw new InvalidArgumentException('$db must be either an instance of Respect\Relational\Db or a PDO instance.');
 
-        if (is_null($schema))
-            $schema = new Infered;
-
-        $this->schema = $schema;
         $this->tracked = new SplObjectStorage;
         $this->changed = new SplObjectStorage;
         $this->removed = new SplObjectStorage;
@@ -38,49 +34,41 @@ class Mapper
 
     public function __get($name)
     {
-        $finder = new Finder($name);
-        $finder->setMapper($this);
+        $collection = new Collection($name);
+        $collection->setMapper($this);
 
-        return $finder;
+        return $collection;
     }
 
     public function __call($name, $children)
     {
-        $finder = Finder::__callstatic($name, $children);
-        $finder->setMapper($this);
-        return $finder;
+        $collection = Collection::__callstatic($name, $children);
+        $collection->setMapper($this);
+        return $collection;
     }
 
-    public function fetch(Finder $finder, Sql $sqlExtra=null)
+    public function fetch(Collection $collection, Sql $sqlExtra=null)
     {
-        $statement = $this->createStatement($finder);
-        $hydrated = $this->schema->fetchHydrated($finder, $statement);
+        $statement = $this->createStatement($collection);
+        $hydrated = $this->fetchHydrated($collection, $statement);
         if (!$hydrated)
             return false;
 
         return $this->parseHydrated($hydrated);
     }
 
-    public function fetchAll(Finder $finder, Sql $sqlExtra=null)
+    public function fetchAll(Collection $collection, Sql $sqlExtra=null)
     {
-        $statement = $this->createStatement($finder, $sqlExtra);
+        $statement = $this->createStatement($collection, $sqlExtra);
         $entities = array();
 
-        while ($hydrated = $this->schema->fetchHydrated($finder, $statement))
+        while ($hydrated = $this->fetchHydrated($collection, $statement))
             $entities[] = $this->parseHydrated($hydrated);
 
         return $entities;
     }
 
-    protected function guessName($entity)
-    {
-        if ($this->isTracked($entity))
-            return $this->tracked[$entity]['name'];
-        else
-            return $this->schema->findObjectTableName($entity);
-    }
-
-    public function persist($entity, $name=null)
+    public function persist($entity, $name)
     {
         $this->changed[$entity] = true;
 
@@ -111,8 +99,8 @@ class Mapper
 
     protected function flushSingle($entity)
     {
-        $name = $this->tracked[$entity]['table_name'] ? : $this->guessName($entity);
-        $cols = $this->schema->extractColumns($entity, $name);
+        $name = $this->tracked[$entity]['table_name'];
+        $cols = $this->extractColumns($entity, $name);
 
         if ($this->removed->contains($entity))
             $this->rawDelete($cols, $name, $entity);
@@ -136,17 +124,14 @@ class Mapper
 
     protected function guessCondition(&$columns, $name)
     {
-        $primaryKey = $this->schema->findPrimaryKey($name);
-        $pkValue = $columns[$primaryKey];
-        $condition = array($primaryKey => $pkValue);
-        unset($columns[$primaryKey]);
+        $condition = array('id' => $columns['id']);
+        unset($columns['id']);
         return $condition;
     }
 
     protected function rawDelete(array $condition, $name, $entity)
     {
-        $name = $name ? : $this->guessName($entity);
-        $columns = $this->schema->extractColumns($entity, $name);
+        $columns = $this->extractColumns($entity, $name);
         $condition = $this->guessCondition($columns, $name);
 
         return $this->db
@@ -174,14 +159,13 @@ class Mapper
             ->exec();
 
         if (!is_null($entity))
-            $this->checkNewIdentity($entity);
+            $this->checkNewIdentity($entity, $name);
 
         return $isInserted;
     }
 
-    protected function checkNewIdentity($entity, $name=null)
+    protected function checkNewIdentity($entity, $name)
     {
-        $name = $name ? : $this->guessName($entity);
         $identity = null;
         try {
             $identity = $this->db->getConnection()->lastInsertId();
@@ -192,19 +176,18 @@ class Mapper
         if (!$identity)
             return false;
 
-        $this->schema->setColumnValue($entity, $this->schema->findPrimaryKey($name), $identity);
+        $entity->id = $identity;
         return true;
     }
 
-    public function markTracked($entity, $name=null, $id=null)
+    public function markTracked($entity, $name, $id=null)
     {
-        $name = $name ? : $this->guessName($entity);
-        $id = $this->schema->getColumnValue($entity, $this->schema->findPrimaryKey($name)) ? : $id;
+        $id = $entity->id;
         $this->tracked[$entity] = array(
             'name' => $name,
             'table_name' => $name,
             'id' => &$id,
-            'cols' => $this->schema->extractColumns($entity, $name)
+            'cols' => $this->extractColumns($entity, $name)
         );
         return true;
     }
@@ -224,13 +207,13 @@ class Mapper
         return false;
     }
 
-    protected function createStatement(Finder $finder, Sql $sqlExtra=null)
+    protected function createStatement(Collection $collection, Sql $sqlExtra=null)
     {
-        $finderQuery = $this->schema->generateQuery($finder);
+        $query = $this->generateQuery($collection);
         if ($sqlExtra)
-            $finderQuery->appendQuery($sqlExtra);
-        $statement = $this->db->prepare((string) $finderQuery, PDO::FETCH_NUM);
-        $statement->execute($finderQuery->getParams());
+            $query->appendQuery($sqlExtra);
+        $statement = $this->db->prepare((string) $query, PDO::FETCH_NUM);
+        $statement->execute($query->getParams());
         return $statement;
     }
 
@@ -239,6 +222,183 @@ class Mapper
         $this->tracked->addAll($hydrated);
         $hydrated->rewind();
         return $hydrated->current();
+    }
+    
+    
+    protected function generateQuery(Collection $collection)
+    {
+        $collections = iterator_to_array(CollectionIterator::recursive($collection), true);
+        $sql = new Sql;
+
+        $this->buildSelectStatement($sql, $collections);
+        $this->buildTables($sql, $collections);
+
+        return $sql;
+    }
+
+    protected function extractColumns($entity, $name)
+    {
+        $cols = get_object_vars($entity);
+
+        foreach ($cols as &$c)
+            if (is_object($c))
+                $c = $c->id;
+
+        return $cols;
+    }
+
+    protected function buildSelectStatement(Sql $sql, $collections)
+    {
+        $selectTable = array_keys($collections);
+        foreach ($selectTable as &$ts)
+            $ts = "$ts.*";
+
+        return $sql->select($selectTable);
+    }
+
+    protected function buildTables(Sql $sql, $collections)
+    {
+        $conditions = $aliases = array();
+
+        foreach ($collections as $alias => $collection)
+            $this->parseCollection($sql, $collection, $alias, $aliases, $conditions);
+
+        return $sql->where($conditions);
+    }
+
+    protected function parseConditions(&$conditions, $collection, $alias)
+    {
+        $entity = $collection->getName();
+        $originalConditions = $collection->getCondition();
+        $parsedConditions = array();
+        $aliasedPk = "$alias.id";
+
+        if (is_scalar($originalConditions))
+            $parsedConditions = array($aliasedPk => $originalConditions);
+        elseif (is_array($originalConditions))
+            foreach ($originalConditions as $column => $value)
+                if (is_numeric($column))
+                    $parsedConditions[$column] = preg_replace(
+                            "/{$entity}[.](\w+)/", "$alias.$1", $value
+                    );
+                else
+                    $parsedConditions["$alias.$column"] = $value;
+
+        return $parsedConditions;
+    }
+
+    protected function parseCollection(Sql $sql, Collection $collection, $alias, &$aliases, &$conditions)
+    {
+        $entity = $collection->getName();
+        $parent = $collection->getParentName();
+        $next = $collection->getNextName();
+
+        $parentAlias = $parent ? $aliases[$parent] : null;
+        $aliases[$entity] = $alias;
+        $parsedConditions = $this->parseConditions($conditions, $collection, $alias);
+
+        if (!empty($parsedConditions))
+            $conditions[] = $parsedConditions;
+
+        if (is_null($parentAlias))
+            return $sql->from($entity);
+        elseif ($collection->isRequired())
+            $sql->innerJoin($entity);
+        else
+            $sql->leftJoin($entity);
+
+        if ($alias !== $entity)
+            $sql->as($alias);
+
+        $aliasedPk = "$alias.id";
+        $aliasedParentPk = "$parentAlias.id";
+		
+        if ($entity === "{$parent}_{$next}")
+            return $sql->on(array("{$alias}.{$parent}_id" => $aliasedParentPk));
+        elseif ($entity === "{$next}_{$parent}")
+            return $sql->on(array("{$entity}.{$parent}_id" => $aliasedPk));
+        else
+            return $sql->on(array("{$parentAlias}.{$entity}_id" => $aliasedPk));
+    }
+
+    protected function fetchHydrated(Collection $collection, PDOStatement $statement)
+    {
+        if (!$collection->hasMore())
+            return $this->fetchSingle($collection, $statement);
+        else
+            return $this->fetchMulti($collection, $statement);
+    }
+
+    protected function fetchSingle(Collection $collection, PDOStatement $statement)
+    {
+        $name = $collection->getName();
+        $row = $statement->fetch(PDO::FETCH_OBJ);
+
+        if (!$row)
+            return false;
+
+        $entities = new SplObjectStorage();
+        $entities[$row] = array(
+            'name' => $name,
+            'table_name' => $name,
+            'id' => $row->id,
+            'cols' => $this->extractColumns($row, $name)
+        );
+
+        return $entities;
+    }
+
+    protected function fetchMulti(Collection $collection, PDOStatement $statement)
+    {
+        $entityInstance = null;
+        $collections = CollectionIterator::recursive($collection);
+        $row = $statement->fetch(PDO::FETCH_NUM);
+
+        if (!$row)
+            return false;
+
+        $entities = new SplObjectStorage();
+
+        foreach ($row as $n => $value) {
+            $meta = $statement->getColumnMeta($n);
+
+            if ('id' === $meta['name']) {
+                if (0 !== $n)
+                    $entities[$entityInstance] = array(
+                        'name' => $entityName,
+                        'table_name' => $entityName,
+                        'id' => $entityInstance->id,
+                        'cols' => $this->extractColumns(
+                            $entityInstance, $entityName
+                        )
+                    );
+
+                $collections->next();
+                $entityName = $collections->current()->getName();
+                $entityInstance = new stdClass;
+            }
+            $entityInstance->{$meta['name']} = $value;
+        }
+
+        if (!empty($entities))
+            $entities[$entityInstance] = array(
+                'name' => $entityName,
+                'table_name' => $entityName,
+                'id' => $entityInstance->id,
+                'cols' => $this->extractColumns($entityInstance, $entityName)
+            );
+
+        $entitiesClone = clone $entities;
+            
+        foreach ($entities as $instance)
+            foreach ($instance as $field => &$v)
+                if (strlen($field) - 3 === strripos($field, '_id'))
+                    foreach ($entitiesClone as $sub)
+                        if ($entities[$sub]['name'] === substr($field, 0, -3)
+                            && $sub->id === $v)
+                            $v = $sub;
+
+        return $entities;
     }
 
 }
