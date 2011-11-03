@@ -1,36 +1,55 @@
 <?php
 
-namespace Respect\Relational\Schemas;
+namespace Respect\Relational;
 
-use ReflectionClass;
+use RecursiveArrayIterator;
+use RecursiveIteratorIterator;
 
-class Reflected extends AbstractExtractor
+class CollectionIterator extends RecursiveArrayIterator
 {
 
-    protected $namespace;
+    protected $nameCount = array();
 
-    public function __construct($namespace)
+    public static function recursive($target)
     {
-        $this->namespace = $namespace;
+        return new RecursiveIteratorIterator(new static($target), 1);
     }
 
-    public function findPrimaryKey($entityName)
+    public function __construct($target, &$nameCount=array())
     {
-        //TODO composite pks
-        $reflection = new ReflectionClass("{$this->namespace}\\{$entityName}");
-        $params = $reflection->getConstructor()->getParameters();
-        return $params[0]->getName();
+        $this->nameCount = &$nameCount;
+        parent::__construct(is_array($target) ? $target : array($target));
     }
 
-    public function findObjectTableName($entity)
+    public function key()
     {
-        $parts = explode('\\', get_class($entity));
-        return end($parts);
+        $name = $this->current()->getName();
+
+        if (isset($this->nameCount[$name]))
+            return $name . ++$this->nameCount[$name];
+
+        $this->nameCount[$name] = 1;
+        return $name;
     }
 
-    public function findRealTableName($finderName, $parentFinderName=null, $nextFinderName=null)
+    public function hasChildren()
     {
-        return $finderName;
+        $c = $this->current();
+        return (boolean) $c->hasChildren() || $c->hasNext();
+    }
+
+    public function getChildren()
+    {
+        $c = $this->current();
+        $pool = array();
+
+        if ($c->hasChildren())
+            $pool = $c->getChildren();
+
+        if ($c->hasNext())
+            $pool[] = $c->getNext();
+
+        return new static($pool, $this->nameCount);
     }
 
 }

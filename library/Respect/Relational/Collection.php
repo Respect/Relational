@@ -4,7 +4,7 @@ namespace Respect\Relational;
 
 use ArrayAccess;
 
-class Finder implements ArrayAccess
+class Collection implements ArrayAccess
 {
 
     protected $required = true;
@@ -18,14 +18,14 @@ class Finder implements ArrayAccess
 
     public static function __callStatic($name, $children)
     {
-        $finder = new static($name);
+        $collection = new static($name);
 
         foreach ($children as $child)
-            if ($child instanceof Finder)
-                $finder->addChild($child);
+            if ($child instanceof Collection)
+                $collection->addChild($child);
             else
-                $finder->setCondition($child);
-        return $finder;
+                $collection->setCondition($child);
+        return $collection;
     }
 
     public function __construct($name, $condition = array())
@@ -45,28 +45,23 @@ class Finder implements ArrayAccess
 
     public function __call($name, $children)
     {
-        $finder = static::__callStatic($name, $children);
+        $collection = static::__callStatic($name, $children);
 
-        return $this->stack($finder);
+        return $this->stack($collection);
     }
 
-    public function __invoke()
-    {
-        foreach (func_get_args() as $child)
-            if ($child instanceof static)
-                $this->last->addChild($child);
-            else
-                throw new \InvalidArgumentException('Unexpected');
-        return $this;
-    }
-
-    public function addChild(Finder $child)
+    public function addChild(Collection $child)
     {
         $clone = clone $child;
         $clone->setRequired(false);
         $clone->setMapper($this->mapper);
         $clone->setParent($this);
         $this->children[] = $clone;
+    }
+    
+    public function persist($entity) 
+    {
+        return $this->mapper->persist($entity, $this->name);
     }
 
     public function fetch(Sql $sqlExtra=null)
@@ -166,20 +161,15 @@ class Finder implements ArrayAccess
         $this->mapper = $mapper;
     }
 
-    public function setParent(Finder $parent)
+    public function setParent(Collection $parent)
     {
         $this->parent = $parent;
     }
 
-    public function setName($name)
+    public function setNext(Collection $collection)
     {
-        $this->name = $name;
-    }
-
-    public function setNext(Finder $finder)
-    {
-        $finder->setParent($this);
-        $this->next = $finder;
+        $collection->setParent($this);
+        $this->next = $collection;
     }
 
     public function setRequired($required)
@@ -187,10 +177,10 @@ class Finder implements ArrayAccess
         $this->required = $required;
     }
 
-    protected function stack(Finder $finder)
+    protected function stack(Collection $collection)
     {
-        $this->last->setNext($finder);
-        $this->last = $finder;
+        $this->last->setNext($collection);
+        $this->last = $collection;
         return $this;
     }
 
