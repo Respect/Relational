@@ -63,7 +63,16 @@ class Collection implements ArrayAccess
     {
         if ($this->next)
             $this->next->persist($entity->{"{$this->next->getName()}_id"});
+        
+        foreach($this->children as $child)
+            $child->persist($entity->{"{$child->getName()}_id"});
+        
         return $this->mapper->persist($entity, $this->name);
+    }
+    
+    public function remove($entity)
+    {
+        return $this->mapper->remove($entity, $this->name);
     }
 
     public function fetch(Sql $sqlExtra=null)

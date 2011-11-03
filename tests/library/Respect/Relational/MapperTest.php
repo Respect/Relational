@@ -226,6 +226,43 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals('New', $author->name);
         $this->assertEquals('hi', $post->title);
     }
+    public function testNestedPersistCollectionShortcut() {
+        $postWithAuthor = (object) array(
+            'id' => null,
+            'title' => 'hi',
+            'text' => 'hi text',
+            'author_id' => (object) array(
+                'id' => null,   
+                'name' => 'New'
+            )
+        );
+        $this->mapper->postAuthor = $this->mapper->post->author;
+        $this->mapper->postAuthor->persist($postWithAuthor);
+        $this->mapper->flush();
+        $author = $this->conn->query('select * from author order by id desc limit 1')->fetch(PDO::FETCH_OBJ);
+        $post = $this->conn->query('select * from post order by id desc limit 1')->fetch(PDO::FETCH_OBJ);
+        $this->assertEquals('New', $author->name);
+        $this->assertEquals('hi', $post->title);
+    }
+    
+    public function testNestedPersistCollectionWithChildrenShortcut() {
+        $postWithAuthor = (object) array(
+            'id' => null,
+            'title' => 'hi',
+            'text' => 'hi text',
+            'author_id' => (object) array(
+                'id' => null,   
+                'name' => 'New'
+            )
+        );
+        $this->mapper->postAuthor = $this->mapper->post($this->mapper->author);
+        $this->mapper->postAuthor->persist($postWithAuthor);
+        $this->mapper->flush();
+        $author = $this->conn->query('select * from author order by id desc limit 1')->fetch(PDO::FETCH_OBJ);
+        $post = $this->conn->query('select * from post order by id desc limit 1')->fetch(PDO::FETCH_OBJ);
+        $this->assertEquals('New', $author->name);
+        $this->assertEquals('hi', $post->title);
+    }
 
     public function testSubCategory() {
         $mapper = $this->mapper;
@@ -308,7 +345,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $mapper = $this->mapper;
         $c8 = $mapper->comment[8]->fetch();
         $pre = $this->conn->query('select count(*) from comment')->fetchColumn(0);
-        $mapper->remove($c8);
+        $mapper->remove($c8, "comment");
         $mapper->flush();
         $total = $this->conn->query('select count(*) from comment')->fetchColumn(0);
         $this->assertEquals($total, $pre - 1);

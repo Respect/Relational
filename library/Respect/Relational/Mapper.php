@@ -13,9 +13,11 @@ class Mapper
 {
 
     protected $db;
+    protected $new;
     protected $tracked;
     protected $changed;
     protected $removed;
+    protected $collections;
     
     public function __construct($db)
     {
@@ -34,10 +36,23 @@ class Mapper
 
     public function __get($name)
     {
-        $collection = new Collection($name);
-        $collection->setMapper($this);
+        if (isset($this->collections[$name]))
+            return $this->collections[$name];
+                
+        $this->collections[$name] = new Collection($name);
+        $this->collections[$name]->setMapper($this);
 
-        return $collection;
+        return $this->collections[$name];
+    }
+    
+    public function __set($name, $collection) 
+    {
+        return $this->registerCollection($name, $collection);
+    }
+    
+    public function registerCollection($name, Collection $collection) 
+    {
+        $this->collections[$name] = $collection;
     }
 
     public function __call($name, $children)
@@ -110,7 +125,7 @@ class Mapper
             $this->rawUpdate($cols, $name);
     }
 
-    public function remove($entity, $name=null)
+    public function remove($entity, $name)
     {
         $this->changed[$entity] = true;
         $this->removed[$entity] = true;
