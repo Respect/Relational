@@ -1,7 +1,7 @@
 Respect\Relational
 ==================
 
-Fluent ORM
+Fluent Database Toolkit based on conventions. 
 
 Quintessential sample
 ---------------------
