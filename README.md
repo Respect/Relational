@@ -48,8 +48,7 @@ pretty readable and smart. The last sample above generate something like this:
 
 Seems written by a human, doesn't? The mapper is able to treat duplicated columns, 
 human readable joins and everything else without any configuration or extra SQL
-statements. It **does not** use `SHOW TABLES` or anything like it by default, 
-but you can use it if you want.
+statements. It **does not** use `SHOW TABLES` or anything like it.
 
 More samples
 ------------
