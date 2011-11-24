@@ -2,6 +2,8 @@
 .project
 .settings/
 nbproject
+tests/reports
+pirum
 *.7z
 *.jar
 *.rar

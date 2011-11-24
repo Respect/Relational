@@ -1,4 +1,3 @@
-
 <phpunit backupGlobals="false"
          backupStaticAttributes="false"
          bootstrap="bootstrap.php"
@@ -11,5 +10,9 @@
          syntaxCheck="false"
          verbose="true"
          testSuiteLoaderClass="PHPUnit_Runner_StandardTestSuiteLoader">
-
+  <filter>
+    <blacklist>
+      <directory suffix=".php">../tests</directory>
+    </blacklist>
+  </filter>
 </phpunit>
