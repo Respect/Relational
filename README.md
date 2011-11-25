@@ -3,8 +3,8 @@ Respect\Relational
 
 Fluent Database Toolkit based on conventions. 
 
-Quintessential sample
----------------------
+Basic sample
+------------
 
 Tables used:
 
