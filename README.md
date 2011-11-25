@@ -1,4 +1,4 @@
-Respect\Relational
+Respect\Relational [![Build Status](https://secure.travis-ci.org/Respect/Relational.png)](http://travis-ci.org/Respect/Relational)
 ==================
 
 Fluent Database Toolkit based on conventions. 
