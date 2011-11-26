@@ -57,7 +57,7 @@ Edit a post:
 
     $post = $mapper->post[12]->fetch();
     $post->title = "New Post title";
-    $mapper->persist($post, "post");
+    $mapper->post->persist($post);
     $mapper->flush();
 
 New comment:
@@ -66,7 +66,7 @@ New comment:
     $comment->post_id = 3;   //you can use a post object if you want
     $comment->author_id = 7; //same here
     $comment->text = "hi there";
-    $mapper->persist($comment, 'comment');
+    $mapper->comment->persist($comment);
     $mapper->flush();
     
 Edit a bunch of comments:
@@ -75,7 +75,7 @@ Edit a bunch of comments:
 
     foreach ($comments as $c) {
         $c->text = "This user has been banned";
-        $mapper->persist($c);
+        $mapper->comment->persist($c);
     }
 
     $mapper->flush();
@@ -83,7 +83,7 @@ Edit a bunch of comments:
 Remove a previously fetched comment:
 
     $comment = $mapper->comment[1651]->fetch();
-    $mapper->remove($comment);
+    $mapper->comment->remove($comment);
     $mapper->flush();
 
 Last 10 comments from author (full code):
@@ -98,6 +98,14 @@ Last 10 comments from author (full code):
     $lastComments = $mapper->comment
                            ->author[15]
                            ->fetchAll(Sql::orderBy('id desc')->limit(10));
+
+Installation
+------------
+
+Please install via PEAR. Instructions on our [Pear Channel](http://respect.li/pear).
+
+If installing without PEAR, make sure [Respect\Data](http://github.com/Respect/Data)
+is also installed.
 
 
 License Information

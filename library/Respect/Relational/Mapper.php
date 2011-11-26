@@ -8,6 +8,9 @@ use SplObjectStorage;
 use InvalidArgumentException;
 use PDOStatement;
 use stdClass;
+use Respect\Data\AbstractMapper;
+use Respect\Data\Collection;
+use Respect\Data\CollectionIterator;
 
 class Mapper extends AbstractMapper
 {
@@ -33,36 +36,36 @@ class Mapper extends AbstractMapper
         $this->new = new SplObjectStorage;
     }
     
-    public function fetch(Collection $collection, Sql $sqlExtra=null)
+    public function fetch(Collection $fromCollection, $withExtra=null)
     {
-        $statement = $this->createStatement($collection, $sqlExtra);
-        $hydrated = $this->fetchHydrated($collection, $statement);
+        $statement = $this->createStatement($fromCollection, $withExtra);
+        $hydrated = $this->fetchHydrated($fromCollection, $statement);
         if (!$hydrated)
             return false;
 
         return $this->parseHydrated($hydrated);
     }
 
-    public function fetchAll(Collection $collection, Sql $sqlExtra=null)
+    public function fetchAll(Collection $fromCollection, $withExtra=null)
     {
-        $statement = $this->createStatement($collection, $sqlExtra);
+        $statement = $this->createStatement($fromCollection, $withExtra);
         $entities = array();
 
-        while ($hydrated = $this->fetchHydrated($collection, $statement))
+        while ($hydrated = $this->fetchHydrated($fromCollection, $statement))
             $entities[] = $this->parseHydrated($hydrated);
 
         return $entities;
     }
 
-    public function persist($entity, $name)
+    public function persist($object, Collection $onCollection)
     {
-        $this->changed[$entity] = true;
+        $this->changed[$object] = true;
 
-        if ($this->isTracked($entity))
+        if ($this->isTracked($object))
             return true;
 
-        $this->new[$entity] = true;
-        $this->markTracked($entity, $name);
+        $this->new[$object] = true;
+        $this->markTracked($object, $onCollection->getName());
         return true;
     }
 
@@ -96,15 +99,15 @@ class Mapper extends AbstractMapper
             $this->rawUpdate($cols, $name);
     }
 
-    public function remove($entity, $name)
+    public function remove($object, Collection $fromCollection)
     {
-        $this->changed[$entity] = true;
-        $this->removed[$entity] = true;
+        $this->changed[$object] = true;
+        $this->removed[$object] = true;
 
-        if ($this->isTracked($entity))
+        if ($this->isTracked($object))
             return true;
 
-        $this->markTracked($entity, $name);
+        $this->markTracked($object, $fromCollection->getName());
         return true;
     }
 

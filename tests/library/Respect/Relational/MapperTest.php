@@ -193,9 +193,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
     public function testSimplePersist() {
         $mapper = $this->mapper;
         $entity = (object) array('id' => 4, 'name' => 'inserted', 'category_id' => null);
-        $mapper->persist(
-                $entity, 'category'
-        );
+        $mapper->category->persist($entity);
         $mapper->flush();
         $result = $this->conn->query('select * from category where id=4')->fetch(PDO::FETCH_OBJ);
         $this->assertEquals($entity, $result);
@@ -267,9 +265,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
     public function testSubCategory() {
         $mapper = $this->mapper;
         $entity = (object) array('id' => 8, 'name' => 'inserted', 'category_id' => 2);
-        $mapper->persist(
-                $entity, 'category'
-        );
+        $mapper->category->persist($entity);
         $mapper->flush();
         $result = $this->conn->query('select * from category where id=8')->fetch(PDO::FETCH_OBJ);
         $result2 = $mapper->category[8]->category->fetch();
@@ -280,9 +276,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
     public function testSubCategoryCondition() {
         $mapper = $this->mapper;
         $entity = (object) array('id' => 8, 'name' => 'inserted', 'category_id' => 2);
-        $mapper->persist(
-                $entity, 'category'
-        );
+        $mapper->category->persist($entity);
         $mapper->flush();
         $result = $this->conn->query('select * from category where id=8')->fetch(PDO::FETCH_OBJ);
         $result2 = $mapper->category(array("id"=>8))->category->fetch();
@@ -294,9 +288,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
     public function testAutoIncrementPersist() {
         $mapper = $this->mapper;
         $entity = (object) array('id' => null, 'name' => 'inserted', 'category_id' => null);
-        $mapper->persist(
-                $entity, 'category'
-        );
+        $mapper->category->persist($entity);
         $mapper->flush();
         $result = $this->conn->query('select * from category where name="inserted"')->fetch(PDO::FETCH_OBJ);
         $this->assertEquals($entity, $result);
@@ -316,8 +308,8 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $comment->post_id = $post;
         $comment->text = 'abc';
 
-        $mapper->persist($post, 'post');
-        $mapper->persist($comment, 'comment');
+        $mapper->post->persist($post);
+        $mapper->comment->persist($comment);
         $mapper->flush();
 
         $postId = $this->conn
@@ -334,7 +326,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $mapper = $this->mapper;
         $entity = $mapper->comment[8]->fetch();
         $entity->text = 'HeyHey';
-        $mapper->persist($entity, 'comment');
+        $mapper->comment->persist($entity);
         $mapper->flush();
         $result = $this->conn->query('select text from comment where id=8')->fetchColumn(0);
         $this->assertEquals('HeyHey', $result);
@@ -345,7 +337,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $mapper = $this->mapper;
         $c8 = $mapper->comment[8]->fetch();
         $pre = $this->conn->query('select count(*) from comment')->fetchColumn(0);
-        $mapper->remove($c8, "comment");
+        $mapper->comment->remove($c8);
         $mapper->flush();
         $total = $this->conn->query('select count(*) from comment')->fetchColumn(0);
         $this->assertEquals($total, $pre - 1);
