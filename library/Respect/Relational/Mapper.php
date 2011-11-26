@@ -9,7 +9,7 @@ use InvalidArgumentException;
 use PDOStatement;
 use stdClass;
 
-class Mapper
+class Mapper extends AbstractMapper
 {
 
     protected $db;
@@ -17,7 +17,6 @@ class Mapper
     protected $tracked;
     protected $changed;
     protected $removed;
-    protected $collections;
     
     public function __construct($db)
     {
@@ -33,35 +32,7 @@ class Mapper
         $this->removed = new SplObjectStorage;
         $this->new = new SplObjectStorage;
     }
-
-    public function __get($name)
-    {
-        if (isset($this->collections[$name]))
-            return $this->collections[$name];
-                
-        $this->collections[$name] = new Collection($name);
-        $this->collections[$name]->setMapper($this);
-
-        return $this->collections[$name];
-    }
     
-    public function __set($name, $collection) 
-    {
-        return $this->registerCollection($name, $collection);
-    }
-    
-    public function registerCollection($name, Collection $collection) 
-    {
-        $this->collections[$name] = $collection;
-    }
-
-    public function __call($name, $children)
-    {
-        $collection = Collection::__callstatic($name, $children);
-        $collection->setMapper($this);
-        return $collection;
-    }
-
     public function fetch(Collection $collection, Sql $sqlExtra=null)
     {
         $statement = $this->createStatement($collection, $sqlExtra);
