@@ -104,7 +104,7 @@ Installation
 
 Please install via PEAR. Instructions on our [Pear Channel](http://respect.li/pear).
 
-If installing without PEAR, make sure [Respect\Data](http://github.com/Respect/Data)
+If installing without PEAR, make sure the latest [Respect\Data](http://github.com/Respect/Data)
 is also installed.
 
 
