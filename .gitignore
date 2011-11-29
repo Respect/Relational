@@ -2,6 +2,7 @@
 .project
 .settings/
 nbproject
+.foundation-tmp
 tests/reports
 pirum
 *.7z
