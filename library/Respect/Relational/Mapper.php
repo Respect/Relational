@@ -7,6 +7,7 @@ use PDO;
 use SplObjectStorage;
 use InvalidArgumentException;
 use PDOStatement;
+use PDOException;
 use stdClass;
 use Respect\Data\AbstractMapper;
 use Respect\Data\Collection;
@@ -267,9 +268,7 @@ class Mapper extends AbstractMapper
         elseif (is_array($originalConditions))
             foreach ($originalConditions as $column => $value)
                 if (is_numeric($column))
-                    $parsedConditions[$column] = preg_replace(
-                            "/{$entity}[.](\w+)/", "$alias.$1", $value
-                    );
+                    $parsedConditions[$column] = preg_replace("/{$entity}[.](\w+)/", "$alias.$1", $value);
                 else
                     $parsedConditions["$alias.$column"] = $value;
 
@@ -302,10 +301,8 @@ class Mapper extends AbstractMapper
         $aliasedPk = "$alias.id";
         $aliasedParentPk = "$parentAlias.id";
 		
-        if ($entity === "{$parent}_{$next}")
+        if ($entity === "{$parent}_{$next}" || $entity === "{$next}_{$parent}")
             return $sql->on(array("{$alias}.{$parent}_id" => $aliasedParentPk));
-        elseif ($entity === "{$next}_{$parent}")
-            return $sql->on(array("{$entity}.{$parent}_id" => $aliasedPk));
         else
             return $sql->on(array("{$parentAlias}.{$entity}_id" => $aliasedPk));
     }

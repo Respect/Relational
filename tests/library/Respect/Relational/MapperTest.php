@@ -96,10 +96,75 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
 
         foreach ($this->postsCategories as $postCategory)
             $db->insertInto('post_category', (array) $postCategory)->values((array) $postCategory)->exec();
-
+        
         $mapper = new Mapper($conn);
         $this->mapper = $mapper;
         $this->conn = $conn;
+    }
+    
+    public function test_creating_with_db_instance()
+    {
+        $db = new Db($this->conn);
+        $mapper = new Mapper($db);
+        $this->assertAttributeSame($db, 'db', $mapper);
+    }
+    
+    public function test_creating_with_invalid_args_should_throw_exception()
+    {
+        $this->setExpectedException('InvalidArgumentException');
+        $mapper = new Mapper('foo');
+    }
+    
+    public function test_rolling_back_transaction()
+    {
+        $conn = $this->getMock(
+            'PDO', 
+            array('beginTransaction', 'rollback', 'prepare', 'execute'), 
+            array('sqlite::memory:')
+        );
+        $conn->expects($this->any())
+             ->method('prepare')
+             ->will($this->throwException(new \Exception));
+        $conn->expects($this->once())
+             ->method('rollback');
+        $mapper = new Mapper($conn);
+        $obj = new \stdClass();
+        $obj->id = null;
+        $mapper->foo->persist($obj);
+        try {
+            $mapper->flush();
+        } catch (\Exception $e) {
+            //OK!
+        }
+    }
+    
+    public function test_ignoring_last_insert_id_errors()
+    {
+        $conn = $this->getMock(
+            'PDO', 
+            array('lastInsertId'), 
+            array('sqlite::memory:')
+        );
+        $conn->exec('CREATE TABLE foo(id INTEGER PRIMARY KEY)');
+        $conn->expects($this->any())
+             ->method('lastInsertId')
+             ->will($this->throwException(new \PDOException));
+        $mapper = new Mapper($conn);
+        $obj = new \stdClass();
+        $obj->id = null;
+        $mapper->foo->persist($obj);
+        $mapper->flush();
+        //Ok, should not throw PDOException on this.
+    }
+    
+    public function test_removing_untracked_object()
+    {
+        $comment = new \stdClass();
+        $comment->id = 7;
+        $this->assertNotEmpty($this->mapper->comment[7]->fetch());
+        $this->mapper->comment->remove($comment);
+        $this->mapper->flush();
+        $this->assertEmpty($this->mapper->comment[7]->fetch());
     }
     
     public function test_fetching_single_entity_from_collection_should_return_first_record_from_table() 
@@ -170,6 +235,13 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals('Post Title', $comment->post_id->title);
         $this->assertEquals('Post Text', $comment->post_id->text);
         $this->assertEquals(4, count(get_object_vars($comment->post_id)));
+    }
+    
+    public function testNtoNReverse() {
+        $mapper = $this->mapper;
+        $cat = $mapper->category->post_category->post[5]->fetch();
+        $this->assertEquals(2, $cat->id);
+        $this->assertEquals('Sample Category', $cat->name);
     }
 
     public function testTracking() {

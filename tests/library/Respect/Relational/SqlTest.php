@@ -80,6 +80,14 @@ class SqlTest extends \PHPUnit_Framework_TestCase
         $sql = (string) $this->object->select('*')->from('table')->where($data)->and();
         $this->assertEquals("SELECT * FROM table WHERE column=:Column AND other_column=:OtherColumn", $sql);
     }
+    
+    public function testSelectWhereOr()
+    {
+        $data = array('column' => '123');
+        $data2 = array('other_column' => '456');
+        $sql = (string) $this->object->select('*')->from('table')->where($data)->or($data2);
+        $this->assertEquals("SELECT * FROM table WHERE column=:Column OR other_column=:OtherColumn", $sql);
+    }
 
     public function testSelectWhereArrayQualifiedNames()
     {
