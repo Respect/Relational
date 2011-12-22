@@ -1,3 +1,4 @@
+*.phar
 .buildpath
 .project
 .settings/
