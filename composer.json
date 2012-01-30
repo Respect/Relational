@@ -1,0 +1,35 @@
+{
+    "name": "Respect/Relational",
+    "version": "0.4.1",
+    "type": "library",
+    "description": "Fluent Database Toolkit.",
+    "keywords": ["respect", "database"],
+    "homepage": "https://github.com/Respect/Relational",
+    "repositories": {
+        "Respect/Relational": {
+            "vcs": {
+                "url" : "git://github.com/Respect/Relational.git"
+            }
+        }
+    },
+    "license" : "New BSD",
+    "authors" : [
+        {
+            "name": "Alexandre Gomes Gaigalas",
+            "email": "alexandre@gaigalas.net"
+        },
+        {
+            "name": "Augusto Pascutti",
+            "email": "augusto@phpsp.org.br"
+        }
+    ],
+    "require": {
+        "php": ">=5.3.0",
+        "Respect/Data" : ">=0.1.5"
+    },
+    "autoload": {
+        "psr-0": {
+            "Respect\\Relational": "library"
+        }
+    }
+}
