@@ -21,7 +21,9 @@ class Mapper extends AbstractMapper
     protected $tracked;
     protected $changed;
     protected $removed;
-    
+    protected $style;
+    public $entityNamespace = '\\';
+
     public function __construct($db)
     {
         if ($db instanceof PDO)
@@ -31,13 +33,13 @@ class Mapper extends AbstractMapper
         else
             throw new InvalidArgumentException('$db must be either an instance of Respect\Relational\Db or a PDO instance.');
 
-        $this->tracked = new SplObjectStorage;
-        $this->changed = new SplObjectStorage;
-        $this->removed = new SplObjectStorage;
-        $this->new = new SplObjectStorage;
+        $this->tracked  = new SplObjectStorage;
+        $this->changed  = new SplObjectStorage;
+        $this->removed  = new SplObjectStorage;
+        $this->new      = new SplObjectStorage;
     }
-    
-    public function fetch(Collection $fromCollection, $withExtra=null)
+
+    public function fetch(Collection $fromCollection, $withExtra = null)
     {
         $statement = $this->createStatement($fromCollection, $withExtra);
         $hydrated = $this->fetchHydrated($fromCollection, $statement);
@@ -47,7 +49,7 @@ class Mapper extends AbstractMapper
         return $this->parseHydrated($hydrated);
     }
 
-    public function fetchAll(Collection $fromCollection, $withExtra=null)
+    public function fetchAll(Collection $fromCollection, $withExtra = null)
     {
         $statement = $this->createStatement($fromCollection, $withExtra);
         $entities = array();
@@ -125,9 +127,9 @@ class Mapper extends AbstractMapper
         $condition = $this->guessCondition($columns, $name);
 
         return $this->db
-            ->deleteFrom($name)
-            ->where($condition)
-            ->exec();
+                        ->deleteFrom($name)
+                        ->where($condition)
+                        ->exec();
     }
 
     protected function rawUpdate(array $columns, $name)
@@ -135,18 +137,18 @@ class Mapper extends AbstractMapper
         $condition = $this->guessCondition($columns, $name);
 
         return $this->db
-            ->update($name)
-            ->set($columns)
-            ->where($condition)
-            ->exec();
+                        ->update($name)
+                        ->set($columns)
+                        ->where($condition)
+                        ->exec();
     }
 
-    protected function rawInsert(array $columns, $name, $entity=null)
+    protected function rawInsert(array $columns, $name, $entity = null)
     {
         $isInserted = $this->db
-            ->insertInto($name, $columns)
-            ->values($columns)
-            ->exec();
+                ->insertInto($name, $columns)
+                ->values($columns)
+                ->exec();
 
         if (!is_null($entity))
             $this->checkNewIdentity($entity, $name);
@@ -170,7 +172,7 @@ class Mapper extends AbstractMapper
         return true;
     }
 
-    public function markTracked($entity, $name, $id=null)
+    public function markTracked($entity, $name, $id = null)
     {
         $id = $entity->id;
         $this->tracked[$entity] = array(
@@ -191,13 +193,13 @@ class Mapper extends AbstractMapper
     {
         foreach ($this->tracked as $entity)
             if ($this->tracked[$entity]['id'] == $id
-                && $this->tracked[$entity]['name'] === $name)
+                    && $this->tracked[$entity]['name'] === $name)
                 return $entity;
 
         return false;
     }
 
-    protected function createStatement(Collection $collection, Sql $sqlExtra=null)
+    protected function createStatement(Collection $collection, Sql $sqlExtra = null)
     {
         $query = $this->generateQuery($collection);
         if ($sqlExtra)
@@ -213,8 +215,7 @@ class Mapper extends AbstractMapper
         $hydrated->rewind();
         return $hydrated->current();
     }
-    
-    
+
     protected function generateQuery(Collection $collection)
     {
         $collections = iterator_to_array(CollectionIterator::recursive($collection), true);
@@ -300,7 +301,7 @@ class Mapper extends AbstractMapper
 
         $aliasedPk = "$alias.id";
         $aliasedParentPk = "$parentAlias.id";
-		
+
         if ($entity === "{$parent}_{$next}" || $entity === "{$next}_{$parent}")
             return $sql->on(array("{$alias}.{$parent}_id" => $aliasedParentPk));
         else
@@ -318,7 +319,10 @@ class Mapper extends AbstractMapper
     protected function fetchSingle(Collection $collection, PDOStatement $statement)
     {
         $name = $collection->getName();
-        $row = $statement->fetch(PDO::FETCH_OBJ);
+        $entityClass = $this->entityNamespace . ucfirst($name);
+        $entityClass = class_exists($entityClass) ? $entityClass : '\stdClass';
+        $statement->setFetchMode(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, $entityClass);
+        $row = $statement->fetch();
 
         if (!$row)
             return false;
@@ -336,6 +340,7 @@ class Mapper extends AbstractMapper
 
     protected function fetchMulti(Collection $collection, PDOStatement $statement)
     {
+        $name = $collection->getName();
         $entityInstance = null;
         $collections = CollectionIterator::recursive($collection);
         $row = $statement->fetch(PDO::FETCH_NUM);
@@ -355,13 +360,15 @@ class Mapper extends AbstractMapper
                         'table_name' => $entityName,
                         'id' => $entityInstance->id,
                         'cols' => $this->extractColumns(
-                            $entityInstance, $entityName
+                                $entityInstance, $entityName
                         )
                     );
 
                 $collections->next();
                 $entityName = $collections->current()->getName();
-                $entityInstance = new stdClass;
+                $entityClass = $this->entityNamespace . ucfirst($entityName);
+                $entityClass = class_exists($entityClass) ? $entityClass : '\stdClass';
+                $entityInstance = new $entityClass;
             }
             $entityInstance->{$meta['name']} = $value;
         }
@@ -375,16 +382,40 @@ class Mapper extends AbstractMapper
             );
 
         $entitiesClone = clone $entities;
-            
+
         foreach ($entities as $instance)
             foreach ($instance as $field => &$v)
                 if (strlen($field) - 3 === strripos($field, '_id'))
                     foreach ($entitiesClone as $sub)
                         if ($entities[$sub]['name'] === substr($field, 0, -3)
-                            && $sub->id === $v)
+                                && $sub->id === $v)
                             $v = $sub;
 
         return $entities;
     }
 
+    /**
+     * @return  Respect\Relational\Styles\Stylable
+     */
+    public function getStyle()
+    {
+        if (null === $this->style) {
+            $this->setStyle(new Styles\Standard());
+        }
+        return $this->style;
+    }
+
+    /**
+     * @param   Respect\Relational\Styles$style
+     * @return  Respect\Data\AbstractMapper
+     */
+    public function setStyle(Styles\Stylable $style)
+    {
+        $this->style = $style;
+        return $this;
+    }
+
+
 }
+
+

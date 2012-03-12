@@ -96,30 +96,30 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
 
         foreach ($this->postsCategories as $postCategory)
             $db->insertInto('post_category', (array) $postCategory)->values((array) $postCategory)->exec();
-        
+
         $mapper = new Mapper($conn);
         $this->mapper = $mapper;
         $this->conn = $conn;
     }
-    
+
     public function test_creating_with_db_instance()
     {
         $db = new Db($this->conn);
         $mapper = new Mapper($db);
         $this->assertAttributeSame($db, 'db', $mapper);
     }
-    
+
     public function test_creating_with_invalid_args_should_throw_exception()
     {
         $this->setExpectedException('InvalidArgumentException');
         $mapper = new Mapper('foo');
     }
-    
+
     public function test_rolling_back_transaction()
     {
         $conn = $this->getMock(
-            'PDO', 
-            array('beginTransaction', 'rollback', 'prepare', 'execute'), 
+            'PDO',
+            array('beginTransaction', 'rollback', 'prepare', 'execute'),
             array('sqlite::memory:')
         );
         $conn->expects($this->any())
@@ -137,12 +137,12 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
             //OK!
         }
     }
-    
+
     public function test_ignoring_last_insert_id_errors()
     {
         $conn = $this->getMock(
-            'PDO', 
-            array('lastInsertId'), 
+            'PDO',
+            array('lastInsertId'),
             array('sqlite::memory:')
         );
         $conn->exec('CREATE TABLE foo(id INTEGER PRIMARY KEY)');
@@ -156,7 +156,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $mapper->flush();
         //Ok, should not throw PDOException on this.
     }
-    
+
     public function test_removing_untracked_object()
     {
         $comment = new \stdClass();
@@ -166,28 +166,28 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $this->mapper->flush();
         $this->assertEmpty($this->mapper->comment[7]->fetch());
     }
-    
-    public function test_fetching_single_entity_from_collection_should_return_first_record_from_table() 
+
+    public function test_fetching_single_entity_from_collection_should_return_first_record_from_table()
     {
         $expectedFirstComment = reset($this->comments);
         $fetchedFirstComment = $this->mapper->comment->fetch();
         $this->assertEquals($expectedFirstComment, $fetchedFirstComment);
     }
-    
+
     public function test_fetching_all_entites_from_collection_should_return_all_records()
     {
         $expectedCategories = $this->categories;
         $fetchedCategories = $this->mapper->category->fetchAll();
         $this->assertEquals($expectedCategories, $fetchedCategories);
     }
-    
-    public function test_extra_sql_on_single_fetch_should_be_applied_on_mapper_sql() 
+
+    public function test_extra_sql_on_single_fetch_should_be_applied_on_mapper_sql()
     {
         $expectedLast = end($this->comments);
         $fetchedLast = $this->mapper->comment->fetch(Sql::orderBy('id DESC'));
         $this->assertEquals($expectedLast, $fetchedLast);
     }
-    public function test_extra_sql_on_fetchAll_should_be_applied_on_mapper_sql() 
+    public function test_extra_sql_on_fetchAll_should_be_applied_on_mapper_sql()
     {
         $expectedComments = array_reverse($this->comments);
         $fetchedComments = $this->mapper->comment->fetchAll(Sql::orderBy('id DESC'));
@@ -236,7 +236,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals('Post Text', $comment->post_id->text);
         $this->assertEquals(4, count(get_object_vars($comment->post_id)));
     }
-    
+
     public function testNtoNReverse() {
         $mapper = $this->mapper;
         $cat = $mapper->category->post_category->post[5]->fetch();
@@ -285,7 +285,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
             'title' => 'hi',
             'text' => 'hi text',
             'author_id' => (object) array(
-                'id' => null,   
+                'id' => null,
                 'name' => 'New'
             )
         );
@@ -302,7 +302,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
             'title' => 'hi',
             'text' => 'hi text',
             'author_id' => (object) array(
-                'id' => null,   
+                'id' => null,
                 'name' => 'New'
             )
         );
@@ -314,14 +314,14 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals('New', $author->name);
         $this->assertEquals('hi', $post->title);
     }
-    
+
     public function testNestedPersistCollectionWithChildrenShortcut() {
         $postWithAuthor = (object) array(
             'id' => null,
             'title' => 'hi',
             'text' => 'hi text',
             'author_id' => (object) array(
-                'id' => null,   
+                'id' => null,
                 'name' => 'New'
             )
         );
@@ -415,5 +415,73 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals($total, $pre - 1);
     }
 
+    public function test_fetching_entity_typed()
+    {
+        $mapper = $this->mapper;
+        $mapper->entityNamespace = '\Respect\Relational\\';
+        $comment = $mapper->comment[8]->fetch();
+        $this->assertInstanceOf('\Respect\Relational\Comment', $comment);
+    }
+
+    public function test_fetching_all_entity_typed()
+    {
+        $mapper = $this->mapper;
+        $mapper->entityNamespace = '\Respect\Relational\\';
+        $comment = $mapper->comment->fetchAll();
+        $this->assertInstanceOf('\Respect\Relational\Comment', $comment[1]);
+    }
+
+    public function test_fetching_all_entity_typed_nested()
+    {
+        $mapper = $this->mapper;
+        $mapper->entityNamespace = '\Respect\Relational\\';
+        $comment = $mapper->comment->post->fetchAll();
+        $this->assertInstanceOf('\Respect\Relational\Comment', $comment[0]);
+        $this->assertInstanceOf('\Respect\Relational\Post', $comment[0]->post_id);
+    }
+
+    public function test_persisting_entity_typed()
+    {
+        $mapper = $this->mapper;
+        $mapper->entityNamespace = '\Respect\Relational\\';
+        $comment = $mapper->comment[8]->fetch();
+        $comment->text = 'HeyHey';
+        $mapper->comment->persist($comment);
+        $mapper->flush();
+        $result = $this->conn->query('select text from comment where id=8')->fetchColumn(0);
+        $this->assertEquals('HeyHey', $result);
+    }
+    public function test_persisting_new_entity_typed()
+    {
+        $mapper = $this->mapper;
+        $mapper->entityNamespace = '\Respect\Relational\\';
+        $comment = new Comment();
+        $comment->text = 'HeyHey';
+        $mapper->comment->persist($comment);
+        $mapper->flush();
+        $result = $this->conn->query('select text from comment where id=9')->fetchColumn(0);
+        $this->assertEquals('HeyHey', $result);
+    }
+
+    public function test_style()
+    {
+        $this->assertInstanceOf(
+            'Respect\Relational\Styles\Stylable',
+            $this->mapper->getStyle()
+        );
+        $this->assertInstanceOf(
+            'Respect\Relational\Styles\Standard',
+            $this->mapper->getStyle()
+        );
+    }
+
+}
+
+class Comment {
+    public $id=null, $post_id=null, $text=null;
+}
+
+class Post {
+    public $id=null, $author_id=null, $text=null;
 }
 
