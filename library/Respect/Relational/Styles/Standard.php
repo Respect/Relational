@@ -40,6 +40,11 @@ class Standard implements Stylable
     {
         return 'id';
     }
+    
+    public function foreignFromTable($name)
+    {
+        return $name . '_id';
+    }
 
     public function manyFromLeftRight($left, $right)
     {

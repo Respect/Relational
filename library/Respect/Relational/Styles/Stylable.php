@@ -3,15 +3,17 @@ namespace Respect\Relational\Styles;
 interface Stylable
 {
 
-    function tableToEntity($tableName);
+    function tableToEntity($name);
 
-    function entityToTable($entityName);
+    function entityToTable($name);
 
-    function columnToProperty($columnName);
+    function columnToProperty($name);
 
-    function propertyToColumn($propertyName);
+    function propertyToColumn($name);
 
-    function primaryFromTable($tableName);
+    function primaryFromTable($name);
+
+    function foreignFromTable($name);
 
     function manyFromLeftRight($left, $right);
 
