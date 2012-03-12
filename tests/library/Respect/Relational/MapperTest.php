@@ -415,5 +415,61 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals($total, $pre - 1);
     }
 
+    public function test_fetching_entity_typed()
+    {
+        $mapper = $this->mapper;
+        $mapper->entityNamespace = '\Respect\Relational\\';
+        $comment = $mapper->comment[8]->fetch();
+        $this->assertInstanceOf('\Respect\Relational\Comment', $comment);
+    }
+
+    public function test_fetching_all_entity_typed()
+    {
+        $mapper = $this->mapper;
+        $mapper->entityNamespace = '\Respect\Relational\\';
+        $comment = $mapper->comment->fetchAll();
+        $this->assertInstanceOf('\Respect\Relational\Comment', $comment[1]);
+    }
+
+    public function test_fetching_all_entity_typed_nested()
+    {
+        $mapper = $this->mapper;
+        $mapper->entityNamespace = '\Respect\Relational\\';
+        $comment = $mapper->comment->post->fetchAll();
+        $this->assertInstanceOf('\Respect\Relational\Comment', $comment[0]);
+        $this->assertInstanceOf('\Respect\Relational\Post', $comment[0]->post_id);
+    }
+
+    public function test_persisting_entity_typed()
+    {
+        $mapper = $this->mapper;
+        $mapper->entityNamespace = '\Respect\Relational\\';
+        $comment = $mapper->comment[8]->fetch();
+        $comment->text = 'HeyHey';
+        $mapper->comment->persist($comment);
+        $mapper->flush();
+        $result = $this->conn->query('select text from comment where id=8')->fetchColumn(0);
+        $this->assertEquals('HeyHey', $result);
+    }
+    public function test_persisting_new_entity_typed()
+    {
+        $mapper = $this->mapper;
+        $mapper->entityNamespace = '\Respect\Relational\\';
+        $comment = new Comment();
+        $comment->text = 'HeyHey';
+        $mapper->comment->persist($comment);
+        $mapper->flush();
+        $result = $this->conn->query('select text from comment where id=9')->fetchColumn(0);
+        $this->assertEquals('HeyHey', $result);
+    }
+
+}
+
+class Comment {
+    public $id=null, $post_id=null, $text=null;
+}
+
+class Post {
+    public $id=null, $author_id=null, $text=null;
 }
 

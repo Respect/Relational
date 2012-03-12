@@ -21,6 +21,7 @@ class Mapper extends AbstractMapper
     protected $tracked;
     protected $changed;
     protected $removed;
+    public $entityNamespace = '\\';
     
     public function __construct($db)
     {
@@ -318,7 +319,10 @@ class Mapper extends AbstractMapper
     protected function fetchSingle(Collection $collection, PDOStatement $statement)
     {
         $name = $collection->getName();
-        $row = $statement->fetch(PDO::FETCH_OBJ);
+        $entityClass = $this->entityNamespace.ucfirst($name);
+        $entityClass = class_exists($entityClass) ? $entityClass : '\stdClass';
+        $statement->setFetchMode(PDO::FETCH_CLASS|PDO::FETCH_PROPS_LATE, $entityClass);
+        $row = $statement->fetch();
 
         if (!$row)
             return false;
@@ -336,6 +340,7 @@ class Mapper extends AbstractMapper
 
     protected function fetchMulti(Collection $collection, PDOStatement $statement)
     {
+        $name = $collection->getName();
         $entityInstance = null;
         $collections = CollectionIterator::recursive($collection);
         $row = $statement->fetch(PDO::FETCH_NUM);
@@ -361,7 +366,9 @@ class Mapper extends AbstractMapper
 
                 $collections->next();
                 $entityName = $collections->current()->getName();
-                $entityInstance = new stdClass;
+                $entityClass = $this->entityNamespace.ucfirst($entityName);
+                $entityClass = class_exists($entityClass) ? $entityClass : '\stdClass';
+                $entityInstance = new $entityClass;
             }
             $entityInstance->{$meta['name']} = $value;
         }
