@@ -1,18 +1,9 @@
 <?php
+
 namespace Respect\Relational\Styles;
 
-class Standard implements Stylable
+class Standard extends AbstractStyle
 {
-
-    private function camelCaseToUnderscore($name)
-    {
-        return preg_replace('/(?<=[a-z])([A-Z])/', '_$1', $name);
-    }
-
-    private function underscoreToCamelCase($name)
-    {
-        return preg_replace("/(_)([a-zA-Z])/e", 'strtoupper("$2")', $name);
-    }
 
     public function columnToProperty($name)
     {
@@ -21,7 +12,7 @@ class Standard implements Stylable
 
     public function entityToTable($name)
     {
-        $name = $this->camelCaseToUnderscore($name);
+        $name = $this->camelCaseToSeparator($name, '_');
         return strtolower($name);
     }
 
@@ -32,7 +23,7 @@ class Standard implements Stylable
 
     public function tableToEntity($name)
     {
-        $name = $this->underscoreToCamelCase($name);
+        $name = $this->separatorToCamelCase($name, '_');
         return ucfirst($name);
     }
 
