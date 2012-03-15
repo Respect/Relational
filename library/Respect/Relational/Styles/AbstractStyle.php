@@ -14,10 +14,32 @@ abstract class AbstractStyle implements Stylable
     {
         $separator = preg_quote($separator, '/');
         return preg_replace(
-            "/({$separator})([a-zA-Z])/e", 
-            'strtoupper("$2")', 
+            "/({$separator})([a-zA-Z])/e",
+            'strtoupper("$2")',
             $name
         );
+    }
+
+    protected function pluralToSingular($name)
+    {
+        $replacements = array(
+            '/^(.+)ies$/' => '$1y',
+            '/^(.+)s$/' => '$1',
+        );
+        foreach ($replacements as $key => $value)
+            if (preg_match($key, $name))
+                return preg_replace($key, $value, $name);
+    }
+
+    protected function singularToPlural($name)
+    {
+        $replacements = array(
+            '/^(.+)y$/' => '$1ies',
+            '/^(.+)([^s])$/' => '$1$2s',
+        );
+        foreach ($replacements as $key => $value)
+            if (preg_match($key, $name))
+                return preg_replace($key, $value, $name);
     }
 
 
