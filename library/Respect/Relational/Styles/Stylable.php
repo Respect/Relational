@@ -1,5 +1,7 @@
 <?php
+
 namespace Respect\Relational\Styles;
+
 interface Stylable
 {
 
@@ -16,9 +18,6 @@ interface Stylable
     function foreignFromTable($name);
 
     function manyFromLeftRight($left, $right);
-
-    function manyFromRightLeft($right, $left);
-
 
 }
 

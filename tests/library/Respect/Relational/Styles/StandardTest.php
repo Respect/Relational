@@ -82,16 +82,6 @@ class StandardTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals($column, $this->style->propertyToColumn($column));
     }
 
-
-    /**
-     * @dataProvider manyToMantTableProvider
-     */
-    public function test_table_from_right_left_table($right, $left, $table)
-    {
-        $this->assertEquals($table, $this->style->manyFromRightLeft($right, $left));
-    }
-
-
     /**
      * @dataProvider manyToMantTableProvider
      */

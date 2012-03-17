@@ -1,4 +1,5 @@
 <?php
+
 namespace Respect\Relational\Styles;
 
 class CakePHP extends Standard
@@ -20,8 +21,6 @@ class CakePHP extends Standard
         $name       = $this->separatorToCamelCase(implode('_', $pieces), '_');
         return ucfirst($name);
     }
-    
-    
 
     public function manyFromLeftRight($left, $right)
     {
@@ -30,17 +29,6 @@ class CakePHP extends Standard
         $right      = implode('_', $pieces);
         return "{$left}_{$right}";
     }
-
-    public function manyFromRightLeft($right, $left)
-    {
-        $pieces     = explode('_', $left);
-        $pieces[]   = $this->singularToPlural(array_pop($pieces));
-        $left       = implode('_', $pieces);
-        return "{$right}_{$left}";
-    }
-
-
-
 
 }
 

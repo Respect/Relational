@@ -42,11 +42,4 @@ class Standard extends AbstractStyle
         return "{$left}_{$right}";
     }
 
-    public function manyFromRightLeft($right, $left)
-    {
-        return "{$right}_{$left}";
-    }
-
-
 }
-

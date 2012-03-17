@@ -21,23 +21,15 @@ class NorthWind extends Standard
         return "{$left}{$right}";
     }
 
-    public function manyFromRightLeft($right, $left)
-    {
-        $right = $this->pluralToSingular($right);
-        return "{$right}{$left}";
-    }
-
     public function primaryFromTable($name)
     {
         return $this->pluralToSingular($name) . 'ID';
     }
-    
+
     public function foreignFromTable($name)
     {
         return $this->pluralToSingular($name) . 'ID';
     }
-
-    
 
 }
 
