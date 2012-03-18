@@ -116,8 +116,9 @@ class Mapper extends AbstractMapper
 
     protected function guessCondition(&$columns, $name)
     {
-        $condition = array('id' => $columns['id']);
-        unset($columns['id']);
+        $primaryName    = $this->getStyle()->primaryFromTable($name);
+        $condition      = array($primaryName => $columns[$primaryName]);
+        unset($columns[$primaryName]);
         return $condition;
     }
 
@@ -174,11 +175,13 @@ class Mapper extends AbstractMapper
 
     public function markTracked($entity, $name, $id = null)
     {
-        $id = $entity->id;
+        $primaryName = $this->getStyle()->primaryFromTable($name);
+        $id = $entity->{$primaryName};
         $this->tracked[$entity] = array(
             'name' => $name,
             'table_name' => $name,
-            'id' => &$id,
+            'entity_class' => $this->getStyle()->tableToEntity($name),
+            $primaryName => &$id,
             'cols' => $this->extractColumns($entity, $name)
         );
         return true;
@@ -191,8 +194,9 @@ class Mapper extends AbstractMapper
 
     public function getTracked($name, $id)
     {
+        $primaryName = $this->getStyle()->primaryFromTable($name);
         foreach ($this->tracked as $entity)
-            if ($this->tracked[$entity]['id'] == $id
+            if ($this->tracked[$entity][$primaryName] == $id
                     && $this->tracked[$entity]['name'] === $name)
                 return $entity;
 
@@ -229,11 +233,12 @@ class Mapper extends AbstractMapper
 
     protected function extractColumns($entity, $name)
     {
+        $primaryName = $this->getStyle()->primaryFromTable($name);
         $cols = get_object_vars($entity);
 
         foreach ($cols as &$c)
             if (is_object($c))
-                $c = $c->id;
+                $c = $c->{$primaryName};
 
         return $cols;
     }
@@ -262,7 +267,7 @@ class Mapper extends AbstractMapper
         $entity = $collection->getName();
         $originalConditions = $collection->getCondition();
         $parsedConditions = array();
-        $aliasedPk = "$alias.id";
+        $aliasedPk = $alias . '.' . $this->getStyle()->primaryFromTable($entity);
 
         if (is_scalar($originalConditions))
             $parsedConditions = array($aliasedPk => $originalConditions);
@@ -299,13 +304,22 @@ class Mapper extends AbstractMapper
         if ($alias !== $entity)
             $sql->as($alias);
 
-        $aliasedPk = "$alias.id";
-        $aliasedParentPk = "$parentAlias.id";
+        $aliasedPk = $alias . '.' . $this->getStyle()->primaryFromTable($entity);
+        $aliasedParentPk = $parentAlias . '.' . $this->getStyle()->primaryFromTable($parent);
 
-        if ($entity === "{$parent}_{$next}" || $entity === "{$next}_{$parent}")
-            return $sql->on(array("{$alias}.{$parent}_id" => $aliasedParentPk));
+        if ($entity === $this->getStyle()->manyFromLeftRight($parent, $next)
+                || $entity === $this->getStyle()->manyFromLeftRight($next, $parent))
+            return $sql->on(
+                array(
+                    $alias . '.' . $this->getStyle()->foreignFromTable($parent) => $aliasedParentPk
+                )
+            );
         else
-            return $sql->on(array("{$parentAlias}.{$entity}_id" => $aliasedPk));
+            return $sql->on(
+                array(
+                    $parentAlias . '.' . $this->getStyle()->foreignFromTable($entity) => $aliasedPk
+                )
+            );
     }
 
     protected function fetchHydrated(Collection $collection, PDOStatement $statement)
@@ -319,7 +333,8 @@ class Mapper extends AbstractMapper
     protected function fetchSingle(Collection $collection, PDOStatement $statement)
     {
         $name = $collection->getName();
-        $entityClass = $this->entityNamespace . ucfirst($name);
+        $primaryName = $this->getStyle()->primaryFromTable($name);
+        $entityClass = $this->entityNamespace . $this->getStyle()->tableToEntity($name);
         $entityClass = class_exists($entityClass) ? $entityClass : '\stdClass';
         $statement->setFetchMode(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, $entityClass);
         $row = $statement->fetch();
@@ -331,7 +346,8 @@ class Mapper extends AbstractMapper
         $entities[$row] = array(
             'name' => $name,
             'table_name' => $name,
-            'id' => $row->id,
+            'entity_class' => $entityClass,
+            $primaryName => $row->{$primaryName},
             'cols' => $this->extractColumns($row, $name)
         );
 
@@ -353,20 +369,23 @@ class Mapper extends AbstractMapper
         foreach ($row as $n => $value) {
             $meta = $statement->getColumnMeta($n);
 
-            if ('id' === $meta['name']) {
+            if ($this->getStyle()->primaryFromTable($meta['table']) === $meta['name']) {
+
                 if (0 !== $n)
                     $entities[$entityInstance] = array(
-                        'name' => $entityName,
-                        'table_name' => $entityName,
-                        'id' => $entityInstance->id,
+                        'name' => $tableName,
+                        'table_name' => $tableName,
+                        'entity_class' => $entityClass,
+                        $primaryName => $entityInstance->{$primaryName},
                         'cols' => $this->extractColumns(
-                                $entityInstance, $entityName
+                            $entityInstance, $tableName
                         )
                     );
 
                 $collections->next();
-                $entityName = $collections->current()->getName();
-                $entityClass = $this->entityNamespace . ucfirst($entityName);
+                $tableName = $collections->current()->getName();
+                $primaryName = $this->getStyle()->primaryFromTable($tableName);
+                $entityClass = $this->entityNamespace . ucfirst($tableName);
                 $entityClass = class_exists($entityClass) ? $entityClass : '\stdClass';
                 $entityInstance = new $entityClass;
             }
@@ -375,21 +394,29 @@ class Mapper extends AbstractMapper
 
         if (!empty($entities))
             $entities[$entityInstance] = array(
-                'name' => $entityName,
-                'table_name' => $entityName,
-                'id' => $entityInstance->id,
-                'cols' => $this->extractColumns($entityInstance, $entityName)
+                'name' => $tableName,
+                'table_name' => $tableName,
+                'entity_class' => $entityClass,
+                $primaryName => $entityInstance->{$primaryName},
+                'cols' => $this->extractColumns($entityInstance, $tableName)
             );
 
         $entitiesClone = clone $entities;
 
-        foreach ($entities as $instance)
-            foreach ($instance as $field => &$v)
-                if (strlen($field) - 3 === strripos($field, '_id'))
-                    foreach ($entitiesClone as $sub)
-                        if ($entities[$sub]['name'] === substr($field, 0, -3)
-                                && $sub->id === $v)
+        foreach ($entities as $instance) {
+            foreach ($instance as $field => &$v) {
+                if ($this->getStyle()->isForeignColumn($field)) {
+                    foreach ($entitiesClone as $sub) {
+                        $tableName = $entities[$sub]['table_name'];
+                        $primaryName = $this->getStyle()->primaryFromTable($tableName);
+                        if ($entities[$sub]['name'] === $this->getStyle()->tableFromForeignColumn($field)
+                                && $sub->{$primaryName} === $v) {
                             $v = $sub;
+                        }
+                    }
+                }
+            }
+        }
 
         return $entities;
     }
@@ -417,5 +444,4 @@ class Mapper extends AbstractMapper
 
 
 }
-
 
