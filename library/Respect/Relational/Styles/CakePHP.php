@@ -13,6 +13,18 @@ class CakePHP extends Standard
         $pieces[]   = $this->singularToPlural(array_pop($pieces));
         return implode('_', $pieces);
     }
+    
+    public function foreignFromTable($name)
+    {
+        return $this->pluralToSingular($name) . '_id';
+    }
+
+    public function tableFromForeignColumn($name)
+    {
+        if ($this->isForeignColumn($name)) {
+            return $this->singularToPlural(substr($name, 0, -3));
+        }
+    }
 
     public function tableToEntity($name)
     {
