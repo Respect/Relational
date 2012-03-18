@@ -385,7 +385,7 @@ class Mapper extends AbstractMapper
                 $collections->next();
                 $tableName = $collections->current()->getName();
                 $primaryName = $this->getStyle()->primaryFromTable($tableName);
-                $entityClass = $this->entityNamespace . ucfirst($tableName);
+                $entityClass = $this->entityNamespace . $this->getStyle()->tableToEntity($tableName);
                 $entityClass = class_exists($entityClass) ? $entityClass : '\stdClass';
                 $entityInstance = new $entityClass;
             }
