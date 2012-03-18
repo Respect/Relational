@@ -31,5 +31,17 @@ class NorthWind extends Standard
         return $this->pluralToSingular($name) . 'ID';
     }
 
+    public function isForeignColumn($name)
+    {
+        return (strlen($name) - 2 === strripos($name, 'ID'));
+    }
+
+    public function tableFromForeignColumn($name)
+    {
+        if ($this->isForeignColumn($name)) {
+            return $this->singularToPlural(substr($name, 0, -2));
+        }
+    }
+
 }
 

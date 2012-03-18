@@ -35,9 +35,9 @@ class StandardTest extends \PHPUnit_Framework_TestCase
     {
         return array(
             array('id'),
-            array('post_id'),
-            array('creator_id'),
             array('text'),
+            array('name'),
+            array('content'),
             array('created'),
         );
     }
@@ -76,10 +76,12 @@ class StandardTest extends \PHPUnit_Framework_TestCase
     /**
      * @dataProvider columnsPropertyProvider
      */
-    public function test_columns_and_properties_methods($column)
+    public function test_columns_and_properties_methods($name)
     {
-        $this->assertEquals($column, $this->style->columnToProperty($column));
-        $this->assertEquals($column, $this->style->propertyToColumn($column));
+        $this->assertEquals($name, $this->style->columnToProperty($name));
+        $this->assertEquals($name, $this->style->propertyToColumn($name));
+        $this->assertFalse($this->style->isForeignColumn($name));
+        $this->assertNull($this->style->tableFromForeignColumn($name));
     }
 
     /**
@@ -95,6 +97,8 @@ class StandardTest extends \PHPUnit_Framework_TestCase
      */
     public function test_foreign($table, $foreign)
     {
+        $this->assertTrue($this->style->isForeignColumn($foreign));
+        $this->assertEquals($table, $this->style->tableFromForeignColumn($foreign));
         $this->assertEquals($foreign, $this->style->foreignFromTable($table));
     }
 

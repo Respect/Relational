@@ -35,9 +35,9 @@ class SakilaTest extends \PHPUnit_Framework_TestCase
     {
         return array(
             array('id'),
-            array('post_id'),
-            array('creator_id'),
             array('text'),
+            array('name'),
+            array('content'),
             array('created'),
         );
     }
@@ -79,6 +79,8 @@ class SakilaTest extends \PHPUnit_Framework_TestCase
     {
         $this->assertEquals($column, $this->style->columnToProperty($column));
         $this->assertEquals($column, $this->style->propertyToColumn($column));
+        $this->assertFalse($this->style->isForeignColumn($column));
+        $this->assertNull($this->style->tableFromForeignColumn($column));
     }
 
     /**
@@ -94,6 +96,8 @@ class SakilaTest extends \PHPUnit_Framework_TestCase
      */
     public function test_foreign($table, $key)
     {
+        $this->assertTrue($this->style->isForeignColumn($key));
+        $this->assertEquals($table, $this->style->tableFromForeignColumn($key));
         $this->assertEquals($key, $this->style->primaryFromTable($table));
         $this->assertEquals($key, $this->style->foreignFromTable($table));
     }

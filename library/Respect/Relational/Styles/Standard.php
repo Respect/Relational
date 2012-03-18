@@ -42,4 +42,16 @@ class Standard extends AbstractStyle
         return "{$left}_{$right}";
     }
 
+    public function isForeignColumn($name)
+    {
+        return (strlen($name) - 3 === strripos($name, '_id'));
+    }
+
+    public function tableFromForeignColumn($name)
+    {
+        if ($this->isForeignColumn($name)) {
+            return substr($name, 0, -3);
+        }
+    }
+
 }

@@ -34,11 +34,11 @@ class NorthWindTest extends \PHPUnit_Framework_TestCase
     public function columnsPropertyProvider()
     {
         return array(
-            array('GroupID'),
-            array('PostID'),
-            array('CreatorID'),
             array('Text'),
+            array('Name'),
+            array('Content'),
             array('Created'),
+            array('Udated'),
         );
     }
     
@@ -79,6 +79,8 @@ class NorthWindTest extends \PHPUnit_Framework_TestCase
     {
         $this->assertEquals($column, $this->style->columnToProperty($column));
         $this->assertEquals($column, $this->style->propertyToColumn($column));
+        $this->assertFalse($this->style->isForeignColumn($column));
+        $this->assertNull($this->style->tableFromForeignColumn($column));
     }
 
     /**
@@ -94,6 +96,8 @@ class NorthWindTest extends \PHPUnit_Framework_TestCase
      */
     public function test_keys($table, $foreign)
     {
+        $this->assertTrue($this->style->isForeignColumn($foreign));
+        $this->assertEquals($table, $this->style->tableFromForeignColumn($foreign));
         $this->assertEquals($foreign, $this->style->primaryFromTable($table));
         $this->assertEquals($foreign, $this->style->foreignFromTable($table));
     }

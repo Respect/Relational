@@ -17,6 +17,10 @@ interface Stylable
 
     function foreignFromTable($name);
 
+    function tableFromForeignColumn($name);
+    
+    function isForeignColumn($name);
+
     function manyFromLeftRight($left, $right);
 
 }
