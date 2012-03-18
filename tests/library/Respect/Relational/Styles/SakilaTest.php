@@ -1,6 +1,12 @@
 <?php
 
-namespace Respect\Relational\Styles;
+namespace Respect\Relational\Styles\Sakila;
+
+use PDO,
+    Respect\Relational\Db,
+    Respect\Relational\Sql,
+    Respect\Relational\Styles\Sakila,
+    Respect\Relational\Mapper;
 
 class SakilaTest extends \PHPUnit_Framework_TestCase
 {
@@ -10,6 +16,140 @@ class SakilaTest extends \PHPUnit_Framework_TestCase
      */
     private $style;
 
+    /**
+     * @var Respect\Relational\Mapper
+     */
+    private $mapper;
+
+    /**
+     * @var PDO
+     */
+    private $conn;
+
+    public function setUp()
+    {
+
+        $conn = new PDO('sqlite::memory:');
+        $db = new Db($conn);
+        $conn->exec(
+            (string) Sql::createTable(
+                'post',
+                array(
+                    'post_id INTEGER PRIMARY KEY',
+                    'title VARCHAR(255)',
+                    'text TEXT',
+                    'author_id INTEGER',
+                )
+            )
+        );
+        $conn->exec(
+            (string) Sql::createTable(
+                'author',
+                array(
+                    'author_id INTEGER PRIMARY KEY',
+                    'name VARCHAR(255)'
+                )
+            )
+        );
+        $conn->exec(
+            (string) Sql::createTable(
+                'comment',
+                array(
+                    'comment_id INTEGER PRIMARY KEY',
+                    'post_id INTEGER',
+                    'text TEXT',
+                )
+            )
+        );
+
+        $conn->exec(
+            (string) Sql::createTable(
+                'category',
+                array(
+                    'category_id INTEGER PRIMARY KEY',
+                    'name VARCHAR(255)',
+                    'content VARCHAR(255)',
+                    'description TEXT'
+                )
+            )
+        );
+        $conn->exec(
+            (string) Sql::createTable(
+                'post_category',
+                array(
+                    'post_category_id INTEGER PRIMARY KEY',
+                    'post_id INTEGER',
+                    'category_id INTEGER'
+                )
+            )
+        );
+        $this->posts = array(
+            (object) array(
+                'post_id' => 5,
+                'title' => 'Post Title',
+                'text' => 'Post Text',
+                'author_id' => 1
+            )
+        );
+        $this->authors = array(
+            (object) array(
+                'author_id' => 1,
+                'name' => 'Author 1'
+            )
+        );
+        $this->comments = array(
+            (object) array(
+                'comment_id' => 7,
+                'post_id' => 5,
+                'text' => 'Comment Text'
+            ),
+            (object) array(
+                'comment_id' => 8,
+                'post_id' => 4,
+                'text' => 'Comment Text 2'
+            )
+        );
+        $this->categories = array(
+            (object) array(
+                'category_id' => 2,
+                'name' => 'Sample Category',
+                'content' => null
+            ),
+            (object) array(
+                'category_id' => 3,
+                'name' => 'NONON',
+                'content' => null
+            )
+        );
+        $this->postsCategories = array(
+            (object) array(
+                'post_category_id' => 66,
+                'post_id' => 5,
+                'category_id' => 2
+            )
+        );
+
+        foreach ($this->authors as $author)
+            $db->insertInto('author', (array) $author)->values((array) $author)->exec();
+
+        foreach ($this->posts as $post)
+            $db->insertInto('post', (array) $post)->values((array) $post)->exec();
+
+        foreach ($this->comments as $comment)
+            $db->insertInto('comment', (array) $comment)->values((array) $comment)->exec();
+
+        foreach ($this->categories as $category)
+            $db->insertInto('category', (array) $category)->values((array) $category)->exec();
+
+        foreach ($this->postsCategories as $postCategory)
+            $db->insertInto('post_category', (array) $postCategory)->values((array) $postCategory)->exec();
+
+        $this->conn     = $conn;
+        $this->style    = new Sakila();
+        $this->mapper   = new Mapper($conn);
+        $this->mapper->setStyle($this->style);
+        $this->mapper->entityNamespace = __NAMESPACE__ . '\\';
+    }
 
     public function tableEntityProvider()
     {
@@ -41,7 +181,7 @@ class SakilaTest extends \PHPUnit_Framework_TestCase
             array('created'),
         );
     }
-    
+
     public function keyProvider()
     {
         return array(
@@ -50,17 +190,6 @@ class SakilaTest extends \PHPUnit_Framework_TestCase
             array('tag',        'tag_id'),
             array('user',       'user_id'),
         );
-    }
-
-
-    public function setUp()
-    {
-        $this->style = new Sakila();
-    }
-
-    public function tearDown()
-    {
-        $this->style = null;
     }
 
     /**
@@ -90,7 +219,7 @@ class SakilaTest extends \PHPUnit_Framework_TestCase
     {
         $this->assertEquals($table, $this->style->manyFromLeftRight($left, $right));
     }
-    
+
     /**
      * @dataProvider keyProvider
      */
@@ -104,3 +233,23 @@ class SakilaTest extends \PHPUnit_Framework_TestCase
 
 }
 
+class Post
+{
+    public $post_id, $title, $text, $author_id;
+}
+class Author
+{
+    public $author_id, $name;
+}
+class Comment
+{
+    public $comment_id, $post_id, $text;
+}
+class Category
+{
+    public $category_id, $name, $description;
+}
+class PostCategory
+{
+    public $post_category_id, $post_id, $category_id;
+}

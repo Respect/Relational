@@ -169,7 +169,8 @@ class Mapper extends AbstractMapper
         if (!$identity)
             return false;
 
-        $entity->id = $identity;
+        $primaryName = $this->getStyle()->primaryFromTable($name);
+        $entity->$primaryName = $identity;
         return true;
     }
 
