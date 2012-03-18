@@ -451,6 +451,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $result = $this->conn->query('select text from comment where id=8')->fetchColumn(0);
         $this->assertEquals('HeyHey', $result);
     }
+
     public function test_persisting_new_entity_typed()
     {
         $mapper = $this->mapper;
@@ -465,14 +466,18 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
 
     public function test_style()
     {
-        $this->assertInstanceOf(
-            'Respect\Relational\Styles\Stylable',
-            $this->mapper->getStyle()
+        $this->assertInstanceOf('Respect\Relational\Styles\Stylable', $this->mapper->getStyle());
+        $this->assertInstanceOf('Respect\Relational\Styles\Standard', $this->mapper->getStyle());
+        $styles = array(
+            new Styles\CakePHP(),
+            new Styles\NorthWind(),
+            new Styles\Sakila(),
+            new Styles\Standard(),
         );
-        $this->assertInstanceOf(
-            'Respect\Relational\Styles\Standard',
-            $this->mapper->getStyle()
-        );
+        foreach ($styles as $style) {
+            $this->mapper->setStyle($style);
+            $this->assertEquals($style, $this->mapper->getStyle());
+        }
     }
 
 }
