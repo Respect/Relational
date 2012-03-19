@@ -231,6 +231,56 @@ class SakilaTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals($key, $this->style->foreignFromTable($table));
     }
 
+    public function test_fetching_entity_typed()
+    {
+        $mapper = $this->mapper;
+        $comment = $mapper->comment[8]->fetch();
+        $this->assertInstanceOf(__NAMESPACE__ . '\Comment', $comment);
+    }
+
+    public function test_fetching_all_entity_typed()
+    {
+        $mapper = $this->mapper;
+        $comment = $mapper->comment->fetchAll();
+        $this->assertInstanceOf(__NAMESPACE__ . '\Comment', $comment[1]);
+        
+        $categories = $mapper->post_category->category->fetch();
+        $this->assertInstanceOf(__NAMESPACE__ . '\PostCategory', $categories);
+        $this->assertInstanceOf(__NAMESPACE__ . '\Category', $categories->category_id);
+    }
+
+    public function test_fetching_all_entity_typed_nested()
+    {
+        $mapper = $this->mapper;
+        $comment = $mapper->comment->post->author->fetchAll();
+        $this->assertInstanceOf(__NAMESPACE__ . '\Comment', $comment[0]);
+        $this->assertInstanceOf(__NAMESPACE__ . '\Post',    $comment[0]->post_id);
+        $this->assertInstanceOf(__NAMESPACE__ . '\Author',  $comment[0]->post_id->author_id);
+    }
+
+    public function test_persisting_entity_typed()
+    {
+        $mapper = $this->mapper;
+        $comment = $mapper->comment[8]->fetch();
+        $this->assertInstanceOf(__NAMESPACE__ . '\Comment', $comment);
+        $comment->Text = 'HeyHey';
+        $mapper->comment->persist($comment);
+        $mapper->flush();
+        $result = $this->conn->query('select text from comment where comment_id=8')->fetchColumn(0);
+        $this->assertEquals('HeyHey', $result);
+    }
+
+    public function test_persisting_new_entity_typed()
+    {
+        $mapper = $this->mapper;
+        $comment = new Comment();
+        $comment->Text = 'HeyHey';
+        $mapper->comment->persist($comment);
+        $mapper->flush();
+        $result = $this->conn->query('select text from comment where comment_id=9')->fetchColumn(0);
+        $this->assertEquals('HeyHey', $result);
+    }
+
 }
 
 class Post
