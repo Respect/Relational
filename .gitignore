@@ -6,6 +6,7 @@ nbproject
 .foundation-tmp
 tests/reports
 pirum
+library/Respect/Data
 *.7z
 *.jar
 *.rar
