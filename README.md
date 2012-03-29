@@ -3,6 +3,11 @@ Respect\Relational [![Build Status](https://secure.travis-ci.org/Respect/Relatio
 
 Fluent Database Toolkit based on conventions. 
 
+Requirements
+------------
+  * PHP 5.3+
+  * Respect\Data in https://github.com/Respect/data
+
 Basic sample
 ------------
 
