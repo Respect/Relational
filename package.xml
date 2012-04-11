@@ -1,32 +1,101 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<package xmlns="http://pear.php.net/dtd/package-2.0" xmlns:tasks="http://pear.php.net/dtd/tasks-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" packagerversion="1.9.4" version="2.0" xsi:schemaLocation="http://pear.php.net/dtd/tasks-1.0     http://pear.php.net/dtd/tasks-1.0.xsd     http://pear.php.net/dtd/package-2.0     http://pear.php.net/dtd/package-2.0.xsd">
+<?xml version="1.0"?>
+<package xmlns="http://pear.php.net/dtd/package-2.0" xmlns:tasks="http://pear.php.net/dtd/tasks-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" packagerversion="1.4.10" version="2.0" xsi:schemaLocation="http://pear.php.net/dtd/tasks-1.0        http://pear.php.net/dtd/tasks-1.0.xsd        http://pear.php.net/dtd/package-2.0        http://pear.php.net/dtd/package-2.0.xsd">
   <name>Relational</name>
   <channel>respect.li/pear</channel>
   <summary>Fluent Database Toolkit</summary>
   <description>Fluent Database Toolkit</description>
   <lead>
-    <name>Alexandre Gomes Gaigalas</name>
-    <user>alganet</user>
+    <name>Alexandre</name>
+    <user/>
     <email>alexandre@gaigalas.net</email>
     <active>yes</active>
   </lead>
-  <date>2011-11-29</date>
-  <time>19:48:02</time>
+  <lead>
+    <name>Alexandre Gaigalas</name>
+    <user/>
+    <email>alexandre@gaigalas.net</email>
+    <active>yes</active>
+  </lead>
+  <lead>
+    <name>Alexandre Gaigalas</name>
+    <user/>
+    <email>alganet@alganet-workstation.(none)</email>
+    <active>yes</active>
+  </lead>
+  <lead>
+    <name>Alexandre Gomes Gaigalas</name>
+    <user/>
+    <email>alexandre@gaigalas.net</email>
+    <active>yes</active>
+  </lead>
+  <lead>
+    <name>Claudson Oliveira</name>
+    <user/>
+    <email>claudsonweb@gmail.com</email>
+    <active>yes</active>
+  </lead>
+  <lead>
+    <name>Henrique Moody</name>
+    <user/>
+    <email>henriquemoody@gmail.com</email>
+    <active>yes</active>
+  </lead>
+  <lead>
+    <name>Kinn Coelho Julia&#x303;o</name>
+    <user/>
+    <email>kinncj@gmail.com</email>
+    <active>yes</active>
+  </lead>
+  <lead>
+    <name>Rogerio Prado de Jesus</name>
+    <user/>
+    <email>rogeriopradoj@gmail.com</email>
+    <active>yes</active>
+  </lead>
+  <lead>
+    <name>Thiago Rigo</name>
+    <user/>
+    <email>thiagophx@gmail.com</email>
+    <active>yes</active>
+  </lead>
+  <date>2012-04-11</date>
+  <time>01:52:14</time>
   <version>
-    <release>0.4.0</release>
-    <api>0.4.0</api>
+    <release>0.4.1</release>
+    <api>0.4.1</api>
   </version>
   <stability>
     <release>alpha</release>
     <api>alpha</api>
   </stability>
-  <license uri="http://www.opensource.org/licenses/bsd-license.php">BSD Style</license>
+  <license>BSD Style</license>
   <notes>-</notes>
   <contents>
-    <dir name="library/Respect/Relational" baseinstalldir="Respect/Relational">
-      <file role="php" baseinstalldir="Respect/Relational" install-as="/Db.php" name="library/Respect/Relational/Db.php"/>
-      <file role="php" baseinstalldir="Respect/Relational" install-as="/Mapper.php" name="library/Respect/Relational/Mapper.php"/>
-      <file role="php" baseinstalldir="Respect/Relational" install-as="/Sql.php" name="library/Respect/Relational/Sql.php"/>
+    <dir name="/">
+      <file name="tests/phpunit.xml" role="test" md5sum="03642477f5a201be9c3161eb64dde993"/>
+      <file name="tests/bootstrap.php" role="test" md5sum="ffb90e53f1cbb127fa5b2c70f5e42ae2"/>
+      <file name="tests/library/Respect/Relational/SqlTest.php" role="test" md5sum="4329b3af97f88cc91e4aece730a02287"/>
+      <file name="tests/library/Respect/Relational/Styles/StandardTest.php" role="test" md5sum="36532c553ba0425cc9dc3db553f17d93"/>
+      <file name="tests/library/Respect/Relational/Styles/CakePHPTest.php" role="test" md5sum="9bbfcc41c2ccbffb68dc2ef809544dde"/>
+      <file name="tests/library/Respect/Relational/Styles/NorthWindTest.php" role="test" md5sum="444f228b9d52612f41f052fbde2f89dd"/>
+      <file name="tests/library/Respect/Relational/Styles/AbstractStyleTest.php" role="test" md5sum="25b8c039017ea53c97574db3ad2f03a3"/>
+      <file name="tests/library/Respect/Relational/Styles/SakilaTest.php" role="test" md5sum="0060a6f37821d2a94597836e2dcb3074"/>
+      <file name="tests/library/Respect/Relational/DbTest.php" role="test" md5sum="4ae724c86854126847cbd6081c5bd805"/>
+      <file name="tests/library/Respect/Relational/MapperTest.php" role="test" md5sum="92234ebfe3f4c587449e268def377014"/>
+      <file name="library/Respect/Relational/Styles/Stylable.php" role="php" md5sum="44e57ca3f1987777a57069cc8df505ca"/>
+      <file name="library/Respect/Relational/Styles/CakePHP.php" role="php" md5sum="2e978c4b7b9e87ed7a112ba2cb37ec67"/>
+      <file name="library/Respect/Relational/Styles/Standard.php" role="php" md5sum="f5063e3f5974f270204fabd5716429a1"/>
+      <file name="library/Respect/Relational/Styles/NorthWind.php" role="php" md5sum="c5ea1a0f59ef385fa8e279124ab99f0c"/>
+      <file name="library/Respect/Relational/Styles/Sakila.php" role="php" md5sum="95aa38d27c5bd663988cc6eec0c3a938"/>
+      <file name="library/Respect/Relational/Styles/AbstractStyle.php" role="php" md5sum="de11487c1fb4faf97aafc4c793fc258d"/>
+      <file name="library/Respect/Relational/Sql.php" role="php" md5sum="a2aef68de3237dbbbce47ae07ade5a9a"/>
+      <file name="library/Respect/Relational/Db.php" role="php" md5sum="b37872d2616a45db80a570b0a760eac7"/>
+      <file name="library/Respect/Relational/Mapper.php" role="php" md5sum="bcdc582ae714644c6a5da9bf1fd35f68"/>
+      <file name="library/Respect/Data/AbstractMapper.php" role="php" md5sum="a988a154d4fc5689ea25be342268758a"/>
+      <file name="library/Respect/Data/CollectionIterator.php" role="php" md5sum="efa3833abafaa55987b99660d946b2c6"/>
+      <file name="library/Respect/Data/Collection.php" role="php" md5sum="0f8f9c60fc8294b599f162c20d572782"/>
+      <file name="bin/pear-package.php" role="script" md5sum="8d599c987342220ae0f7a8d105687905"/>
+      <file name="bin/phar-package.php" role="script" md5sum="b5581617d1ff9d1cb6d8fcbd86fafc68"/>
     </dir>
   </contents>
   <dependencies>
@@ -35,7 +104,7 @@
         <min>5.3</min>
       </php>
       <pearinstaller>
-        <min>1.4.0</min>
+        <min>1.4.1</min>
       </pearinstaller>
       <package>
         <name>Data</name>
@@ -43,75 +112,32 @@
       </package>
     </required>
   </dependencies>
-  <phprelease/>
-  <changelog>
-    <release>
-      <version>
-        <release>0.1.1</release>
-        <api>0.1.1</api>
-      </version>
-      <stability>
-        <release>alpha</release>
-        <api>alpha</api>
-      </stability>
-      <date>2011-05-04</date>
-      <license uri="http://www.opensource.org/licenses/bsd-license.php">BSD Style</license>
-    </release>
-    <release>
-      <version>
-        <release>0.1.2</release>
-        <api>0.1.2</api>
-      </version>
-      <stability>
-        <release>alpha</release>
-        <api>alpha</api>
-      </stability>
-      <date>2011-08-17</date>
-      <license uri="http://www.opensource.org/licenses/bsd-license.php">BSD Style</license>
-    </release>
-    <release>
-      <version>
-        <release>0.2.2</release>
-        <api>0.2.2</api>
-      </version>
-      <stability>
-        <release>alpha</release>
-        <api>alpha</api>
-      </stability>
-      <license uri="http://www.opensource.org/licenses/bsd-license.php">BSD Style</license>
-    </release>
-    <release>
-      <version>
-        <release>0.3.0</release>
-        <api>0.3.0</api>
-      </version>
-      <stability>
-        <release>alpha</release>
-        <api>alpha</api>
-      </stability>
-      <license uri="http://www.opensource.org/licenses/bsd-license.php">BSD Style</license>
-    </release>
-    <release>
-      <version>
-        <release>0.3.1</release>
-        <api>0.3.1</api>
-      </version>
-      <stability>
-        <release>alpha</release>
-        <api>alpha</api>
-      </stability>
-      <license uri="http://www.opensource.org/licenses/bsd-license.php">BSD Style</license>
-    </release>
-    <release>
-      <version>
-        <release>0.4.0</release>
-        <api>0.4.0</api>
-      </version>
-      <stability>
-        <release>alpha</release>
-        <api>alpha</api>
-      </stability>
-      <license uri="http://www.opensource.org/licenses/bsd-license.php">BSD Style</license>
-    </release>
-  </changelog>
+  <phprelease>
+    <filelist>
+      <install name="tests/phpunit.xml" as="phpunit.xml"/>
+      <install name="tests/bootstrap.php" as="bootstrap.php"/>
+      <install name="tests/library/Respect/Relational/SqlTest.php" as="library/Respect/Relational/SqlTest.php"/>
+      <install name="tests/library/Respect/Relational/Styles/StandardTest.php" as="library/Respect/Relational/Styles/StandardTest.php"/>
+      <install name="tests/library/Respect/Relational/Styles/CakePHPTest.php" as="library/Respect/Relational/Styles/CakePHPTest.php"/>
+      <install name="tests/library/Respect/Relational/Styles/NorthWindTest.php" as="library/Respect/Relational/Styles/NorthWindTest.php"/>
+      <install name="tests/library/Respect/Relational/Styles/AbstractStyleTest.php" as="library/Respect/Relational/Styles/AbstractStyleTest.php"/>
+      <install name="tests/library/Respect/Relational/Styles/SakilaTest.php" as="library/Respect/Relational/Styles/SakilaTest.php"/>
+      <install name="tests/library/Respect/Relational/DbTest.php" as="library/Respect/Relational/DbTest.php"/>
+      <install name="tests/library/Respect/Relational/MapperTest.php" as="library/Respect/Relational/MapperTest.php"/>
+      <install name="library/Respect/Relational/Styles/Stylable.php" as="Respect/Relational/Styles/Stylable.php"/>
+      <install name="library/Respect/Relational/Styles/CakePHP.php" as="Respect/Relational/Styles/CakePHP.php"/>
+      <install name="library/Respect/Relational/Styles/Standard.php" as="Respect/Relational/Styles/Standard.php"/>
+      <install name="library/Respect/Relational/Styles/NorthWind.php" as="Respect/Relational/Styles/NorthWind.php"/>
+      <install name="library/Respect/Relational/Styles/Sakila.php" as="Respect/Relational/Styles/Sakila.php"/>
+      <install name="library/Respect/Relational/Styles/AbstractStyle.php" as="Respect/Relational/Styles/AbstractStyle.php"/>
+      <install name="library/Respect/Relational/Sql.php" as="Respect/Relational/Sql.php"/>
+      <install name="library/Respect/Relational/Db.php" as="Respect/Relational/Db.php"/>
+      <install name="library/Respect/Relational/Mapper.php" as="Respect/Relational/Mapper.php"/>
+      <install name="library/Respect/Data/AbstractMapper.php" as="Respect/Data/AbstractMapper.php"/>
+      <install name="library/Respect/Data/CollectionIterator.php" as="Respect/Data/CollectionIterator.php"/>
+      <install name="library/Respect/Data/Collection.php" as="Respect/Data/Collection.php"/>
+      <install name="bin/pear-package.php" as="pear-package.php"/>
+      <install name="bin/phar-package.php" as="phar-package.php"/>
+    </filelist>
+  </phprelease>
 </package>
