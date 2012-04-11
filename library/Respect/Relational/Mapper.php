@@ -357,50 +357,47 @@ class Mapper extends AbstractMapper
 
     protected function fetchMulti(Collection $collection, PDOStatement $statement)
     {
-        $name = $collection->getName();
         $entityInstance = null;
-        $collections = CollectionIterator::recursive($collection);
+        $entities = array();
         $row = $statement->fetch(PDO::FETCH_NUM);
 
         if (!$row)
             return false;
 
         $entities = new SplObjectStorage();
+        $entitiesInstances = array();
 
-        foreach ($row as $n => $value) {
-            $meta = $statement->getColumnMeta($n);
-
-            if ($this->getStyle()->primaryFromTable($meta['table']) === $meta['name']) {
-
-                if (0 !== $n)
-                    $entities[$entityInstance] = array(
-                        'name' => $tableName,
-                        'table_name' => $tableName,
-                        'entity_class' => $entityClass,
-                        $primaryName => $entityInstance->{$primaryName},
-                        'cols' => $this->extractColumns(
-                            $entityInstance, $tableName
-                        )
-                    );
-
-                $collections->next();
-                $tableName = $collections->current()->getName();
-                $primaryName = $this->getStyle()->primaryFromTable($tableName);
-                $entityClass = $this->entityNamespace . $this->getStyle()->tableToEntity($tableName);
-                $entityClass = class_exists($entityClass) ? $entityClass : '\stdClass';
-                $entityInstance = new $entityClass;
-            }
-            $entityInstance->{$meta['name']} = $value;
-        }
-
-        if (!empty($entities))
+        foreach (CollectionIterator::recursive($collection) as $c) {
+            $tableName = $c->getName();
+            $primaryName = $this->getStyle()->primaryFromTable($tableName);
+            $entityName = $this->getStyle()->tableToEntity($tableName);
+            $entityClass = $this->entityNamespace . $entityName;
+            $entityClass = class_exists($entityClass) ? $entityClass : 'stdClass';
+            $entityInstance = new $entityClass;
             $entities[$entityInstance] = array(
                 'name' => $tableName,
                 'table_name' => $tableName,
                 'entity_class' => $entityClass,
-                $primaryName => $entityInstance->{$primaryName},
-                'cols' => $this->extractColumns($entityInstance, $tableName)
+                'primary_name' => $primaryName,
+                'cols' => array()
             );
+            $entitiesInstances[] = $entityInstance;
+        }
+
+        $entityInstance = array_pop($entitiesInstances);
+
+        //Reversely traverses the columns to avoid conflicting foreign key names
+        foreach (array_reverse($row, true) as $col => $value) {
+            $entityData = $entities[$entityInstance];
+            $columnMeta = $statement->getColumnMeta($col);
+            $columnName = $columnMeta['name'];
+            $primaryName = $entityData['primary_name'];
+            $entityInstance->$columnName = $value;
+
+            if ($primaryName == $columnName) 
+                $entityInstance = array_pop($entitiesInstances);
+
+        }
 
         $entitiesClone = clone $entities;
 
@@ -409,7 +406,7 @@ class Mapper extends AbstractMapper
                 if ($this->getStyle()->isForeignColumn($field)) {
                     foreach ($entitiesClone as $sub) {
                         $tableName = $entities[$sub]['table_name'];
-                        $primaryName = $this->getStyle()->primaryFromTable($tableName);
+                        $primaryName = $entities[$sub]['primary_name'];
                         if ($entities[$sub]['name'] === $this->getStyle()->tableFromForeignColumn($field)
                                 && $sub->{$primaryName} === $v) {
                             $v = $sub;
