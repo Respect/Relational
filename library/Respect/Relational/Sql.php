@@ -24,7 +24,13 @@ class Sql
     {
         $parts = $this->normalizeParts($parts, $operation === 'on' ? true : false);
         if (empty($parts))
-            return $this;
+            switch ($operation) {
+                case 'asc':
+                case 'desc':
+                    break;
+                default: 
+                    return $this;   
+            }
         $this->buildOperation($operation);
         return $this->build($operation, $parts);
     }

@@ -188,5 +188,20 @@ class SqlTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(array('Abc' => 10, 'AvgDef' => 15), $this->object->getParams());
     }
 
+    public function testStaticBuilderCall()
+    {
+        $this->assertEquals(
+            'ORDER BY updated_at DESC',
+            (string) Sql::orderBy('updated_at')->desc()
+        );
+    }
+    public function testLastParameterWithoutParts()
+    {
+        $this->assertEquals(
+            'ORDER BY updated_at DESC',
+            $this->object->orderBy('updated_at')->desc()
+        );
+    }
+
 }
 
