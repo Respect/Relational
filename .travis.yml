@@ -1,5 +1,6 @@
 language: php
 script: make test
+before_script: make foundation
 
 php:
   - 5.3

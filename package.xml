@@ -94,8 +94,6 @@
       <file name="library/Respect/Data/AbstractMapper.php" role="php" md5sum="a988a154d4fc5689ea25be342268758a"/>
       <file name="library/Respect/Data/CollectionIterator.php" role="php" md5sum="efa3833abafaa55987b99660d946b2c6"/>
       <file name="library/Respect/Data/Collection.php" role="php" md5sum="0f8f9c60fc8294b599f162c20d572782"/>
-      <file name="bin/pear-package.php" role="script" md5sum="8d599c987342220ae0f7a8d105687905"/>
-      <file name="bin/phar-package.php" role="script" md5sum="b5581617d1ff9d1cb6d8fcbd86fafc68"/>
     </dir>
   </contents>
   <dependencies>
@@ -136,8 +134,6 @@
       <install name="library/Respect/Data/AbstractMapper.php" as="Respect/Data/AbstractMapper.php"/>
       <install name="library/Respect/Data/CollectionIterator.php" as="Respect/Data/CollectionIterator.php"/>
       <install name="library/Respect/Data/Collection.php" as="Respect/Data/Collection.php"/>
-      <install name="bin/pear-package.php" as="pear-package.php"/>
-      <install name="bin/phar-package.php" as="phar-package.php"/>
     </filelist>
   </phprelease>
 </package>
