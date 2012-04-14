@@ -138,18 +138,18 @@ class Mapper extends AbstractMapper
         $condition = $this->guessCondition($columns, $name);
 
         return $this->db
-                        ->update($name)
-                        ->set($columns)
-                        ->where($condition)
-                        ->exec();
+                    ->update($name)
+                    ->set($columns)
+                    ->where($condition)
+                    ->exec();
     }
 
     protected function rawInsert(array $columns, $name, $entity = null)
     {
         $isInserted = $this->db
-                ->insertInto($name, $columns)
-                ->values($columns)
-                ->exec();
+                            ->insertInto($name, $columns)
+                            ->values($columns)
+                            ->exec();
 
         if (!is_null($entity))
             $this->checkNewIdentity($entity, $name);
@@ -182,7 +182,7 @@ class Mapper extends AbstractMapper
             'name' => $name,
             'table_name' => $name,
             'entity_class' => $this->getStyle()->tableToEntity($name),
-            $primaryName => &$id,
+            'pk_'.$primaryName => &$id,
             'cols' => $this->extractColumns($entity, $name)
         );
         return true;
@@ -197,7 +197,7 @@ class Mapper extends AbstractMapper
     {
         $primaryName = $this->getStyle()->primaryFromTable($name);
         foreach ($this->tracked as $entity)
-            if ($this->tracked[$entity][$primaryName] == $id
+            if ($this->tracked[$entity]['pk_'.$primaryName] == $id
                     && $this->tracked[$entity]['name'] === $name)
                 return $entity;
 
@@ -348,7 +348,7 @@ class Mapper extends AbstractMapper
             'name' => $name,
             'table_name' => $name,
             'entity_class' => $entityClass,
-            $primaryName => $row->{$primaryName},
+            'pk_'.$primaryName => $row->{$primaryName},
             'cols' => $this->extractColumns($row, $name)
         );
 
