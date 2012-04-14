@@ -58,11 +58,11 @@
     <email>thiagophx@gmail.com</email>
     <active>yes</active>
   </lead>
-  <date>2012-04-11</date>
-  <time>01:52:14</time>
+  <date>2012-04-13</date>
+  <time>22:22:46</time>
   <version>
-    <release>0.4.2</release>
-    <api>0.4.2</api>
+    <release>0.4.3</release>
+    <api>0.4.3</api>
   </version>
   <stability>
     <release>alpha</release>
@@ -73,6 +73,36 @@
   <contents>
     <dir name="/">
       <file name="tests/phpunit.xml" role="test" md5sum="03642477f5a201be9c3161eb64dde993"/>
+      <file name="tests/reports/coverage/glass.png" role="test" md5sum="d0bcded9081d6a0efda48c495867da73"/>
+      <file name="tests/reports/coverage/style.css" role="test" md5sum="6720298ca22a5214a2e9f8fdb279fbd3"/>
+      <file name="tests/reports/coverage/Relational.dashboard.html" role="test" md5sum="b49c5546bf435e0875dbf5d986011df4"/>
+      <file name="tests/reports/coverage/Data_Collection.php.html" role="test" md5sum="8a3976e2cff3ed276000c9f2249960d2"/>
+      <file name="tests/reports/coverage/Relational_Mapper.php.html" role="test" md5sum="4556d4f244c7e2638e8d86f36e6d2075"/>
+      <file name="tests/reports/coverage/index.html" role="test" md5sum="32a43db6024cdb6c63f1bf28ab2ac054"/>
+      <file name="tests/reports/coverage/Relational_Styles_NorthWind.php.html" role="test" md5sum="06091bed88efc617a179cfdc24a90637"/>
+      <file name="tests/reports/coverage/Relational_Styles.html" role="test" md5sum="8af7c046526667532e5c1ebb5a96b419"/>
+      <file name="tests/reports/coverage/Relational_Styles_Stylable.php.html" role="test" md5sum="7bf5f7460cedda507fb674a9820df4fd"/>
+      <file name="tests/reports/coverage/container-min.js" role="test" md5sum="5511b676a4961a0dfb52e1f64ce65a7a"/>
+      <file name="tests/reports/coverage/highcharts.js" role="test" md5sum="08cdf43b4ba8ce789f86a30a09071ca8"/>
+      <file name="tests/reports/coverage/jquery.min.js" role="test" md5sum="0efa3b9aa0f509043308e7c6e23538f8"/>
+      <file name="tests/reports/coverage/Data_AbstractMapper.php.html" role="test" md5sum="d5df75b69dbefb8be09c21db08789bbe"/>
+      <file name="tests/reports/coverage/Relational.html" role="test" md5sum="f111e6d4bc41641110152aaa5f49feee"/>
+      <file name="tests/reports/coverage/file.png" role="test" md5sum="6983bd4ac09f5135eb128cbdf0ceadfe"/>
+      <file name="tests/reports/coverage/container.css" role="test" md5sum="495d2ec9631eb89063bdd9d70bd731dc"/>
+      <file name="tests/reports/coverage/directory.png" role="test" md5sum="0c2ea106ded3a3b443ad39e3eddcd7a6"/>
+      <file name="tests/reports/coverage/Data.dashboard.html" role="test" md5sum="df26ae87473ee3ba6684d3e0d15cd2ab"/>
+      <file name="tests/reports/coverage/close12_1.gif" role="test" md5sum="770d9c592b4300457ae025448c4c6816"/>
+      <file name="tests/reports/coverage/Relational_Styles.dashboard.html" role="test" md5sum="27e00c426babc74cf232d1b4a559a4ec"/>
+      <file name="tests/reports/coverage/yahoo-dom-event.js" role="test" md5sum="366eac96e298168d2c923fcb556fa259"/>
+      <file name="tests/reports/coverage/Relational_Db.php.html" role="test" md5sum="f32eab011bf2339f83bd6e0c84e1f71c"/>
+      <file name="tests/reports/coverage/Relational_Styles_Sakila.php.html" role="test" md5sum="1ee9e2a1b493b832106ad85e554e1606"/>
+      <file name="tests/reports/coverage/Relational_Sql.php.html" role="test" md5sum="41dd77851337615f7b53943f40a7c2da"/>
+      <file name="tests/reports/coverage/Relational_Styles_Standard.php.html" role="test" md5sum="643e04ff6f081133b65d4f10c5952c2e"/>
+      <file name="tests/reports/coverage/Data.html" role="test" md5sum="5868125150ddeb040918d397fc830926"/>
+      <file name="tests/reports/coverage/Data_CollectionIterator.php.html" role="test" md5sum="9fc388975f785be6cc0375911116ee43"/>
+      <file name="tests/reports/coverage/index.dashboard.html" role="test" md5sum="b0229677bd77de2c292ce4f3491d1980"/>
+      <file name="tests/reports/coverage/Relational_Styles_AbstractStyle.php.html" role="test" md5sum="141e918451cab5241dc13548a311db69"/>
+      <file name="tests/reports/coverage/Relational_Styles_CakePHP.php.html" role="test" md5sum="5c77119cd732688e85d2c0a612675cfb"/>
       <file name="tests/bootstrap.php" role="test" md5sum="ffb90e53f1cbb127fa5b2c70f5e42ae2"/>
       <file name="tests/library/Respect/Relational/SqlTest.php" role="test" md5sum="4329b3af97f88cc91e4aece730a02287"/>
       <file name="tests/library/Respect/Relational/Styles/StandardTest.php" role="test" md5sum="36532c553ba0425cc9dc3db553f17d93"/>
@@ -90,7 +120,7 @@
       <file name="library/Respect/Relational/Styles/AbstractStyle.php" role="php" md5sum="de11487c1fb4faf97aafc4c793fc258d"/>
       <file name="library/Respect/Relational/Sql.php" role="php" md5sum="a2aef68de3237dbbbce47ae07ade5a9a"/>
       <file name="library/Respect/Relational/Db.php" role="php" md5sum="b37872d2616a45db80a570b0a760eac7"/>
-      <file name="library/Respect/Relational/Mapper.php" role="php" md5sum="bcdc582ae714644c6a5da9bf1fd35f68"/>
+      <file name="library/Respect/Relational/Mapper.php" role="php" md5sum="1536a7ace8ed94c57065d17fe0fc207b"/>
       <file name="library/Respect/Data/AbstractMapper.php" role="php" md5sum="a988a154d4fc5689ea25be342268758a"/>
       <file name="library/Respect/Data/CollectionIterator.php" role="php" md5sum="efa3833abafaa55987b99660d946b2c6"/>
       <file name="library/Respect/Data/Collection.php" role="php" md5sum="0f8f9c60fc8294b599f162c20d572782"/>
@@ -113,6 +143,36 @@
   <phprelease>
     <filelist>
       <install name="tests/phpunit.xml" as="phpunit.xml"/>
+      <install name="tests/reports/coverage/glass.png" as="reports/coverage/glass.png"/>
+      <install name="tests/reports/coverage/style.css" as="reports/coverage/style.css"/>
+      <install name="tests/reports/coverage/Relational.dashboard.html" as="reports/coverage/Relational.dashboard.html"/>
+      <install name="tests/reports/coverage/Data_Collection.php.html" as="reports/coverage/Data_Collection.php.html"/>
+      <install name="tests/reports/coverage/Relational_Mapper.php.html" as="reports/coverage/Relational_Mapper.php.html"/>
+      <install name="tests/reports/coverage/index.html" as="reports/coverage/index.html"/>
+      <install name="tests/reports/coverage/Relational_Styles_NorthWind.php.html" as="reports/coverage/Relational_Styles_NorthWind.php.html"/>
+      <install name="tests/reports/coverage/Relational_Styles.html" as="reports/coverage/Relational_Styles.html"/>
+      <install name="tests/reports/coverage/Relational_Styles_Stylable.php.html" as="reports/coverage/Relational_Styles_Stylable.php.html"/>
+      <install name="tests/reports/coverage/container-min.js" as="reports/coverage/container-min.js"/>
+      <install name="tests/reports/coverage/highcharts.js" as="reports/coverage/highcharts.js"/>
+      <install name="tests/reports/coverage/jquery.min.js" as="reports/coverage/jquery.min.js"/>
+      <install name="tests/reports/coverage/Data_AbstractMapper.php.html" as="reports/coverage/Data_AbstractMapper.php.html"/>
+      <install name="tests/reports/coverage/Relational.html" as="reports/coverage/Relational.html"/>
+      <install name="tests/reports/coverage/file.png" as="reports/coverage/file.png"/>
+      <install name="tests/reports/coverage/container.css" as="reports/coverage/container.css"/>
+      <install name="tests/reports/coverage/directory.png" as="reports/coverage/directory.png"/>
+      <install name="tests/reports/coverage/Data.dashboard.html" as="reports/coverage/Data.dashboard.html"/>
+      <install name="tests/reports/coverage/close12_1.gif" as="reports/coverage/close12_1.gif"/>
+      <install name="tests/reports/coverage/Relational_Styles.dashboard.html" as="reports/coverage/Relational_Styles.dashboard.html"/>
+      <install name="tests/reports/coverage/yahoo-dom-event.js" as="reports/coverage/yahoo-dom-event.js"/>
+      <install name="tests/reports/coverage/Relational_Db.php.html" as="reports/coverage/Relational_Db.php.html"/>
+      <install name="tests/reports/coverage/Relational_Styles_Sakila.php.html" as="reports/coverage/Relational_Styles_Sakila.php.html"/>
+      <install name="tests/reports/coverage/Relational_Sql.php.html" as="reports/coverage/Relational_Sql.php.html"/>
+      <install name="tests/reports/coverage/Relational_Styles_Standard.php.html" as="reports/coverage/Relational_Styles_Standard.php.html"/>
+      <install name="tests/reports/coverage/Data.html" as="reports/coverage/Data.html"/>
+      <install name="tests/reports/coverage/Data_CollectionIterator.php.html" as="reports/coverage/Data_CollectionIterator.php.html"/>
+      <install name="tests/reports/coverage/index.dashboard.html" as="reports/coverage/index.dashboard.html"/>
+      <install name="tests/reports/coverage/Relational_Styles_AbstractStyle.php.html" as="reports/coverage/Relational_Styles_AbstractStyle.php.html"/>
+      <install name="tests/reports/coverage/Relational_Styles_CakePHP.php.html" as="reports/coverage/Relational_Styles_CakePHP.php.html"/>
       <install name="tests/bootstrap.php" as="bootstrap.php"/>
       <install name="tests/library/Respect/Relational/SqlTest.php" as="library/Respect/Relational/SqlTest.php"/>
       <install name="tests/library/Respect/Relational/Styles/StandardTest.php" as="library/Respect/Relational/Styles/StandardTest.php"/>

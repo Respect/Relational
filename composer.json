@@ -1,9 +1,9 @@
 {
     "name": "Respect\/Relational",
     "description": "Fluent Database Toolkit",
-    "version": "0.4.2",
+    "version": "0.4.3",
     "type": "library",
-    "time": "2012-04-11 01:52:14",
+    "time": "2012-04-13 22:22:46",
     "homepage": "http:\/\/respect.li",
     "license": "BSD Style",
     "authors": [
@@ -45,14 +45,8 @@
         }
     ],
     "require": {
-        "pear-respect\/Data": "*"
+        "Respect\/Data": ">=0.1.5"
     },
-    "repositories": [
-        {
-            "type": "pear",
-            "url": "http:\/\/respect.li\/pear"
-        }
-    ],
     "autoload": {
         "psr-0": {
             "Respect\\Relational": "library\/"
