@@ -3,6 +3,8 @@ Respect\Relational [![Build Status](https://secure.travis-ci.org/Respect/Relatio
 
 Fluent Database Toolkit based on conventions. 
 
+**NEW**: Full docs will be available April 20, 2012.
+
 Requirements
 ------------
   * PHP 5.3+
