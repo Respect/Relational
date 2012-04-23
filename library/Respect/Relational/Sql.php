@@ -4,7 +4,7 @@ namespace Respect\Relational;
 
 class Sql
 {
-
+    const SQL_OPERATORS = '/\s?(NOT)?\s?(=|==|<>|!=|>|>=|<|<=|LIKE)\s?$/';
     protected $query = '';
     protected $params = array();
     protected $data = array();
@@ -104,6 +104,8 @@ class Sql
         foreach ($parts as $key => $part)
             if (is_numeric($key))
                 $parts[$key] = "$part";
+            else if (preg_match(static::SQL_OPERATORS, $key) > 0)
+                $parts[$key] = "$key :" . $this->buildName($part);
             else
                 $parts[$key] = "$key=:" . $this->buildName($part);
         return $this->buildParts($parts, $format, $partSeparator);
