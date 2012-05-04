@@ -18,7 +18,7 @@ setting up a PSR-0 autoloader. PEAR and Composer packages are on their way.
 Installation
 ------------
 
-Packages available on [PEAR](http://respect.li/pear) and [Composer](http://packagist.org/packages/Respect/Rest). Autoloading is [PSR-0](https://github.com/php-fig/fig-standards/blob/master/accepted/PSR-0.md) compatible.
+Packages available on [PEAR](http://respect.li/pear) and [Composer](http://packagist.org/packages/Respect/Relational). Autoloading is [PSR-0](https://github.com/php-fig/fig-standards/blob/master/accepted/PSR-0.md) compatible.
 
 Feature Guide
 -------------
