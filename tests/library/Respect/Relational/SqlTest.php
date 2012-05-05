@@ -172,12 +172,15 @@ class SqlTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals("SELECT column, COUNT(column), other_column FROM table WHERE AES_DECRYPT('pass', 'salt')=:AesDecryptPassSalt", $sql);
     }
 
+    /**
+     * @ticket 13
+     */
     public function testAggregateFunctions()
     {
         $where = array('abc' => 10);
-        $having = array('SUM(abc)>' => '10', 'AVG(def)' => 15);
+        $having = array('SUM(abc)>=' => '10', 'AVG(def)=' => 15);
         $sql = (string) $this->object->select('column', 'MAX(def)')->from('table')->where($where)->groupBy('abc', 'def')->having($having);
-        $this->assertEquals("SELECT column, MAX(def) FROM table WHERE abc=:Abc GROUP BY abc, def HAVING SUM(abc)>=:SumAbc AND AVG(def)=:AvgDef", $sql);
+        $this->assertEquals("SELECT column, MAX(def) FROM table WHERE abc=:Abc GROUP BY abc, def HAVING SUM(abc)>= :SumAbc AND AVG(def)= :AvgDef", $sql);
     }
 
     public function testColumnTranslation()
@@ -201,6 +204,34 @@ class SqlTest extends \PHPUnit_Framework_TestCase
             'ORDER BY updated_at DESC',
             $this->object->orderBy('updated_at')->desc()
         );
+    }
+
+    public static function provider_sql_operators()
+    {
+        // $operator, $expectedWhere
+        return array(
+            array('='),
+            array('=='),
+            array('<>'),
+            array('!='),
+            array('>'),
+            array('>='), 
+            array('<'),
+            array('<='),
+            array('LIKE', ' :IdLike'),
+        );
+    }
+
+    /**
+     * @ticket 13
+     * @dataProvider provider_sql_operators
+     */
+    public function test_sql_operators($operator, $expected=null)
+    {
+        $expected = $expected ?: ' :Id';
+        $where    = array('id '.$operator => 10);
+        $sql      = (string) $this->object->select('*')->from('table')->where($where);
+        $this->assertEquals('SELECT * FROM table WHERE id '.$operator.$expected, $sql);
     }
 
 }

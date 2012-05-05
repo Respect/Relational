@@ -200,9 +200,9 @@ First author named "Alexandre":
 
     $mapper->author(array("name"=>"Alexandre"))->fetch();
 
-Posts created after 2012 (note the `>` sign):
+Posts created after 2012 (note the `>=` sign):
 
-    $mapper->post(array("created_at >"=>strtotime('2012-01-01'))->fetchAll();
+    $mapper->post(array("created_at >="=>strtotime('2012-01-01'))->fetchAll();
 
 Comments on any post from the author named Alexandre:
 
