@@ -1,24 +1,12 @@
 {
-    "name": "Respect\/Relational",
+    "name": "Respect/Relational",
     "description": "Fluent Database Toolkit",
     "version": "0.4.6",
     "type": "library",
     "time": "2012-05-05 19:11:23",
-    "homepage": "http:\/\/respect.li",
+    "homepage": "http://respect.li",
     "license": "BSD Style",
     "authors": [
-        {
-            "name": "Alexandre",
-            "email": "alexandre@gaigalas.net"
-        },
-        {
-            "name": "Alexandre Gaigalas",
-            "email": "alexandre@gaigalas.net"
-        },
-        {
-            "name": "Alexandre Gaigalas",
-            "email": "alganet@alganet-workstation.(none)"
-        },
         {
             "name": "Alexandre Gomes Gaigalas",
             "email": "alexandre@gaigalas.net"
@@ -49,17 +37,11 @@
         }
     ],
     "require": {
-        "pear-Respect\/Data": "*"
+        "respect/data": "*"
     },
-    "repositories": [
-        {
-            "type": "pear",
-            "url": "http:\/\/respect.li\/pear"
-        }
-    ],
     "autoload": {
         "psr-0": {
-            "Respect\\Relational": "library\/"
+            "Respect\\Relational": "library/"
         }
     }
 }

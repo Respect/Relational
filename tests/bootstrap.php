@@ -1,28 +1,34 @@
 <?php
 
+/* Timezone */
 date_default_timezone_set('UTC');
 
-$pear_path = trim(`pear config-get php_dir`);
-set_include_path('../library' 
-        . PATH_SEPARATOR . $pear_path 
-        . PATH_SEPARATOR . get_include_path());
-
 /**
- * Autoloader that implements the PSR-0 spec for interoperability between
- * PHP software.
+ * PSR-0 compliant autoloader created by Composer.
+ * If this file does not exist, run `composer.phar install` from
+ * the project root directory to generate it.
  */
-spl_autoload_register(
-    function($className) {
-        $fileParts = explode('\\', ltrim($className, '\\'));
+if (!@include __DIR__ . '/../vendor/autoload.php') {
 
-        if (false !== strpos(end($fileParts), '_'))
-            array_splice($fileParts, -1, 1, explode('_', current($fileParts)));
+    /* Include path */
+    set_include_path(implode(PATH_SEPARATOR, array(
+        __DIR__ . '/../src',
+        get_include_path(),
+    )));
 
-        $file = implode(DIRECTORY_SEPARATOR, $fileParts) . '.php';
-
-        foreach (explode(PATH_SEPARATOR, get_include_path()) as $path) {
-            if (file_exists($path = $path . DIRECTORY_SEPARATOR . $file))
-                return require $path;
+    /* PEAR autoloader */
+    spl_autoload_register(
+        function($className) {
+            $filename = strtr($className, '\\', DIRECTORY_SEPARATOR) . '.php';
+            foreach (explode(PATH_SEPARATOR, get_include_path()) as $path) {
+                $path .= DIRECTORY_SEPARATOR . $filename;
+                if (is_file($path)) {
+                    require_once $path;
+                    return true;
+                }
+            }
+            return false;
         }
-    }
-);
+    );
+
+}
