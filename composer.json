@@ -28,6 +28,10 @@
             "email": "claudsonweb@gmail.com"
         },
         {
+            "name": "Fa\u0301bio da Silva Ribeiro",
+            "email": "fabiorphp@gmail.com"
+        },		
+        {
             "name": "Henrique Moody",
             "email": "henriquemoody@gmail.com"
         },
@@ -45,12 +49,12 @@
         }
     ],
     "require": {
-        "pear-\/pear\/Data": "*"
+        "pear-Respect\/Data": "*"
     },
     "repositories": [
         {
             "type": "pear",
-            "url": "http:\/\/respect.li"
+            "url": "http:\/\/respect.li\/pear"
         }
     ],
     "autoload": {
