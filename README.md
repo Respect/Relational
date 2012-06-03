@@ -16,7 +16,7 @@ Installation
 ------------
 
 Packages available on [PEAR](http://respect.li/pear) and [Composer](http://packagist.org/packages/Respect/Relational). 
-Autoloading with [composer][http://getcomposer.org/) is [PSR-0](https://github.com/php-fig/fig-standards/blob/master/accepted/PSR-0.md) compatible.
+Autoloading with [composer](http://getcomposer.org/) is [PSR-0](https://github.com/php-fig/fig-standards/blob/master/accepted/PSR-0.md) compatible.
 
 Feature Guide
 -------------
