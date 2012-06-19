@@ -25,6 +25,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
                     'id INTEGER PRIMARY KEY',
                     'post_id INTEGER',
                     'text TEXT',
+                    'datetime DATETIME'
                 )));
         $conn->exec((string) Sql::createTable('category', array(
                     'id INTEGER PRIMARY KEY',
@@ -54,12 +55,14 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
             (object) array(
                 'id' => 7,
                 'post_id' => 5,
-                'text' => 'Comment Text'
+                'text' => 'Comment Text',
+                'datetime' => '2012-06-19 00:35:42'
             ),
             (object) array(
                 'id' => 8,
                 'post_id' => 4,
-                'text' => 'Comment Text 2'
+                'text' => 'Comment Text 2',
+                'datetime' => '2012-06-19 00:35:42'
             )
         );
         $this->categories = array(
@@ -199,7 +202,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $comment = $mapper->comment->post[5]->fetch();
         $this->assertEquals(7, $comment->id);
         $this->assertEquals('Comment Text', $comment->text);
-        $this->assertEquals(3, count(get_object_vars($comment)));
+        $this->assertEquals(4, count(get_object_vars($comment)));
         $this->assertEquals(5, $comment->post_id->id);
         $this->assertEquals('Post Title', $comment->post_id->title);
         $this->assertEquals('Post Text', $comment->post_id->text);
@@ -213,7 +216,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals(1, count($comments));
         $this->assertEquals(7, $comment->id);
         $this->assertEquals('Comment Text', $comment->text);
-        $this->assertEquals(3, count(get_object_vars($comment)));
+        $this->assertEquals(4, count(get_object_vars($comment)));
         $this->assertEquals(5, $comment->post_id->id);
         $this->assertEquals('Post Title', $comment->post_id->title);
         $this->assertEquals('Post Text', $comment->post_id->text);
@@ -230,7 +233,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals(1, count($comments));
         $this->assertEquals(7, $comment->id);
         $this->assertEquals('Comment Text', $comment->text);
-        $this->assertEquals(3, count(get_object_vars($comment)));
+        $this->assertEquals(4, count(get_object_vars($comment)));
         $this->assertEquals(5, $comment->post_id->id);
         $this->assertEquals('Post Title', $comment->post_id->title);
         $this->assertEquals('Post Text', $comment->post_id->text);
@@ -464,6 +467,37 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals('HeyHey', $result);
     }
 
+    public function test_setters_and_getters_datetime_as_string()
+    {
+        $mapper = $this->mapper;
+        $mapper->entityNamespace = '\Respect\Relational\\';
+        $comment = new Comment();
+        $comment->id = 10;
+        $comment->text = "Test using datetime setters";
+        $comment->setDatetime(time());
+        $mapper->comment->persist($comment);
+        $mapper->flush();
+
+        $result = $this->conn->query('select datetime from comment where id=10')->fetchColumn(0);
+        $this->assertEquals('2012-06-19', $result);
+    }
+
+    public function test_setters_and_getters_datetime_as_object()
+    {
+        $this->markTestSkipped('To be implemented!');
+        $mapper = $this->mapper;
+        $mapper->entityNamespace = '\Respect\Relational\\';
+        $comment = new Post();
+        $comment->id = 44;
+        $comment->text = "Test using datetime setters";
+        $comment->setDatetime(new Datetime('now'));
+        $mapper->comment->persist($comment);
+        $mapper->flush();
+
+        $result = $this->conn->query('select datetime from post where id=44')->fetchColumn(0);
+        $this->assertInstanceOf('\Datetime', $result);
+    }
+
     public function test_style()
     {
         $this->assertInstanceOf('Respect\Relational\Styles\Stylable', $this->mapper->getStyle());
@@ -484,6 +518,11 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
 
 class Comment {
     public $id=null, $post_id=null, $text=null;
+    public $datetime;
+    public function setDatetime($value)
+    {
+        $this->datetime = date('Y-m-d', $value);
+    }
 }
 
 class Post {

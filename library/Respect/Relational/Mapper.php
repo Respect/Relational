@@ -391,8 +391,11 @@ class Mapper extends AbstractMapper
             $entityData = $entities[$entityInstance];
             $columnMeta = $statement->getColumnMeta($col);
             $columnName = $columnMeta['name'];
+            if ($this->entityHasSetter($entityInstance, $col))
+                $entityInstance->{"set{$col}"}($value);
+            else
+                $entityInstance->$columnName = $value;
             $primaryName = $entityData['primary_name'];
-            $entityInstance->$columnName = $value;
 
             if ($primaryName == $columnName) 
                 $entityInstance = array_pop($entitiesInstances);
@@ -417,6 +420,16 @@ class Mapper extends AbstractMapper
         }
 
         return $entities;
+    }
+
+    protected function columnIsVisible($entity, $col)
+    {
+        return in_array($col, get_object_vars($entity));
+    }
+
+    protected function entityHasSetter($entity, $name)
+    {
+        return in_array("set{$name}", get_class_methods($entity));
     }
 
     /**
