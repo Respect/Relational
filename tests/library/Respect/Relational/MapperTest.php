@@ -479,7 +479,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $mapper->flush();
 
         $result = $this->conn->query('select datetime from comment where id=10')->fetchColumn(0);
-        $this->assertEquals('2012-06-19', $result);
+        $this->assertEquals(date('Y-m-d'), $result);
     }
 
     public function test_setters_and_getters_datetime_as_object()
