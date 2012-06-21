@@ -467,35 +467,20 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals('HeyHey', $result);
     }
 
-    public function test_setters_and_getters_datetime_as_string()
-    {
-        $mapper = $this->mapper;
-        $mapper->entityNamespace = '\Respect\Relational\\';
-        $comment = new Comment();
-        $comment->id = 10;
-        $comment->text = "Test using datetime setters";
-        $comment->setDatetime(time());
-        $mapper->comment->persist($comment);
-        $mapper->flush();
-
-        $result = $this->conn->query('select datetime from comment where id=10')->fetchColumn(0);
-        $this->assertEquals(date('Y-m-d'), $result);
-    }
-
     public function test_setters_and_getters_datetime_as_object()
     {
-        $this->markTestSkipped('To be implemented!');
         $mapper = $this->mapper;
         $mapper->entityNamespace = '\Respect\Relational\\';
-        $comment = new Post();
-        $comment->id = 44;
-        $comment->text = "Test using datetime setters";
-        $comment->setDatetime(new Datetime('now'));
-        $mapper->comment->persist($comment);
+        $post = new Post();
+        $post->id = 44;
+        $post->text = "Test using datetime setters";
+        $post->setDatetime(new \Datetime('now'));
+        $mapper->post->persist($post);
         $mapper->flush();
 
-        $result = $this->conn->query('select datetime from post where id=44')->fetchColumn(0);
-        $this->assertInstanceOf('\Datetime', $result);
+        $result = $mapper->post[44]->fetch();
+        $this->assertInstanceOf('\Datetime', $result->getDatetime());
+        $this->assertEquals(date('Y-m-d'), $result->getDatetime()->format('Y-m-d'));
     }
 
     public function test_style()
@@ -518,14 +503,27 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
 
 class Comment {
     public $id=null, $post_id=null, $text=null;
-    public $datetime;
+    private $datetime;
     public function setDatetime($value)
     {
-        $this->datetime = date('Y-m-d', $value);
+        $this->datetime = $value;
+    }
+    public function getDatetime()
+    {
+        return $this->datetime . 'Due';
     }
 }
 
 class Post {
     public $id=null, $author_id=null, $text=null;
+    private $datetime;
+    public function setDatetime(\Datetime $datetime)
+    {
+        $this->datetime = $datetime->format('Y-m-d H:i:s');
+    }
+    public function getDatetime()
+    {
+        return new \Datetime($this->datetime);
+    }
 }
 

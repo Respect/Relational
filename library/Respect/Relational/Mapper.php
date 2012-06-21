@@ -391,8 +391,9 @@ class Mapper extends AbstractMapper
             $entityData = $entities[$entityInstance];
             $columnMeta = $statement->getColumnMeta($col);
             $columnName = $columnMeta['name'];
-            if ($this->entityHasSetter($entityInstance, $col))
-                $entityInstance->{"set{$col}"}($value);
+            $setterName = $this->getSetterStyle($columnName);
+            if (in_array($setterName, get_class_methods($entityInstance)))
+                $entityInstance->$setterName($value);
             else
                 $entityInstance->$columnName = $value;
             $primaryName = $entityData['primary_name'];
@@ -422,14 +423,10 @@ class Mapper extends AbstractMapper
         return $entities;
     }
 
-    protected function columnIsVisible($entity, $col)
+    protected function getSetterStyle($name)
     {
-        return in_array($col, get_object_vars($entity));
-    }
-
-    protected function entityHasSetter($entity, $name)
-    {
-        return in_array("set{$name}", get_class_methods($entity));
+        $name = ucfirst(str_replace('_', '', $this->getStyle()->columnToProperty($name)));
+        return "set{$name}";
     }
 
     /**
