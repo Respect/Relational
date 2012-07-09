@@ -6,6 +6,8 @@ the Relational database persistence tool.
   * Near-zero configuration.
   * Fluent interfaces like `$mapper->author[7]->fetch();`
   * Adapts itself to different database styles.
+  * Records are handled as Plain Data Object.
+  * No need to generate a thing, nada, nothing, zilch, bugger all!
 
 Disclaimer
 ----------
@@ -15,7 +17,7 @@ This documentation is a work in progress! Kindly forward any issues you may find
 Installation
 ------------
 
-Packages available on [PEAR](http://respect.li/pear) and [Composer](http://packagist.org/packages/Respect/Relational). 
+Packages available on [PEAR](http://respect.li/pear) and [Composer](http://packagist.org/packages/Respect/Relational).
 Autoloading with [composer](http://getcomposer.org/) is [PSR-0](https://github.com/php-fig/fig-standards/blob/master/accepted/PSR-0.md) compatible.
 
 Feature Guide
@@ -27,7 +29,7 @@ You're ready to go playing with your database with 2 lines of code:
 
 ```php
 <?php use Respect\Relational\Mapper;
-      $mapper = new Mapper(new PDO('sqlite:database.sq3'));  
+      $mapper = new Mapper(new PDO('sqlite:database.sq3'));
 ```
 
 We love using SQLite, but you can use any PDO adapter. Even PDO adapters
@@ -37,7 +39,7 @@ Here is an example of what a mysql connection might look like, just because we a
 
 ```php
 <?php use Respect\Relational\Mapper;
-      $mapper = new Mapper(new PDO('mysql:host=127.0.0.1;port=3306;dbname=database_mysql','root',''));    
+      $mapper = new Mapper(new PDO('mysql:host=127.0.0.1;port=3306;dbname=database_mysql','root',''));
 ```
 
 ### A Sample Database
@@ -56,11 +58,11 @@ explain how that works later, but that's only a detail.
 
 ### Fetching
 
-We now have a database and a configured `$mapper`. To get a list of all authors, 
+We now have a database and a configured `$mapper`. To get a list of all authors,
 you only need:
 
 ```php
-<?php $authors = $mapper->author->fetchAll();   
+<?php $authors = $mapper->author->fetchAll();
 ```
 
 This will give you an array of PHP objects that represents the authors. You can
@@ -87,7 +89,7 @@ for each mapping.
       $alexandre->created_at = date('Y-m-d H:i:s');
 
       $mapper->author->persist($alexandre);
-      $mapper->flush();  
+      $mapper->flush();
 ```
 
 We use `flush()` to persist all changes to the database in one batch.
@@ -115,7 +117,7 @@ This will be easier to understand if you know what Respect\Relational is doing.
 Results are automatically hydrated, so you can:
 
 ```php
-<?php print $manyCmments[0]->post_id->author_id->name; //prints the post author name from the 
+<?php print $manyCmments[0]->post_id->author_id->name; //prints the post author name from the
                                                        //first comment
 ```
 
@@ -124,7 +126,7 @@ Many-to-many and left joins are also possible and will be covered below.
 ### Mapping Shortcuts
 
 Before digging in on complex joins, conditions, ordering, entity classes, database
-styles and other complicated (but simple with Respect\Relational) things, let's simplify 
+styles and other complicated (but simple with Respect\Relational) things, let's simplify
 everything.
 
 You can assign shortcuts to the mapper. For example:
@@ -188,7 +190,7 @@ table by setting an entity namespace:
 This will search for entities like `\\My\Application\\Entities\\Comment`. Public
 properties for each column must be set. You don't need to extend or implement
 anything and you can put any methods you want. No mandatory params on the
-constructor.
+constructor please.
 
 Currently entity classes are only supported through the use of `->setStyle()`.
 
@@ -218,7 +220,7 @@ You may also change multiple items all at once:
       $mapper->flush();
 ```
 
-### Removing 
+### Removing
 
 ...is also trivial:
 
@@ -277,12 +279,12 @@ Just for the curiosity, the generated query from those complex conditions look e
         AND
           post.created_at > 234567
         AND
-          author.id = 7;    
+          author.id = 7;
 ```
 
 ### Ordering, Limiting
 
-We accomplish ordering and limiting of results through the Sql helper so ensure that you've 
+We accomplish ordering and limiting of results through the Sql helper so ensure that you've
 sperified the following 'use':
 
 ```php
@@ -322,7 +324,7 @@ Left joining with conditions are also possible:
 <?php $mapper->post($mapper->author, array("title" => "Spammed Title"))->fetchAll();
 ```
 
-It doesn't matter which order they are in place either Conditions or the Joins first. 
+It doesn't matter which order they are in place either Conditions or the Joins first.
 Queries by primary key are also easy with left joins:
 
 ```php
@@ -353,7 +355,7 @@ Please, use shortcuts for these! Is this not easier to remember them by?
 
 ### Multi-join tables
 
-A hint: a table may appear multiple times in the same chain. They're aliased suffixed 
+A hint: a table may appear multiple times in the same chain. They're aliased suffixed
 by a number in the SQL statement ie. (post, post2, post3, etc).
 
 ### Sql

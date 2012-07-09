@@ -37,7 +37,7 @@
         }
     ],
     "require": {
-        "respect/data": "*"
+        "Respect/Data": "*"
     },
     "autoload": {
         "psr-0": {
