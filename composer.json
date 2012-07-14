@@ -1,7 +1,7 @@
 {
     "name": "Respect/Relational",
     "description": "Fluent Database Toolkit",
-    "version": "0.4.6",
+    "version": "0.4.61",
     "type": "library",
     "time": "2012-05-05 19:11:23",
     "homepage": "http://respect.li",
@@ -18,7 +18,7 @@
         {
             "name": "Fa\u0301bio da Silva Ribeiro",
             "email": "fabiorphp@gmail.com"
-        },		
+        },
         {
             "name": "Henrique Moody",
             "email": "henriquemoody@gmail.com"
