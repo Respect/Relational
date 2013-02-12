@@ -11,6 +11,7 @@ use PDOException;
 use stdClass;
 use Respect\Data\AbstractMapper;
 use Respect\Data\Collections\Collection;
+use Respect\Data\Collections\Filtered;
 use Respect\Data\CollectionIterator;
 
 class Mapper extends AbstractMapper
@@ -246,9 +247,12 @@ class Mapper extends AbstractMapper
 
     protected function buildSelectStatement(Sql $sql, $collections)
     {
-        $selectTable = array_keys($collections);
-        foreach ($selectTable as &$ts)
-            $ts = "$ts.*";
+        $selectTable = array();
+        foreach ($collections as $tableSpecifier => $c) {
+            if (!$c instanceof Filtered) {
+                $selectTable[] = "$tableSpecifier.*";
+            }
+        }
 
         return $sql->select($selectTable);
     }
@@ -368,6 +372,9 @@ class Mapper extends AbstractMapper
         $entitiesInstances = array();
 
         foreach (CollectionIterator::recursive($collection) as $c) {
+            if ($c instanceOf Filtered) {
+                continue;
+            }
             $tableName = $c->getName();
             $primaryName = $this->getStyle()->primaryFromTable($tableName);
             $entityName = $this->getStyle()->tableToEntity($tableName);

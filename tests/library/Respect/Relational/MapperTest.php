@@ -3,6 +3,7 @@
 namespace Respect\Relational;
 
 use PDO;
+use Respect\Data\Collections\Filtered;
 
 class MapperTest extends \PHPUnit_Framework_TestCase {
 
@@ -498,6 +499,29 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
             $this->assertEquals($style, $this->mapper->getStyle());
         }
     }
+
+    public function test_nested_collections_should_hydrate_results_filtered() {
+        $mapper = $this->mapper;
+        $mapper->authorsWithPosts = Filtered::post()->author;
+        $author = $mapper->authorsWithPosts->fetch();
+        $this->assertEquals((object) array('name' => 'Author 1', 'id' => 1), $author);
+    }
+    
+    public function test_nested_collections_should_hydrate_results_filtered_deep() {
+        $mapper = $this->mapper;
+        $mapper->postsFromAuthorsWithComments = Filtered::comment()->post->author;
+        $post = $mapper->postsFromAuthorsWithComments->fetch();
+        $this->assertEquals((object) array('id' => '5', 'author_id' => $post->author_id, 'text' => 'Post Text', 'title' => 'Post Title'), $post);
+        $this->assertEquals((object) array('name' => 'Author 1', 'id' => 1), $post->author_id);
+    }
+    
+    public function test_nested_collections_should_hydrate_results_filtered_multi() {
+        $mapper = $this->mapper;
+        $mapper->authorsWithPosts = Filtered::comment()->post->stack(Filtered::author());
+        $post = $mapper->authorsWithPosts->fetch();
+        $this->assertEquals((object) array('id' => '5', 'author_id' => 1, 'text' => 'Post Text', 'title' => 'Post Title'), $post);
+    }
+
 
 }
 
