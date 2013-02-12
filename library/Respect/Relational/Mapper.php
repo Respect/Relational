@@ -456,6 +456,11 @@ class Mapper extends AbstractMapper
         $this->style = $style;
         return $this;
     }
+    
+    public function select($tables, Collection $collection)
+    {
+    }
+    
 
 
 }
