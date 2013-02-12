@@ -549,7 +549,6 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals((object) array('name' => 'Author 1', 'id' => 1), $post->author_id);
     }
 
-
 }
 
 class Comment {

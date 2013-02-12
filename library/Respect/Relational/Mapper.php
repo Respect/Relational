@@ -250,8 +250,8 @@ class Mapper extends AbstractMapper
     {
         $selectTable = array();
         foreach ($collections as $tableSpecifier => $c) {
-            if ($c instanceof Filtered) {
-                $filters = $c->getFilters();
+            if ($c->have('filters')) {
+                $filters = $c->getExtra('filters');
                 if ($filters) {
                     
                     $pkName = $tableSpecifier . '.' .
@@ -276,11 +276,10 @@ class Mapper extends AbstractMapper
                             );
                     }
                     
-                    $selectTable[] = array_merge($selectTable, $selectColumns);
+                    $selectTable = array_merge($selectTable, $selectColumns);
                 }
             } else {
                 $selectTable[] = "$tableSpecifier.*";
-                $filteredTables[] = $c->getName();
             }
         }
 
@@ -402,8 +401,8 @@ class Mapper extends AbstractMapper
         $entitiesInstances = array();
 
         foreach (CollectionIterator::recursive($collection) as $c) {
-            if ($c instanceOf Filtered) {
-                $filters = $c->getFilters();
+            if ($c->have('filters')) {
+                $filters = $c->getExtra('filters');
                 if (!$filters) {
                     continue;
                 }
