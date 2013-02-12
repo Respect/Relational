@@ -10,7 +10,7 @@ use PDOStatement;
 use PDOException;
 use stdClass;
 use Respect\Data\AbstractMapper;
-use Respect\Data\Collection;
+use Respect\Data\Collections\Collection;
 use Respect\Data\CollectionIterator;
 
 class Mapper extends AbstractMapper
