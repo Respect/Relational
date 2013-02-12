@@ -210,6 +210,7 @@ class Mapper extends AbstractMapper
         $query = $this->generateQuery($collection);
         if ($sqlExtra)
             $query->appendQuery($sqlExtra);
+            
         $statement = $this->db->prepare((string) $query, PDO::FETCH_NUM);
         $statement->execute($query->getParams());
         return $statement;
@@ -249,8 +250,37 @@ class Mapper extends AbstractMapper
     {
         $selectTable = array();
         foreach ($collections as $tableSpecifier => $c) {
-            if (!$c instanceof Filtered) {
+            if ($c instanceof Filtered) {
+                $filters = $c->getFilters();
+                if ($filters) {
+                    
+                    $pkName = $tableSpecifier . '.' .
+                        $this->getStyle()->primaryFromTable($c->getName());
+                        
+                    if ($filters == array('*')) {
+                        $selectColumns[] = $pkName;
+                    } else {
+                        $selectColumns = array(
+                            $tableSpecifier . '.' .
+                            $this->getStyle()->primaryFromTable($c->getName())
+                        );
+                        foreach ($filters as $f) {
+                            $selectColumns[] = "{$tableSpecifier}.{$f}";
+                        }
+                    }
+                    
+                    if ($c->getNext()) {
+                        $selectColumns[] = $tableSpecifier . '.' . 
+                            $this->getStyle()->foreignFromTable(
+                                $c->getNext()->getName()
+                            );
+                    }
+                    
+                    $selectTable[] = array_merge($selectTable, $selectColumns);
+                }
+            } else {
                 $selectTable[] = "$tableSpecifier.*";
+                $filteredTables[] = $c->getName();
             }
         }
 
@@ -373,7 +403,10 @@ class Mapper extends AbstractMapper
 
         foreach (CollectionIterator::recursive($collection) as $c) {
             if ($c instanceOf Filtered) {
-                continue;
+                $filters = $c->getFilters();
+                if (!$filters) {
+                    continue;
+                }
             }
             $tableName = $c->getName();
             $primaryName = $this->getStyle()->primaryFromTable($tableName);
@@ -457,11 +490,5 @@ class Mapper extends AbstractMapper
         return $this;
     }
     
-    public function select($tables, Collection $collection)
-    {
-    }
-    
-
-
 }
 

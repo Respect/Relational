@@ -522,10 +522,30 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals((object) array('id' => '5', 'author_id' => 1, 'text' => 'Post Text', 'title' => 'Post Title'), $post);
     }
     
-    public function test_select_should_build_filters() {
+    public function test_named_collections_chain_persistence() {
         $mapper = $this->mapper;
-        $post = $mapper->comment->post->author->fetch();
-        $this->assertEquals((object) array('id' => '5', 'author_id' => $post->author_id, 'text' => 'Post Text', 'title' => 'Post Title'), $post);
+        $mapper->commentFil = Filtered::comment();
+        $mapper->author = Filtered::author();
+        $post = $mapper->commentFil->post->author->fetch();
+        $this->assertEquals((object) array('id' => '5', 'author_id' => 1, 'text' => 'Post Text', 'title' => 'Post Title'), $post);
+    }
+    public function test_named_collections_chain_persistence_column() {
+        $mapper = $this->mapper;
+        $mapper->post = Filtered::by('title')->post();
+        $post = $mapper->post->fetch();
+        $this->assertEquals((object) array('id' => '5', 'title' => 'Post Title'), $post);
+    }
+    public function test_named_collections_chain_persistence_column_wildcard() {
+        $mapper = $this->mapper;
+        $mapper->post = Filtered::by('*')->post();
+        $post = $mapper->post->fetch();
+        $this->assertEquals((object) array('id' => '5'), $post);
+    }
+    public function test_named_collections_chain_persistence_column_wildcard_next() {
+        $mapper = $this->mapper;
+        $mapper->post = Filtered::by('*')->post()->author();
+        $post = $mapper->post->fetch();
+        $this->assertEquals((object) array('id' => '5', 'author_id' => $post->author_id), $post);
         $this->assertEquals((object) array('name' => 'Author 1', 'id' => 1), $post->author_id);
     }
 
