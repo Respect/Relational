@@ -11,83 +11,23 @@ use PDOException;
 use stdClass;
 use Respect\Data\AbstractMapper;
 use Respect\Data\Collections\Collection;
-use Respect\Data\Collections\Filtered;
 use Respect\Data\CollectionIterator;
 
 class Mapper extends AbstractMapper
 {
-
     protected $db;
-    protected $new;
-    protected $tracked;
-    protected $changed;
-    protected $removed;
     protected $style;
     public $entityNamespace = '\\';
 
     public function __construct($db)
     {
+        parent::__construct();
         if ($db instanceof PDO)
             $this->db = new Db($db);
-        elseif ($db instanceof Db)
+        elseif ($db instanceof Db)        
             $this->db = $db;
         else
             throw new InvalidArgumentException('$db must be either an instance of Respect\Relational\Db or a PDO instance.');
-
-        $this->tracked  = new SplObjectStorage;
-        $this->changed  = new SplObjectStorage;
-        $this->removed  = new SplObjectStorage;
-        $this->new      = new SplObjectStorage;
-    }
-
-    public function fetch(Collection $fromCollection, $withExtra = null)
-    {
-        $statement = $this->createStatement($fromCollection, $withExtra);
-        $hydrated = $this->fetchHydrated($fromCollection, $statement);
-        if (!$hydrated)
-            return false;
-
-        return $this->parseHydrated($hydrated);
-    }
-
-    public function fetchAll(Collection $fromCollection, $withExtra = null)
-    {
-        $statement = $this->createStatement($fromCollection, $withExtra);
-        $entities = array();
-
-        while ($hydrated = $this->fetchHydrated($fromCollection, $statement))
-            $entities[] = $this->parseHydrated($hydrated);
-
-        return $entities;
-    }
-
-    public function persist($object, Collection $onCollection)
-    {
-        $this->changed[$object] = true;
-
-        if ($this->isTracked($object))
-            return true;
-
-        $this->new[$object] = true;
-        $this->markTracked($object, $onCollection->getName());
-        return true;
-    }
-
-    public function flush()
-    {
-        $conn = $this->db->getConnection();
-        $conn->beginTransaction();
-        try {
-            foreach ($this->changed as $entity)
-                $this->flushSingle($entity);
-        } catch (Exception $e) {
-            $conn->rollback();
-            throw $e;
-        }
-        $this->changed = new SplObjectStorage;
-        $this->removed = new SplObjectStorage;
-        $this->new = new SplObjectStorage;
-        $conn->commit();
     }
 
     protected function flushSingle($entity)
@@ -110,18 +50,6 @@ class Mapper extends AbstractMapper
             }
             $this->rawUpdate($cols, $name);
         }
-    }
-
-    public function remove($object, Collection $fromCollection)
-    {
-        $this->changed[$object] = true;
-        $this->removed[$object] = true;
-
-        if ($this->isTracked($object))
-            return true;
-
-        $this->markTracked($object, $fromCollection->getName());
-        return true;
     }
 
     protected function guessCondition(&$columns, $name)
@@ -166,6 +94,21 @@ class Mapper extends AbstractMapper
 
         return $isInserted;
     }
+    
+    public function flush()
+    {
+        $conn = $this->db->getConnection();
+        $conn->beginTransaction();
+        try {
+            foreach ($this->changed as $entity)
+                $this->flushSingle($entity);
+        } catch (Exception $e) {
+            $conn->rollback();
+            throw $e;
+        }
+        $this->reset();
+        $conn->commit();
+    }
 
     protected function checkNewIdentity($entity, $name)
     {
@@ -184,35 +127,14 @@ class Mapper extends AbstractMapper
         return true;
     }
 
-    public function markTracked($entity, $name, $id = null)
-    {
-        $primaryName = $this->getStyle()->primaryFromTable($name);
-        $id = $entity->{$primaryName};
-        $collection = $this->__get($name);
-        $this->tracked[$entity] = $collection;
-        return true;
-    }
-
-    public function isTracked($entity)
-    {
-        return $this->tracked->contains($entity);
-    }
-
-    protected function createStatement(Collection $collection, Sql $sqlExtra = null)
+    protected function createStatement(Collection $collection, $withExtra = null)
     {
         $query = $this->generateQuery($collection);
-        if ($sqlExtra)
-            $query->appendQuery($sqlExtra);
+        if ($withExtra instanceof Sql)
+            $query->appendQuery($withExtra);
         $statement = $this->db->prepare((string) $query, PDO::FETCH_NUM);
         $statement->execute($query->getParams());
         return $statement;
-    }
-
-    protected function parseHydrated(SplObjectStorage $hydrated)
-    {
-        $this->tracked->addAll($hydrated);
-        $hydrated->rewind();
-        return $hydrated->current();
     }
 
     protected function generateQuery(Collection $collection)
@@ -369,14 +291,6 @@ class Mapper extends AbstractMapper
                     $parentAlias . '.' . $this->getStyle()->foreignFromTable($entity) => $aliasedPk
                 )
             );
-    }
-
-    protected function fetchHydrated(Collection $collection, PDOStatement $statement)
-    {
-        if (!$collection->hasMore())
-            return $this->fetchSingle($collection, $statement);
-        else
-            return $this->fetchMulti($collection, $statement);
     }
 
     protected function fetchSingle(Collection $collection, PDOStatement $statement)
