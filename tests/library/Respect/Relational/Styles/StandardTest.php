@@ -68,9 +68,9 @@ class StandardTest extends \PHPUnit_Framework_TestCase
      */
     public function test_table_and_entities_methods($table, $entity)
     {
-        $this->assertEquals($entity, $this->style->tableToEntity($table));
-        $this->assertEquals($table, $this->style->entityToTable($entity));
-        $this->assertEquals('id', $this->style->primaryFromTable($table));
+        $this->assertEquals($entity, $this->style->styledName($table));
+        $this->assertEquals($table, $this->style->realName($entity));
+        $this->assertEquals('id', $this->style->identifier($table));
     }
 
     /**
@@ -78,10 +78,10 @@ class StandardTest extends \PHPUnit_Framework_TestCase
      */
     public function test_columns_and_properties_methods($name)
     {
-        $this->assertEquals($name, $this->style->columnToProperty($name));
-        $this->assertEquals($name, $this->style->propertyToColumn($name));
-        $this->assertFalse($this->style->isForeignColumn($name));
-        $this->assertNull($this->style->tableFromForeignColumn($name));
+        $this->assertEquals($name, $this->style->styledProperty($name));
+        $this->assertEquals($name, $this->style->realProperty($name));
+        $this->assertFalse($this->style->isRemoteIdentifier($name));
+        $this->assertNull($this->style->remoteFromIdentifier($name));
     }
 
     /**
@@ -89,7 +89,7 @@ class StandardTest extends \PHPUnit_Framework_TestCase
      */
     public function test_table_from_left_right_table($left, $right, $table)
     {
-        $this->assertEquals($table, $this->style->manyFromLeftRight($left, $right));
+        $this->assertEquals($table, $this->style->composed($left, $right));
     }
     
     /**
@@ -97,9 +97,9 @@ class StandardTest extends \PHPUnit_Framework_TestCase
      */
     public function test_foreign($table, $foreign)
     {
-        $this->assertTrue($this->style->isForeignColumn($foreign));
-        $this->assertEquals($table, $this->style->tableFromForeignColumn($foreign));
-        $this->assertEquals($foreign, $this->style->foreignFromTable($table));
+        $this->assertTrue($this->style->isRemoteIdentifier($foreign));
+        $this->assertEquals($table, $this->style->remoteFromIdentifier($foreign));
+        $this->assertEquals($foreign, $this->style->remoteIdentifier($table));
     }
 
 }

@@ -5,7 +5,7 @@ namespace Respect\Relational\Styles;
 class CakePHP extends Standard
 {
 
-    public function entityToTable($name)
+    public function realName($name)
     {
         $name       = $this->camelCaseToSeparator($name, '_');
         $name       = strtolower($name);
@@ -14,19 +14,19 @@ class CakePHP extends Standard
         return implode('_', $pieces);
     }
     
-    public function foreignFromTable($name)
+    public function remoteIdentifier($name)
     {
         return $this->pluralToSingular($name) . '_id';
     }
 
-    public function tableFromForeignColumn($name)
+    public function remoteFromIdentifier($name)
     {
-        if ($this->isForeignColumn($name)) {
+        if ($this->isRemoteIdentifier($name)) {
             return $this->singularToPlural(substr($name, 0, -3));
         }
     }
 
-    public function tableToEntity($name)
+    public function styledName($name)
     {
         $pieces     = explode('_', $name);
         $pieces[]   = $this->pluralToSingular(array_pop($pieces));
@@ -34,7 +34,7 @@ class CakePHP extends Standard
         return ucfirst($name);
     }
 
-    public function manyFromLeftRight($left, $right)
+    public function composed($left, $right)
     {
         $pieces     = explode('_', $right);
         $pieces[]   = $this->singularToPlural(array_pop($pieces));

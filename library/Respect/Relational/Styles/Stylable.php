@@ -5,23 +5,23 @@ namespace Respect\Relational\Styles;
 interface Stylable
 {
 
-    function tableToEntity($name);
+    function styledName($entityName);
 
-    function entityToTable($name);
+    function realName($styledName);
 
-    function columnToProperty($name);
+    function styledProperty($name);
 
-    function propertyToColumn($name);
+    function realProperty($name);
 
-    function primaryFromTable($name);
+    function identifier($name);
 
-    function foreignFromTable($name);
+    function remoteIdentifier($name);
 
-    function tableFromForeignColumn($name);
+    function remoteFromIdentifier($name);
     
-    function isForeignColumn($name);
+    function isRemoteIdentifier($name);
 
-    function manyFromLeftRight($left, $right);
+    function composed($left, $right);
 
 }
 

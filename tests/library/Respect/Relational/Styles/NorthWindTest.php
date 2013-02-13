@@ -196,8 +196,8 @@ class NorthWindTest extends \PHPUnit_Framework_TestCase
      */
     public function test_table_and_entities_methods($table, $entity)
     {
-        $this->assertEquals($entity, $this->style->tableToEntity($table));
-        $this->assertEquals($table, $this->style->entityToTable($entity));
+        $this->assertEquals($entity, $this->style->styledName($table));
+        $this->assertEquals($table, $this->style->realName($entity));
     }
 
     /**
@@ -205,10 +205,10 @@ class NorthWindTest extends \PHPUnit_Framework_TestCase
      */
     public function test_columns_and_properties_methods($column)
     {
-        $this->assertEquals($column, $this->style->columnToProperty($column));
-        $this->assertEquals($column, $this->style->propertyToColumn($column));
-        $this->assertFalse($this->style->isForeignColumn($column));
-        $this->assertNull($this->style->tableFromForeignColumn($column));
+        $this->assertEquals($column, $this->style->styledProperty($column));
+        $this->assertEquals($column, $this->style->realProperty($column));
+        $this->assertFalse($this->style->isRemoteIdentifier($column));
+        $this->assertNull($this->style->remoteFromIdentifier($column));
     }
 
     /**
@@ -216,7 +216,7 @@ class NorthWindTest extends \PHPUnit_Framework_TestCase
      */
     public function test_table_from_left_right_table($left, $right, $table)
     {
-        $this->assertEquals($table, $this->style->manyFromLeftRight($left, $right));
+        $this->assertEquals($table, $this->style->composed($left, $right));
     }
     
     /**
@@ -224,10 +224,10 @@ class NorthWindTest extends \PHPUnit_Framework_TestCase
      */
     public function test_keys($table, $foreign)
     {
-        $this->assertTrue($this->style->isForeignColumn($foreign));
-        $this->assertEquals($table, $this->style->tableFromForeignColumn($foreign));
-        $this->assertEquals($foreign, $this->style->primaryFromTable($table));
-        $this->assertEquals($foreign, $this->style->foreignFromTable($table));
+        $this->assertTrue($this->style->isRemoteIdentifier($foreign));
+        $this->assertEquals($table, $this->style->remoteFromIdentifier($foreign));
+        $this->assertEquals($foreign, $this->style->identifier($table));
+        $this->assertEquals($foreign, $this->style->remoteIdentifier($table));
     }
 
     public function test_fetching_entity_typed()

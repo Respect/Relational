@@ -5,40 +5,40 @@ namespace Respect\Relational\Styles;
 class NorthWind extends Standard
 {
 
-    public function entityToTable($name)
+    public function realName($name)
     {
         return $name;
     }
 
-    public function tableToEntity($name)
+    public function styledName($name)
     {
         return $name;
     }
 
-    public function manyFromLeftRight($left, $right)
+    public function composed($left, $right)
     {
         $left = $this->pluralToSingular($left);
         return "{$left}{$right}";
     }
 
-    public function primaryFromTable($name)
+    public function identifier($name)
     {
         return $this->pluralToSingular($name) . 'ID';
     }
 
-    public function foreignFromTable($name)
+    public function remoteIdentifier($name)
     {
         return $this->pluralToSingular($name) . 'ID';
     }
 
-    public function isForeignColumn($name)
+    public function isRemoteIdentifier($name)
     {
         return (strlen($name) - 2 === strripos($name, 'ID'));
     }
 
-    public function tableFromForeignColumn($name)
+    public function remoteFromIdentifier($name)
     {
-        if ($this->isForeignColumn($name)) {
+        if ($this->isRemoteIdentifier($name)) {
             return $this->singularToPlural(substr($name, 0, -2));
         }
     }

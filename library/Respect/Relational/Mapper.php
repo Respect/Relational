@@ -55,7 +55,7 @@ class Mapper extends AbstractMapper implements c\Filterable, c\Mixable, c\Typabl
 
     protected function guessCondition(&$columns, $name)
     {
-        $primaryName    = $this->getStyle()->primaryFromTable($name);
+        $primaryName    = $this->getStyle()->identifier($name);
         $condition      = array($primaryName => $columns[$primaryName]);
         unset($columns[$primaryName]);
         return $condition;
@@ -123,7 +123,7 @@ class Mapper extends AbstractMapper implements c\Filterable, c\Mixable, c\Typabl
         if (!$identity)
             return false;
 
-        $primaryName = $this->getStyle()->primaryFromTable($name);
+        $primaryName = $this->getStyle()->identifier($name);
         $entity->$primaryName = $identity;
         return true;
     }
@@ -151,7 +151,7 @@ class Mapper extends AbstractMapper implements c\Filterable, c\Mixable, c\Typabl
 
     protected function extractColumns($entity, $name)
     {
-        $primaryName = $this->getStyle()->primaryFromTable($name);
+        $primaryName = $this->getStyle()->identifier($name);
         $cols = get_object_vars($entity);
 
         foreach ($cols as &$c)
@@ -171,7 +171,7 @@ class Mapper extends AbstractMapper implements c\Filterable, c\Mixable, c\Typabl
                         $selectTable[] = "{$tableSpecifier}_mix{$mixin}.$col";
                     }
                         $selectTable[] = "{$tableSpecifier}_mix{$mixin}." . 
-                        $this->getStyle()->primaryFromTable($mixin) . 
+                        $this->getStyle()->identifier($mixin) . 
                         " as {$mixin}_id";
                 }
             }
@@ -180,14 +180,14 @@ class Mapper extends AbstractMapper implements c\Filterable, c\Mixable, c\Typabl
                 if ($filters) {
                     
                     $pkName = $tableSpecifier . '.' .
-                        $this->getStyle()->primaryFromTable($c->getName());
+                        $this->getStyle()->identifier($c->getName());
                         
                     if ($filters == array('*')) {
                         $selectColumns[] = $pkName;
                     } else {
                         $selectColumns = array(
                             $tableSpecifier . '.' .
-                            $this->getStyle()->primaryFromTable($c->getName())
+                            $this->getStyle()->identifier($c->getName())
                         );
                         foreach ($filters as $f) {
                             $selectColumns[] = "{$tableSpecifier}.{$f}";
@@ -196,7 +196,7 @@ class Mapper extends AbstractMapper implements c\Filterable, c\Mixable, c\Typabl
                     
                     if ($c->getNext()) {
                         $selectColumns[] = $tableSpecifier . '.' . 
-                            $this->getStyle()->foreignFromTable(
+                            $this->getStyle()->remoteIdentifier(
                                 $c->getNext()->getName()
                             );
                     }
@@ -226,7 +226,7 @@ class Mapper extends AbstractMapper implements c\Filterable, c\Mixable, c\Typabl
         $entity = $collection->getName();
         $originalConditions = $collection->getCondition();
         $parsedConditions = array();
-        $aliasedPk = $alias . '.' . $this->getStyle()->primaryFromTable($entity);
+        $aliasedPk = $alias . '.' . $this->getStyle()->identifier($entity);
 
         if (is_scalar($originalConditions))
             $parsedConditions = array($aliasedPk => $originalConditions);
@@ -276,20 +276,20 @@ class Mapper extends AbstractMapper implements c\Filterable, c\Mixable, c\Typabl
             $sql->as($alias);
             
         
-        $aliasedPk = $alias . '.' . $this->getStyle()->primaryFromTable($entity);
-        $aliasedParentPk = $parentAlias . '.' . $this->getStyle()->primaryFromTable($parent);
+        $aliasedPk = $alias . '.' . $this->getStyle()->identifier($entity);
+        $aliasedParentPk = $parentAlias . '.' . $this->getStyle()->identifier($parent);
 
-        if ($entity === $this->getStyle()->manyFromLeftRight($parent, $next)
-                || $entity === $this->getStyle()->manyFromLeftRight($next, $parent))
+        if ($entity === $this->getStyle()->composed($parent, $next)
+                || $entity === $this->getStyle()->composed($next, $parent))
             return $sql->on(
                 array(
-                    $alias . '.' . $this->getStyle()->foreignFromTable($parent) => $aliasedParentPk
+                    $alias . '.' . $this->getStyle()->remoteIdentifier($parent) => $aliasedParentPk
                 )
             );
         else
             return $sql->on(
                 array(
-                    $parentAlias . '.' . $this->getStyle()->foreignFromTable($entity) => $aliasedPk
+                    $parentAlias . '.' . $this->getStyle()->remoteIdentifier($entity) => $aliasedPk
                 )
             );
     }
@@ -298,9 +298,9 @@ class Mapper extends AbstractMapper implements c\Filterable, c\Mixable, c\Typabl
     {
         $name = $collection->getName();
         $entityName = $name;
-        $primaryName = $this->getStyle()->primaryFromTable($name);
+        $primaryName = $this->getStyle()->identifier($name);
         if (!$this->typable($collection)) {
-            $entityClass = $this->entityNamespace . $this->getStyle()->tableToEntity($entityName);
+            $entityClass = $this->entityNamespace . $this->getStyle()->styledName($entityName);
             $entityClass = class_exists($entityClass) ? $entityClass : '\stdClass';
         } else {
             $entityClass = '\stdClass';
@@ -314,7 +314,7 @@ class Mapper extends AbstractMapper implements c\Filterable, c\Mixable, c\Typabl
             
         if ($this->typable($collection)) {
             $entityName = $row->{$this->getType($collection)};
-            $entityClass = $this->entityNamespace . $this->getStyle()->tableToEntity($entityName);
+            $entityClass = $this->entityNamespace . $this->getStyle()->styledName($entityName);
             $entityClass = class_exists($entityClass) ? $entityClass : '\stdClass';
             $newRow = new $entityClass;
             foreach ($row as $prop => $value) {
@@ -349,7 +349,7 @@ class Mapper extends AbstractMapper implements c\Filterable, c\Mixable, c\Typabl
                 }
             }
             $tableName = $c->getName();
-            $entityName = $this->getStyle()->tableToEntity($tableName);
+            $entityName = $this->getStyle()->styledName($tableName);
             if (!$this->typable($c)) {
                 $entityClass = $this->entityNamespace . $entityName;
                 $entityClass = class_exists($entityClass) ? $entityClass : 'stdClass';
@@ -376,7 +376,7 @@ class Mapper extends AbstractMapper implements c\Filterable, c\Mixable, c\Typabl
             $columnMeta = $statement->getColumnMeta($col);
             $columnName = $columnMeta['name'];
             $setterName = $this->getSetterStyle($columnName);
-            $primaryName = $this->getStyle()->primaryFromTable($entityData->getName());
+            $primaryName = $this->getStyle()->identifier($entityData->getName());
             
             if (method_exists($entityInstance, $setterName))
                 $entityInstance->$setterName($value);
@@ -392,12 +392,12 @@ class Mapper extends AbstractMapper implements c\Filterable, c\Mixable, c\Typabl
 
         foreach ($entities as $instance) {
             foreach ($instance as $field => &$v) {
-                if ($this->getStyle()->isForeignColumn($field)) {
+                if ($this->getStyle()->isRemoteIdentifier($field)) {
                     foreach ($entitiesClone as $sub) {
                         $tableName = $entities[$sub]->getName();
-                        $primaryName = $this->getStyle()->primaryFromTable($tableName);
+                        $primaryName = $this->getStyle()->identifier($tableName);
                         
-                        if ($tableName === $this->getStyle()->tableFromForeignColumn($field)
+                        if ($tableName === $this->getStyle()->remoteFromIdentifier($field)
                                 && $sub->{$primaryName} === $v) {
                             $v = $sub;
                         }
@@ -411,7 +411,7 @@ class Mapper extends AbstractMapper implements c\Filterable, c\Mixable, c\Typabl
 
     protected function getSetterStyle($name)
     {
-        $name = ucfirst(str_replace('_', '', $this->getStyle()->columnToProperty($name)));
+        $name = ucfirst(str_replace('_', '', $this->getStyle()->styledProperty($name)));
         return "set{$name}";
     }
 
