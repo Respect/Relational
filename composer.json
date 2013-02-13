@@ -37,7 +37,7 @@
         }
     ],
     "require": {
-        "Respect/Data": "dev-*"
+        "Respect/Data": "dev-develop"
     },
     "autoload": {
         "psr-0": {
