@@ -1,18 +1,18 @@
 <?php
 
-namespace Respect\Relational\Styles\Sakila;
+namespace Respect\Data\Styles\Sakila;
 
 use PDO,
     Respect\Relational\Db,
     Respect\Relational\Sql,
-    Respect\Relational\Styles\Sakila,
+    Respect\Data\Styles\Sakila,
     Respect\Relational\Mapper;
 
 class SakilaTest extends \PHPUnit_Framework_TestCase
 {
 
     /**
-     * @var Respect\Relational\Styles\Sakila
+     * @var Respect\Data\Styles\Sakila
      */
     private $style;
 

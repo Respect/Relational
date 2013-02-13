@@ -6,6 +6,7 @@ use PDO;
 use Respect\Data\Collections\Filtered;
 use Respect\Data\Collections\Mixed;
 use Respect\Data\Collections\Typed;
+use Respect\Data\Styles;
 
 class MapperTest extends \PHPUnit_Framework_TestCase {
 
@@ -490,8 +491,8 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
 
     public function test_style()
     {
-        $this->assertInstanceOf('Respect\Relational\Styles\Stylable', $this->mapper->getStyle());
-        $this->assertInstanceOf('Respect\Relational\Styles\Standard', $this->mapper->getStyle());
+        $this->assertInstanceOf('Respect\Data\Styles\Stylable', $this->mapper->getStyle());
+        $this->assertInstanceOf('Respect\Data\Styles\Standard', $this->mapper->getStyle());
         $styles = array(
             new Styles\CakePHP(),
             new Styles\NorthWind(),

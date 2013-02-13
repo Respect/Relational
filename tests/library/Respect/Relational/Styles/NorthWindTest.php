@@ -1,18 +1,18 @@
 <?php
 
-namespace Respect\Relational\Styles\NorthWind;
+namespace Respect\Data\Styles\NorthWind;
 
 use PDO,
     Respect\Relational\Db,
     Respect\Relational\Sql,
-    Respect\Relational\Styles\NorthWind,
+    Respect\Data\Styles\NorthWind,
     Respect\Relational\Mapper;
 
 class NorthWindTest extends \PHPUnit_Framework_TestCase
 {
 
     /**
-     * @var Respect\Relational\Styles\NorthWind
+     * @var Respect\Data\Styles\NorthWind
      */
     private $style;
 

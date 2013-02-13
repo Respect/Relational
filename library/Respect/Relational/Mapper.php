@@ -17,7 +17,6 @@ use Respect\Data\CollectionIterator;
 class Mapper extends AbstractMapper implements c\Filterable, c\Mixable, c\Typable
 {
     protected $db;
-    protected $style;
     public $entityNamespace = '\\';
 
     public function __construct($db)
@@ -415,26 +414,6 @@ class Mapper extends AbstractMapper implements c\Filterable, c\Mixable, c\Typabl
         return "set{$name}";
     }
 
-    /**
-     * @return  Respect\Relational\Styles\Stylable
-     */
-    public function getStyle()
-    {
-        if (null === $this->style) {
-            $this->setStyle(new Styles\Standard());
-        }
-        return $this->style;
-    }
-
-    /**
-     * @param   Respect\Relational\Styles$style
-     * @return  Respect\Data\AbstractMapper
-     */
-    public function setStyle(Styles\Stylable $style)
-    {
-        $this->style = $style;
-        return $this;
-    }
     
     public function getFilters(Collection $collection)
     {

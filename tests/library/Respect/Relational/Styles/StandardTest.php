@@ -1,12 +1,12 @@
 <?php
 
-namespace Respect\Relational\Styles;
+namespace Respect\Data\Styles;
 
 class StandardTest extends \PHPUnit_Framework_TestCase
 {
 
     /**
-     * @var Respect\Relational\Styles\Standard
+     * @var Respect\Data\Styles\Standard
      */
     private $style;
 

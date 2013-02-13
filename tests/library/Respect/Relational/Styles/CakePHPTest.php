@@ -1,18 +1,18 @@
 <?php
 
-namespace Respect\Relational\Styles\CakePHP;
+namespace Respect\Data\Styles\CakePHP;
 
 use PDO,
     Respect\Relational\Db,
     Respect\Relational\Sql,
-    Respect\Relational\Styles\CakePHP,
+    Respect\Data\Styles\CakePHP,
     Respect\Relational\Mapper;
 
 class CakePHPTest extends \PHPUnit_Framework_TestCase
 {
 
     /**
-     * @var Respect\Relational\Styles\CakePHP
+     * @var Respect\Data\Styles\CakePHP
      */
     private $style;
 

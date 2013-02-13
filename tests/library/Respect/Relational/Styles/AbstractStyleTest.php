@@ -1,12 +1,12 @@
 <?php
 
-namespace Respect\Relational\Styles;
+namespace Respect\Data\Styles;
 
 class AbstractStyleTest extends \PHPUnit_Framework_TestCase
 {
 
     /**
-     * @var Respect\Relational\Styles\AbstractStyle
+     * @var Respect\Data\Styles\AbstractStyle
      */
     private $style;
 
@@ -33,7 +33,7 @@ class AbstractStyleTest extends \PHPUnit_Framework_TestCase
 
     public function setUp()
     {
-        $this->style = $this->getMockForAbstractClass('\Respect\Relational\Styles\AbstractStyle');
+        $this->style = $this->getMockForAbstractClass('\Respect\Data\Styles\AbstractStyle');
     }
 
     public function tearDown()
