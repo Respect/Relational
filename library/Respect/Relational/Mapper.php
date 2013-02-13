@@ -62,6 +62,8 @@ class Mapper extends AbstractMapper implements
             $this->extractColumns($entity, $coll)
         );
         
+        $primary = $this->getStyle()->identifier($coll->getName());
+        
         if ($this->removed->contains($entity)) {
             $this->rawDelete($cols, $coll, $entity);
         } elseif ($this->new->contains($entity)) {

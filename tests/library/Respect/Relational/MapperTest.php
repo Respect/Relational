@@ -589,16 +589,20 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals('John', $result->name);
     }
     
-    public function test_nested_collections_should_hydrate_results_filtered_multi() {
+    public function test_multiple_filtered_collections_dont_persist() {
         $mapper = $this->mapper;
         $mapper->authorsWithPosts = Filtered::comment()->post->stack(Filtered::author());
         $post = $mapper->authorsWithPosts->fetch();
         $this->assertEquals((object) array('id' => '5', 'author_id' => 1, 'text' => 'Post Text', 'title' => 'Post Title'), $post);
         $post->title = 'Title Changed';
+        $post->author_id = $mapper->author[1]->fetch();
+        $post->author_id->name = 'A';
         $mapper->postsFromAuthorsWithComments->persist($post);
         $mapper->flush();
         $result = $this->conn->query('select title from post where id=5')->fetch(PDO::FETCH_OBJ);
         $this->assertEquals('Title Changed', $result->title);
+        $result = $this->conn->query('select name from author where id=1')->fetch(PDO::FETCH_OBJ);
+        $this->assertNotEquals('A', $result->name);
     }
     
     public function test_nested_collections_should_hydrate_results_filtered_multi_all() {
