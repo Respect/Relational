@@ -16,64 +16,117 @@ use Respect\Data\CollectionIterator;
 
 class Mapper extends AbstractMapper implements c\Filterable, c\Mixable, c\Typable
 {
+    /** @var Respect\Relational\Db Holds our connector**/
     protected $db;
+    
+    /** @var string Namespace to look for entities **/
     public $entityNamespace = '\\';
 
+    /**
+     * @param mixed $db Respect\Relational\Db or Pdo
+     */
     public function __construct($db)
     {
         parent::__construct();
-        if ($db instanceof PDO)
-            $this->db = new Db($db);
-        elseif ($db instanceof Db)        
-            $this->db = $db;
-        else
-            throw new InvalidArgumentException('$db must be either an instance of Respect\Relational\Db or a PDO instance.');
-    }
-
-    protected function flushSingle($entity)
-    {
-        $name = $this->tracked[$entity]->getName();
-        $cols = $this->extractColumns($entity, $name);
         
-        if ($this->removed->contains($entity)) {
-            $this->rawDelete($cols, $name, $entity);
-        } elseif ($this->new->contains($entity)) {
-            $this->rawInsert($cols, $name, $entity);
+        if ($db instanceof PDO) {
+            $this->db = new Db($db);
+        } elseif ($db instanceof Db) {
+            $this->db = $db;
         } else {
-            if ($this->mixable($this->tracked[$entity])) {
-                foreach ($this->getMixins($this->tracked[$entity]) as $mix => $spec) {
-                    $mixCols = array_intersect_key($cols, array_combine($spec, array_fill(0, count($spec), '')));
-                    $mixCols['id'] = $cols["{$mix}_id"];
-                    $cols = array_diff($cols, $mixCols);
-                    $this->rawUpdate($mixCols, $mix);
-                }
-            }
-            $this->rawUpdate($cols, $name);
+            throw new InvalidArgumentException(
+                '$db must be an instance of Respect\Relational\Db or PDO.'
+            );
         }
     }
 
-    protected function guessCondition(&$columns, $name)
+    /**
+     * Flushes a single instance into the database. This method supports
+     * mixing, so flushing a mixed instance will flush distinct tables on the
+     * database
+     *
+     * @param object $entity Entity instance to be flushed
+     *
+     * @return null
+     */
+    protected function flushSingle($entity)
     {
-        $primaryName    = $this->getStyle()->identifier($name);
+        $coll = $this->tracked[$entity];
+        
+        $cols = $this->extractAndUpdateMixins(
+            $coll, 
+            $this->extractColumns($entity, $coll)
+        );
+        
+        if ($this->removed->contains($entity)) {
+            $this->rawDelete($cols, $coll, $entity);
+        } elseif ($this->new->contains($entity)) {
+            $this->rawInsert($cols, $coll, $entity);
+        } else {
+            $this->rawUpdate($cols, $coll);
+        }
+    }
+    
+    /**
+     * Receives columns from an entity and her collection. Returns the columns
+     * that belong only to the main entity. This method supports mixing, so
+     * extracting mixins will also persist them on their respective
+     * tables
+     *
+     * @param Respect\Data\Collections\Collection $collection Target collection
+     * @param array                               $cols       Entity columns
+     *
+     * @return array Columns left for the main collection
+     */
+    protected function extractAndUpdateMixins(Collection $collection, $cols)
+    {
+        if (!$this->mixable($collection)) {
+            return $cols;
+        }
+            
+        foreach ($this->getMixins($collection) as $mix => $spec) {
+            //Extract from $cols only the columns from the mixin
+            $mixCols = array_intersect_key(
+                $cols,
+                array_combine( //create array with keys only
+                    $spec, 
+                    array_fill(0, count($spec), '')
+                )
+            );
+            if (isset($cols["{$mix}_id"])) {
+                $mixCols['id'] = $cols["{$mix}_id"];
+                $cols = array_diff($cols, $mixCols); //Remove mixin columns
+                $this->rawUpdate($mixCols, $this->__get($mix));
+            }
+        }
+        
+        return $cols;
+    }
+
+    protected function guessCondition(&$columns, Collection $collection)
+    {
+        $primaryName    = $this->getStyle()->identifier($collection->getName());
         $condition      = array($primaryName => $columns[$primaryName]);
         unset($columns[$primaryName]);
         return $condition;
     }
 
-    protected function rawDelete(array $condition, $name, $entity)
+    protected function rawDelete(array $condition, Collection $collection, $entity)
     {
-        $columns = $this->extractColumns($entity, $name);
-        $condition = $this->guessCondition($columns, $name);
+        $name      = $collection->getName();
+        $columns   = $this->extractColumns($entity, $collection);
+        $condition = $this->guessCondition($columns, $collection);
 
         return $this->db
-                        ->deleteFrom($name)
-                        ->where($condition)
-                        ->exec();
+                    ->deleteFrom($name)
+                    ->where($condition)
+                    ->exec();
     }
 
-    protected function rawUpdate(array $columns, $name)
+    protected function rawUpdate(array $columns, Collection $collection)
     {
-        $condition = $this->guessCondition($columns, $name);
+        $name      = $collection->getName();
+        $condition = $this->guessCondition($columns, $collection);
 
         return $this->db
                     ->update($name)
@@ -82,15 +135,16 @@ class Mapper extends AbstractMapper implements c\Filterable, c\Mixable, c\Typabl
                     ->exec();
     }
 
-    protected function rawInsert(array $columns, $name, $entity = null)
+    protected function rawInsert(array $columns, Collection $collection, $entity = null)
     {
+        $name       = $collection->getName();
         $isInserted = $this->db
                             ->insertInto($name, $columns)
                             ->values($columns)
                             ->exec();
 
         if (!is_null($entity))
-            $this->checkNewIdentity($entity, $name);
+            $this->checkNewIdentity($entity, $collection);
 
         return $isInserted;
     }
@@ -110,7 +164,7 @@ class Mapper extends AbstractMapper implements c\Filterable, c\Mixable, c\Typabl
         $conn->commit();
     }
 
-    protected function checkNewIdentity($entity, $name)
+    protected function checkNewIdentity($entity, Collection $collection)
     {
         $identity = null;
         try {
@@ -122,7 +176,7 @@ class Mapper extends AbstractMapper implements c\Filterable, c\Mixable, c\Typabl
         if (!$identity)
             return false;
 
-        $primaryName = $this->getStyle()->identifier($name);
+        $primaryName = $this->getStyle()->identifier($collection->getName());
         $entity->$primaryName = $identity;
         return true;
     }
@@ -148,9 +202,9 @@ class Mapper extends AbstractMapper implements c\Filterable, c\Mixable, c\Typabl
         return $sql;
     }
 
-    protected function extractColumns($entity, $name)
+    protected function extractColumns($entity, Collection $collection)
     {
-        $primaryName = $this->getStyle()->identifier($name);
+        $primaryName = $this->getStyle()->identifier($collection->getName());
         $cols = get_object_vars($entity);
 
         foreach ($cols as &$c)
