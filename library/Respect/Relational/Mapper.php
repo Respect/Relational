@@ -100,11 +100,13 @@ class Mapper extends AbstractMapper
         } elseif ($this->new->contains($entity)) {
             $this->rawInsert($cols, $name, $entity);
         } else {
-            foreach ($this->tracked[$entity]['mixins'] as $mix => $spec) {
-                $mixCols = array_intersect_key($cols, array_combine($spec, array_fill(0, count($spec), '')));
-                $mixCols['id'] = $cols["{$mix}_id"];
-                $cols = array_diff($cols, $mixCols);
-                $this->rawUpdate($mixCols, $mix);
+            if (isset($this->tracked[$entity]['mixins'])) {
+                foreach ($this->tracked[$entity]['mixins'] as $mix => $spec) {
+                    $mixCols = array_intersect_key($cols, array_combine($spec, array_fill(0, count($spec), '')));
+                    $mixCols['id'] = $cols["{$mix}_id"];
+                    $cols = array_diff($cols, $mixCols);
+                    $this->rawUpdate($mixCols, $mix);
+                }
             }
             $this->rawUpdate($cols, $name);
         }
