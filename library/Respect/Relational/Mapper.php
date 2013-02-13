@@ -11,9 +11,10 @@ use PDOException;
 use stdClass;
 use Respect\Data\AbstractMapper;
 use Respect\Data\Collections\Collection;
+use Respect\Data\Collections as c;
 use Respect\Data\CollectionIterator;
 
-class Mapper extends AbstractMapper
+class Mapper extends AbstractMapper implements c\Filterable, c\Mixable, c\Typable
 {
     protected $db;
     protected $style;
@@ -40,8 +41,8 @@ class Mapper extends AbstractMapper
         } elseif ($this->new->contains($entity)) {
             $this->rawInsert($cols, $name, $entity);
         } else {
-            if ($this->tracked[$entity]->have('mixins')) {
-                foreach ($this->tracked[$entity]->getExtra('mixins') as $mix => $spec) {
+            if ($this->mixable($this->tracked[$entity])) {
+                foreach ($this->getMixins($this->tracked[$entity]) as $mix => $spec) {
                     $mixCols = array_intersect_key($cols, array_combine($spec, array_fill(0, count($spec), '')));
                     $mixCols['id'] = $cols["{$mix}_id"];
                     $cols = array_diff($cols, $mixCols);
@@ -164,8 +165,8 @@ class Mapper extends AbstractMapper
     {
         $selectTable = array();
         foreach ($collections as $tableSpecifier => $c) {
-            if ($c->have('mixins')) {
-                foreach ($c->getExtra('mixins') as $mixin => $columns) {
+            if ($this->mixable($c)) {
+                foreach ($this->getMixins($c) as $mixin => $columns) {
                     foreach ($columns as $col) {
                         $selectTable[] = "{$tableSpecifier}_mix{$mixin}.$col";
                     }
@@ -174,8 +175,8 @@ class Mapper extends AbstractMapper
                         " as {$mixin}_id";
                 }
             }
-            if ($c->have('filters')) {
-                $filters = $c->getExtra('filters');
+            if ($this->filterable($c)) {
+                $filters = $this->getFilters($c);
                 if ($filters) {
                     
                     $pkName = $tableSpecifier . '.' .
@@ -256,8 +257,8 @@ class Mapper extends AbstractMapper
         if (is_null($parentAlias)) 
             $sql->from($entity);
         
-        if ($collection->have('mixins')) {
-            foreach ($collection->getExtra('mixins') as $mix => $spec) {
+        if ($this->mixable($collection)) {
+            foreach ($this->getMixins($collection) as $mix => $spec) {
                 $sql->innerJoin($mix);
                 $sql->as("{$entity}_mix{$mix}");
             }
@@ -298,7 +299,7 @@ class Mapper extends AbstractMapper
         $name = $collection->getName();
         $entityName = $name;
         $primaryName = $this->getStyle()->primaryFromTable($name);
-        if (!$collection->have('type')) {
+        if (!$this->typable($collection)) {
             $entityClass = $this->entityNamespace . $this->getStyle()->tableToEntity($entityName);
             $entityClass = class_exists($entityClass) ? $entityClass : '\stdClass';
         } else {
@@ -311,8 +312,8 @@ class Mapper extends AbstractMapper
         if (!$row)
             return false;
             
-        if ($collection->have('type')) {
-            $entityName = $row->{$collection->getExtra('type')};
+        if ($this->typable($collection)) {
+            $entityName = $row->{$this->getType($collection)};
             $entityClass = $this->entityNamespace . $this->getStyle()->tableToEntity($entityName);
             $entityClass = class_exists($entityClass) ? $entityClass : '\stdClass';
             $newRow = new $entityClass;
@@ -341,15 +342,15 @@ class Mapper extends AbstractMapper
         $entitiesInstances = array();
 
         foreach (CollectionIterator::recursive($collection) as $c) {
-            if ($c->have('filters')) {
-                $filters = $c->getExtra('filters');
+            if ($this->filterable($c)) {
+                $filters = $this->getFilters($c);
                 if (!$filters) {
                     continue;
                 }
             }
             $tableName = $c->getName();
             $entityName = $this->getStyle()->tableToEntity($tableName);
-            if (!$c->have('type')) {
+            if (!$this->typable($c)) {
                 $entityClass = $this->entityNamespace . $entityName;
                 $entityClass = class_exists($entityClass) ? $entityClass : 'stdClass';
             } else {
@@ -357,8 +358,8 @@ class Mapper extends AbstractMapper
             }
             $entityInstance = new $entityClass;
             $mixins = array();
-            if ($c->have('mixins')) {
-                $mixins = $c->getExtra('mixins');
+            if ($this->mixable($c)) {
+                $mixins = $this->getMixins($c);
                 foreach ($mixins as $mix) {
                     $entitiesInstances[] = $entityInstance;
                 }
@@ -433,6 +434,31 @@ class Mapper extends AbstractMapper
     {
         $this->style = $style;
         return $this;
+    }
+    
+    public function getFilters(Collection $collection)
+    {
+        return $collection->getExtra('filters');
+    }
+    public function getMixins(Collection $collection)
+    {
+        return $collection->getExtra('mixins');
+    }
+    public function getType(Collection $collection)
+    {
+        return $collection->getExtra('type');
+    }
+    public function mixable(Collection $collection)
+    {
+        return $collection->have('mixins');
+    }
+    public function typable(Collection $collection)
+    {
+        return $collection->have('type');
+    }
+    public function filterable(Collection $collection)
+    {
+        return $collection->have('filters');
     }
     
 }
