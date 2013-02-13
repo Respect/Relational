@@ -94,13 +94,20 @@ class Mapper extends AbstractMapper
     {
         $name = $this->tracked[$entity]['table_name'];
         $cols = $this->extractColumns($entity, $name);
-
-        if ($this->removed->contains($entity))
+        
+        if ($this->removed->contains($entity)) {
             $this->rawDelete($cols, $name, $entity);
-        elseif ($this->new->contains($entity))
+        } elseif ($this->new->contains($entity)) {
             $this->rawInsert($cols, $name, $entity);
-        else
+        } else {
+            foreach ($this->tracked[$entity]['mixins'] as $mix => $spec) {
+                $mixCols = array_intersect_key($cols, array_combine($spec, array_fill(0, count($spec), '')));
+                $mixCols['id'] = $cols["{$mix}_id"];
+                $cols = array_diff($cols, $mixCols);
+                $this->rawUpdate($mixCols, $mix);
+            }
             $this->rawUpdate($cols, $name);
+        }
     }
 
     public function remove($object, Collection $fromCollection)
@@ -184,7 +191,6 @@ class Mapper extends AbstractMapper
             'table_name' => $name,
             'entity_class' => $this->getStyle()->tableToEntity($name),
             'pk_'.$primaryName => &$id,
-            'cols' => $this->extractColumns($entity, $name)
         );
         return true;
     }
@@ -255,6 +261,9 @@ class Mapper extends AbstractMapper
                     foreach ($columns as $col) {
                         $selectTable[] = "{$tableSpecifier}_mix{$mixin}.$col";
                     }
+                        $selectTable[] = "{$tableSpecifier}_mix{$mixin}." . 
+                        $this->getStyle()->primaryFromTable($mixin) . 
+                        " as {$mixin}_id";
                 }
             }
             if ($c->have('filters')) {
@@ -418,8 +427,7 @@ class Mapper extends AbstractMapper
             'name' => $entityName,
             'table_name' => $name,
             'entity_class' => $entityClass,
-            'pk_'.$primaryName => $row->{$primaryName},
-            'cols' => $this->extractColumns($row, $name)
+            'pk_'.$primaryName => $row->{$primaryName}
         );
 
         return $entities;
@@ -454,18 +462,20 @@ class Mapper extends AbstractMapper
                 $entityClass = 'stdClass';
             }
             $entityInstance = new $entityClass;
+            $mixins = array();
+            if ($c->have('mixins')) {
+                $mixins = $c->getExtra('mixins');
+                foreach ($mixins as $mix) {
+                    $entitiesInstances[] = $entityInstance;
+                }
+            }
             $entities[$entityInstance] = array(
                 'name' => $tableName,
                 'table_name' => $tableName,
                 'entity_class' => $entityClass,
                 'primary_name' => $primaryName,
-                'cols' => array()
+                'mixins' => $mixins
             );
-            if ($c->have('mixins')) {
-                foreach ($c->getExtra('mixins') as $mix) {
-                    $entitiesInstances[] = $entityInstance;
-                }
-            }
             $entitiesInstances[] = $entityInstance;
         }
 
