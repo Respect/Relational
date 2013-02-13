@@ -92,7 +92,7 @@ class Mapper extends AbstractMapper
 
     protected function flushSingle($entity)
     {
-        $name = $this->tracked[$entity]['name'];
+        $name = $this->tracked[$entity]->getName();
         $cols = $this->extractColumns($entity, $name);
         
         if ($this->removed->contains($entity)) {
@@ -100,8 +100,8 @@ class Mapper extends AbstractMapper
         } elseif ($this->new->contains($entity)) {
             $this->rawInsert($cols, $name, $entity);
         } else {
-            if (isset($this->tracked[$entity]['mixins'])) {
-                foreach ($this->tracked[$entity]['mixins'] as $mix => $spec) {
+            if ($this->tracked[$entity]->have('mixins')) {
+                foreach ($this->tracked[$entity]->getExtra('mixins') as $mix => $spec) {
                     $mixCols = array_intersect_key($cols, array_combine($spec, array_fill(0, count($spec), '')));
                     $mixCols['id'] = $cols["{$mix}_id"];
                     $cols = array_diff($cols, $mixCols);
@@ -188,10 +188,8 @@ class Mapper extends AbstractMapper
     {
         $primaryName = $this->getStyle()->primaryFromTable($name);
         $id = $entity->{$primaryName};
-        $this->tracked[$entity] = array(
-            'name' => $name,
-            'pk_'.$primaryName => &$id,
-        );
+        $collection = $this->__get($name);
+        $this->tracked[$entity] = $collection;
         return true;
     }
 
@@ -205,7 +203,6 @@ class Mapper extends AbstractMapper
         $query = $this->generateQuery($collection);
         if ($sqlExtra)
             $query->appendQuery($sqlExtra);
-            
         $statement = $this->db->prepare((string) $query, PDO::FETCH_NUM);
         $statement->execute($query->getParams());
         return $statement;
@@ -412,9 +409,7 @@ class Mapper extends AbstractMapper
         }
 
         $entities = new SplObjectStorage();
-        $entities[$row] = array(
-            'name' => $name
-        );
+        $entities[$row] = $collection;
 
         return $entities;
     }
@@ -454,31 +449,29 @@ class Mapper extends AbstractMapper
                     $entitiesInstances[] = $entityInstance;
                 }
             }
-            $entities[$entityInstance] = array(
-                'name' => $tableName,
-                'mixins' => $mixins
-            );
+            $entities[$entityInstance] = $c;
             $entitiesInstances[] = $entityInstance;
         }
 
         $entityInstance = array_pop($entitiesInstances);
-
+        
         //Reversely traverses the columns to avoid conflicting foreign key names
         foreach (array_reverse($row, true) as $col => $value) {
             $entityData = $entities[$entityInstance];
             $columnMeta = $statement->getColumnMeta($col);
             $columnName = $columnMeta['name'];
             $setterName = $this->getSetterStyle($columnName);
-            if (in_array($setterName, get_class_methods($entityInstance)))
+            $primaryName = $this->getStyle()->primaryFromTable($entityData->getName());
+            
+            if (method_exists($entityInstance, $setterName))
                 $entityInstance->$setterName($value);
             else
                 $entityInstance->$columnName = $value;
-                $primaryName = $this->getStyle()->primaryFromTable($entityData['name']);
-
+                
             if ($primaryName == $columnName) 
                 $entityInstance = array_pop($entitiesInstances);
-
         }
+        
 
         $entitiesClone = clone $entities;
 
@@ -486,9 +479,10 @@ class Mapper extends AbstractMapper
             foreach ($instance as $field => &$v) {
                 if ($this->getStyle()->isForeignColumn($field)) {
                     foreach ($entitiesClone as $sub) {
-                        $tableName = $entities[$sub]['name'];
-                        $primaryName = $this->getStyle()->primaryFromTable($entities[$sub]['name']);
-                        if ($entities[$sub]['name'] === $this->getStyle()->tableFromForeignColumn($field)
+                        $tableName = $entities[$sub]->getName();
+                        $primaryName = $this->getStyle()->primaryFromTable($tableName);
+                        
+                        if ($tableName === $this->getStyle()->tableFromForeignColumn($field)
                                 && $sub->{$primaryName} === $v) {
                             $v = $sub;
                         }
