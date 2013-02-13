@@ -4,6 +4,8 @@ namespace Respect\Relational;
 
 use PDO;
 use Respect\Data\Collections\Filtered;
+use Respect\Data\Collections\Mixed;
+use Respect\Data\Collections\Typed;
 
 class MapperTest extends \PHPUnit_Framework_TestCase {
 
@@ -37,6 +39,11 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
                     'id INTEGER PRIMARY KEY',
                     'post_id INTEGER',
                     'category_id INTEGER'
+                )));
+        $conn->exec((string) Sql::createTable('issues', array(
+                    'id INTEGER PRIMARY KEY',
+                    'type VARCHAR(255)',
+                    'title VARCHAR(22)'
                 )));
         $this->posts = array(
             (object) array(
@@ -85,6 +92,18 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
                 'category_id' => 2
             )
         );
+        $this->issues = array(
+            (object) array(
+                'id' => 1,
+                'type' => 'bug',
+                'title' => 'Bug 1'
+            ),
+            (object) array(
+                'id' => 2,
+                'type' => 'improvement',
+                'title' => 'Improvement 1'
+            )
+        );
 
         foreach ($this->authors as $author)
             $db->insertInto('author', (array) $author)->values((array) $author)->exec();
@@ -100,6 +119,9 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
 
         foreach ($this->postsCategories as $postCategory)
             $db->insertInto('post_category', (array) $postCategory)->values((array) $postCategory)->exec();
+            
+        foreach ($this->issues as $issue)
+            $db->insertInto('issues', (array) $issue)->values((array) $issue)->exec();
 
         $mapper = new Mapper($conn);
         $this->mapper = $mapper;
@@ -548,7 +570,36 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals((object) array('id' => '5', 'author_id' => $post->author_id), $post);
         $this->assertEquals((object) array('name' => 'Author 1', 'id' => 1), $post->author_id);
     }
+    public function test_mixins() {
+        $mapper = $this->mapper;
+        $mapper->postComment = Mixed::with('comment')->post()->author();
+        $post = $mapper->postComment->fetch();
+        $this->assertEquals((object) array('name' => 'Author 1', 'id' => 1), $post->author_id);
+        $this->assertEquals((object) array('id' => '7', 'author_id' => $post->author_id, 'text' => 'Comment Text', 'title' => 'Post Title', 'datetime' => '2012-06-19 00:35:42', 'post_id' => 5), $post);
+        
+    }
+    public function test_typed() {
+        $mapper = $this->mapper;
+        $mapper->entityNamespace = '\Respect\Relational\\';
+        $mapper->typedIssues = Typed::by('type')->issues();
+        $issues = $mapper->typedIssues->fetchAll();
+        $this->assertInstanceOf('\\Respect\Relational\\Bug', $issues[0]);
+        $this->assertInstanceOf('\\Respect\Relational\\Improvement', $issues[1]);
+        $this->assertEquals((array) $this->issues[0], (array) $issues[0]);
+        $this->assertEquals((array) $this->issues[1], (array) $issues[1]);
+    }
 
+}
+
+class Postcomment {
+    public $id=null;
+}
+
+class Bug {
+    public $id=null, $title;
+}
+class Improvement {
+    public $id=null, $title;
 }
 
 class Comment {

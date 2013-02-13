@@ -250,6 +250,11 @@ class Mapper extends AbstractMapper
     {
         $selectTable = array();
         foreach ($collections as $tableSpecifier => $c) {
+            if ($c->have('mixins')) {
+                foreach ($c->getExtra('mixins') as $n => $mixin) {
+                    $selectTable[] = "{$tableSpecifier}_mix{$n}.*";
+                }
+            }
             if ($c->have('filters')) {
                 $filters = $c->getExtra('filters');
                 if ($filters) {
@@ -328,16 +333,28 @@ class Mapper extends AbstractMapper
         if (!empty($parsedConditions))
             $conditions[] = $parsedConditions;
 
-        if (is_null($parentAlias))
-            return $sql->from($entity);
-        elseif ($collection->isRequired())
+        if (is_null($parentAlias)) 
+            $sql->from($entity);
+        
+        if ($collection->have('mixins')) {
+            foreach ($collection->getExtra('mixins') as $n => $mix) {
+                $sql->innerJoin($mix);
+                $sql->as("{$entity}_mix{$n}");
+            }
+        }
+        
+        if (is_null($parentAlias)) 
+            return $sql;
+        
+        if ($collection->isRequired())
             $sql->innerJoin($entity);
         else
             $sql->leftJoin($entity);
 
         if ($alias !== $entity)
             $sql->as($alias);
-
+            
+        
         $aliasedPk = $alias . '.' . $this->getStyle()->primaryFromTable($entity);
         $aliasedParentPk = $parentAlias . '.' . $this->getStyle()->primaryFromTable($parent);
 
@@ -368,13 +385,29 @@ class Mapper extends AbstractMapper
     {
         $name = $collection->getName();
         $primaryName = $this->getStyle()->primaryFromTable($name);
-        $entityClass = $this->entityNamespace . $this->getStyle()->tableToEntity($name);
-        $entityClass = class_exists($entityClass) ? $entityClass : '\stdClass';
+        if (!$collection->have('type')) {
+            $entityClass = $this->entityNamespace . $this->getStyle()->tableToEntity($name);
+            $entityClass = class_exists($entityClass) ? $entityClass : '\stdClass';
+        } else {
+            $entityClass = '\stdClass';
+        }
         $statement->setFetchMode(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, $entityClass);
         $row = $statement->fetch();
 
+
         if (!$row)
             return false;
+            
+        if ($collection->have('type')) {
+            $name = $row->{$collection->getExtra('type')};
+            $entityClass = $this->entityNamespace . $this->getStyle()->tableToEntity($name);
+            $entityClass = class_exists($entityClass) ? $entityClass : '\stdClass';
+            $newRow = new $entityClass;
+            foreach ($row as $prop => $value) {
+                $newRow->$prop = $value;
+            }
+            $row = $newRow;
+        }
 
         $entities = new SplObjectStorage();
         $entities[$row] = array(
@@ -410,8 +443,12 @@ class Mapper extends AbstractMapper
             $tableName = $c->getName();
             $primaryName = $this->getStyle()->primaryFromTable($tableName);
             $entityName = $this->getStyle()->tableToEntity($tableName);
-            $entityClass = $this->entityNamespace . $entityName;
-            $entityClass = class_exists($entityClass) ? $entityClass : 'stdClass';
+            if (!$c->have('type')) {
+                $entityClass = $this->entityNamespace . $entityName;
+                $entityClass = class_exists($entityClass) ? $entityClass : 'stdClass';
+            } else {
+                $entityClass = 'stdClass';
+            }
             $entityInstance = new $entityClass;
             $entities[$entityInstance] = array(
                 'name' => $tableName,
@@ -420,6 +457,11 @@ class Mapper extends AbstractMapper
                 'primary_name' => $primaryName,
                 'cols' => array()
             );
+            if ($c->have('mixins')) {
+                foreach ($c->getExtra('mixins') as $mix) {
+                    $entitiesInstances[] = $entityInstance;
+                }
+            }
             $entitiesInstances[] = $entityInstance;
         }
 
