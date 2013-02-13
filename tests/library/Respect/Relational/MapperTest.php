@@ -524,14 +524,14 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
 
     public function test_feching_a_single_filtered_collection_should_not_bring_filtered_children() {
         $mapper = $this->mapper;
-        $mapper->authorsWithPosts = Filtered::post()->author;
+        $mapper->authorsWithPosts = Filtered::post()->author();
         $author = $mapper->authorsWithPosts->fetch();
         $this->assertEquals($this->authors[0], $author);
     }
     
-    public function test_feching_a_single_filtered_collection_should_not_bring_filtered_children_2() {
+    public function test_persisting_a_previously_fetched_filtered_entity_back_into_its_collection() {
         $mapper = $this->mapper;
-        $mapper->authorsWithPosts = Filtered::post()->author;
+        $mapper->authorsWithPosts = Filtered::post()->author();
         $author = $mapper->authorsWithPosts->fetch();
         $author->name = 'Author Changed';
         $mapper->authorsWithPosts->persist($author);
@@ -539,45 +539,71 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $result = $this->conn->query('select name from author where id=1')->fetch(PDO::FETCH_OBJ);
         $this->assertEquals('Author Changed', $result->name);
     }
-
-    public function test_nested_collections_should_hydrate_results_filtered_all() {
+    
+    public function test_persisting_a_previously_fetched_filtered_entity_back_into_a_foreign_compatible_collection() {
         $mapper = $this->mapper;
-        $mapper->authorsWithPosts = Filtered::post()->author;
-        $author = $mapper->authorsWithPosts->fetchAll();
-        $author = $author[0];
-        $this->assertEquals((object) array('name' => 'Author 1', 'id' => 1), $author);
+        $mapper->authorsWithPosts = Filtered::post()->author();
+        $author = $mapper->authorsWithPosts->fetch();
         $author->name = 'Author Changed';
-        $mapper->authorsWithPosts->persist($author);
+        $mapper->author->persist($author);
         $mapper->flush();
         $result = $this->conn->query('select name from author where id=1')->fetch(PDO::FETCH_OBJ);
         $this->assertEquals('Author Changed', $result->name);
     }
     
-    public function test_nested_collections_should_hydrate_results_filtered_deep() {
+    public function test_persisting_a_newly_created_filtered_entity_into_its_collection() {
         $mapper = $this->mapper;
-        $mapper->postsFromAuthorsWithComments = Filtered::comment()->post->author;
-        $post = $mapper->postsFromAuthorsWithComments->fetch();
-        $this->assertEquals((object) array('id' => '5', 'author_id' => $post->author_id, 'text' => 'Post Text', 'title' => 'Post Title'), $post);
-        $this->assertEquals((object) array('name' => 'Author 1', 'id' => 1), $post->author_id);
-        $post->title = 'Title Changed';
-        $mapper->postsFromAuthorsWithComments->persist($post);
+        $mapper->authorsWithPosts = Filtered::post()->author();
+        $author = new \stdClass;
+        $author->id = null;
+        $author->name = 'Author Changed';
+        $mapper->authorsWithPosts->persist($author);
         $mapper->flush();
-        $result = $this->conn->query('select title from post where id=5')->fetch(PDO::FETCH_OBJ);
-        $this->assertEquals('Title Changed', $result->title);
+        $result = $this->conn->query('select name from author order by id desc')->fetch(PDO::FETCH_OBJ);
+        $this->assertEquals('Author Changed', $result->name);
     }
     
-    public function test_nested_collections_should_hydrate_results_filtered_deep_all() {
+    public function test_persisting_a_newly_created_filtered_entity_into_a_foreig_compatible_collection() {
         $mapper = $this->mapper;
-        $mapper->postsFromAuthorsWithComments = Filtered::comment()->post->author;
-        $post = $mapper->postsFromAuthorsWithComments->fetchAll();
-        $post = $post[0];
-        $this->assertEquals((object) array('id' => '5', 'author_id' => $post->author_id, 'text' => 'Post Text', 'title' => 'Post Title'), $post);
-        $this->assertEquals((object) array('name' => 'Author 1', 'id' => 1), $post->author_id);
+        $mapper->authorsWithPosts = Filtered::post()->author();
+        $author = new \stdClass;
+        $author->id = null;
+        $author->name = 'Author Changed';
+        $mapper->author->persist($author);
+        $mapper->flush();
+        $result = $this->conn->query('select name from author order by id desc')->fetch(PDO::FETCH_OBJ);
+        $this->assertEquals('Author Changed', $result->name);
+    }
+
+    public function test_feching_multiple_filtered_collections_should_not_bring_filtered_children() {
+        $mapper = $this->mapper;
+        $mapper->authorsWithPosts = Filtered::post()->author();
+        $authors = $mapper->authorsWithPosts->fetchAll();
+        $this->assertEquals($this->authors, $authors);
+    }
+    
+    public function test_filtered_collections_should_hydrate_non_filtered_parts_as_usual() {
+        $mapper = $this->mapper;
+        $mapper->postsFromAuthorsWithComments = Filtered::comment()->post()->author();
+        $post = $mapper->postsFromAuthorsWithComments->fetch();
+        $this->assertEquals((object) (array('author_id' => $post->author_id) + (array) $this->posts[0]), $post);
+        $this->assertEquals($this->authors[0], $post->author_id);
+    }
+    
+    public function test_filtered_collections_should_persist_hydrated_non_filtered_parts_as_usual() {
+        $mapper = $this->mapper;
+        $mapper->postsFromAuthorsWithComments = Filtered::comment()->post()->author();
+        $post = $mapper->postsFromAuthorsWithComments->fetch();
+        $this->assertEquals((object) (array('author_id' => $post->author_id) + (array) $this->posts[0]), $post);
+        $this->assertEquals($this->authors[0], $post->author_id);
         $post->title = 'Title Changed';
+        $post->author_id->name = 'John';
         $mapper->postsFromAuthorsWithComments->persist($post);
         $mapper->flush();
         $result = $this->conn->query('select title from post where id=5')->fetch(PDO::FETCH_OBJ);
         $this->assertEquals('Title Changed', $result->title);
+        $result = $this->conn->query('select name from author where id=1')->fetch(PDO::FETCH_OBJ);
+        $this->assertEquals('John', $result->name);
     }
     
     public function test_nested_collections_should_hydrate_results_filtered_multi() {
