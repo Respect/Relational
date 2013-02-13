@@ -71,6 +71,30 @@ class Mapper extends AbstractMapper implements
         }
     }
     
+    public function persist($object, Collection $onCollection)
+    {
+        $next = $onCollection->getNext();
+        if ($onCollection->have('filters')) {
+            $next->setMapper($this);
+            $next->persist($object);
+            return;
+        }
+        
+        if ($next) {
+            $remote = $this->getStyle()->remoteIdentifier($next->getName());
+            $next->setMapper($this);
+            $next->persist($object->$remote);
+        }
+        
+        foreach($onCollection->getChildren() as $child) {
+            $remote = $this->getStyle()->remoteIdentifier($child->getName());
+            $child->persist($object->$remote);
+        }
+            
+        return parent::persist($object, $onCollection);
+        
+    }
+    
     /**
      * Receives columns from an entity and her collection. Returns the columns
      * that belong only to the main entity. This method supports mixing, so
