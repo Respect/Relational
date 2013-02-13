@@ -527,6 +527,11 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $mapper->authorsWithPosts = Filtered::post()->author;
         $author = $mapper->authorsWithPosts->fetch();
         $this->assertEquals((object) array('name' => 'Author 1', 'id' => 1), $author);
+        $author->name = 'Author Changed';
+        $mapper->authorsWithPosts->persist($author);
+        $mapper->flush();
+        $result = $this->conn->query('select name from author where id=1')->fetch(PDO::FETCH_OBJ);
+        $this->assertEquals('Author Changed', $result->name);
     }
     
     public function test_nested_collections_should_hydrate_results_filtered_deep() {
@@ -535,6 +540,11 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $post = $mapper->postsFromAuthorsWithComments->fetch();
         $this->assertEquals((object) array('id' => '5', 'author_id' => $post->author_id, 'text' => 'Post Text', 'title' => 'Post Title'), $post);
         $this->assertEquals((object) array('name' => 'Author 1', 'id' => 1), $post->author_id);
+        $post->title = 'Title Changed';
+        $mapper->postsFromAuthorsWithComments->persist($post);
+        $mapper->flush();
+        $result = $this->conn->query('select title from post where id=5')->fetch(PDO::FETCH_OBJ);
+        $this->assertEquals('Title Changed', $result->title);
     }
     
     public function test_nested_collections_should_hydrate_results_filtered_multi() {
@@ -542,6 +552,11 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $mapper->authorsWithPosts = Filtered::comment()->post->stack(Filtered::author());
         $post = $mapper->authorsWithPosts->fetch();
         $this->assertEquals((object) array('id' => '5', 'author_id' => 1, 'text' => 'Post Text', 'title' => 'Post Title'), $post);
+        $post->title = 'Title Changed';
+        $mapper->postsFromAuthorsWithComments->persist($post);
+        $mapper->flush();
+        $result = $this->conn->query('select title from post where id=5')->fetch(PDO::FETCH_OBJ);
+        $this->assertEquals('Title Changed', $result->title);
     }
     
     public function test_named_collections_chain_persistence() {
@@ -550,18 +565,33 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $mapper->author = Filtered::author();
         $post = $mapper->commentFil->post->author->fetch();
         $this->assertEquals((object) array('id' => '5', 'author_id' => 1, 'text' => 'Post Text', 'title' => 'Post Title'), $post);
+        $post->title = 'Title Changed';
+        $mapper->postsFromAuthorsWithComments->persist($post);
+        $mapper->flush();
+        $result = $this->conn->query('select title from post where id=5')->fetch(PDO::FETCH_OBJ);
+        $this->assertEquals('Title Changed', $result->title);
     }
     public function test_named_collections_chain_persistence_column() {
         $mapper = $this->mapper;
         $mapper->post = Filtered::by('title')->post();
         $post = $mapper->post->fetch();
         $this->assertEquals((object) array('id' => '5', 'title' => 'Post Title'), $post);
+        $post->title = 'Title Changed';
+        $mapper->postsFromAuthorsWithComments->persist($post);
+        $mapper->flush();
+        $result = $this->conn->query('select title from post where id=5')->fetch(PDO::FETCH_OBJ);
+        $this->assertEquals('Title Changed', $result->title);
     }
     public function test_named_collections_chain_persistence_column_wildcard() {
         $mapper = $this->mapper;
         $mapper->post = Filtered::by('*')->post();
         $post = $mapper->post->fetch();
         $this->assertEquals((object) array('id' => '5'), $post);
+        $post->title = 'Title Changed';
+        $mapper->postsFromAuthorsWithComments->persist($post);
+        $mapper->flush();
+        $result = $this->conn->query('select title from post where id=5')->fetch(PDO::FETCH_OBJ);
+        $this->assertEquals('Title Changed', $result->title);
     }
     public function test_named_collections_chain_persistence_column_wildcard_next() {
         $mapper = $this->mapper;
@@ -569,13 +599,23 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $post = $mapper->post->fetch();
         $this->assertEquals((object) array('id' => '5', 'author_id' => $post->author_id), $post);
         $this->assertEquals((object) array('name' => 'Author 1', 'id' => 1), $post->author_id);
+        $post->title = 'Title Changed';
+        $mapper->postsFromAuthorsWithComments->persist($post);
+        $mapper->flush();
+        $result = $this->conn->query('select title from post where id=5')->fetch(PDO::FETCH_OBJ);
+        $this->assertEquals('Title Changed', $result->title);
     }
     public function test_mixins() {
         $mapper = $this->mapper;
-        $mapper->postComment = Mixed::with('comment')->post()->author();
+        $mapper->postComment = Mixed::with(array('comment' => array('text')))->post()->author();
         $post = $mapper->postComment->fetch();
         $this->assertEquals((object) array('name' => 'Author 1', 'id' => 1), $post->author_id);
-        $this->assertEquals((object) array('id' => '7', 'author_id' => $post->author_id, 'text' => 'Comment Text', 'title' => 'Post Title', 'datetime' => '2012-06-19 00:35:42', 'post_id' => 5), $post);
+        $this->assertEquals((object) array('id' => '5', 'author_id' => $post->author_id, 'text' => 'Comment Text', 'title' => 'Post Title'), $post);
+        $post->title = 'Title Changed';
+        $mapper->postsFromAuthorsWithComments->persist($post);
+        $mapper->flush();
+        $result = $this->conn->query('select title from post where id=5')->fetch(PDO::FETCH_OBJ);
+        $this->assertEquals('Title Changed', $result->title);
         
     }
     public function test_typed() {
@@ -587,6 +627,11 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $this->assertInstanceOf('\\Respect\Relational\\Improvement', $issues[1]);
         $this->assertEquals((array) $this->issues[0], (array) $issues[0]);
         $this->assertEquals((array) $this->issues[1], (array) $issues[1]);
+        $issues[0]->title = 'Title Changed';
+        $mapper->typedIssues->persist($issues[0]);
+        $mapper->flush();
+        $result = $this->conn->query('select title from issues where id=1')->fetch(PDO::FETCH_OBJ);
+        $this->assertEquals('Title Changed', $result->title);
     }
 
 }

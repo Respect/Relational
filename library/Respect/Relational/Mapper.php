@@ -251,8 +251,10 @@ class Mapper extends AbstractMapper
         $selectTable = array();
         foreach ($collections as $tableSpecifier => $c) {
             if ($c->have('mixins')) {
-                foreach ($c->getExtra('mixins') as $n => $mixin) {
-                    $selectTable[] = "{$tableSpecifier}_mix{$n}.*";
+                foreach ($c->getExtra('mixins') as $mixin => $columns) {
+                    foreach ($columns as $col) {
+                        $selectTable[] = "{$tableSpecifier}_mix{$mixin}.$col";
+                    }
                 }
             }
             if ($c->have('filters')) {
@@ -333,13 +335,14 @@ class Mapper extends AbstractMapper
         if (!empty($parsedConditions))
             $conditions[] = $parsedConditions;
 
+
         if (is_null($parentAlias)) 
             $sql->from($entity);
         
         if ($collection->have('mixins')) {
-            foreach ($collection->getExtra('mixins') as $n => $mix) {
+            foreach ($collection->getExtra('mixins') as $mix => $spec) {
                 $sql->innerJoin($mix);
-                $sql->as("{$entity}_mix{$n}");
+                $sql->as("{$entity}_mix{$mix}");
             }
         }
         
@@ -384,9 +387,10 @@ class Mapper extends AbstractMapper
     protected function fetchSingle(Collection $collection, PDOStatement $statement)
     {
         $name = $collection->getName();
+        $entityName = $name;
         $primaryName = $this->getStyle()->primaryFromTable($name);
         if (!$collection->have('type')) {
-            $entityClass = $this->entityNamespace . $this->getStyle()->tableToEntity($name);
+            $entityClass = $this->entityNamespace . $this->getStyle()->tableToEntity($entityName);
             $entityClass = class_exists($entityClass) ? $entityClass : '\stdClass';
         } else {
             $entityClass = '\stdClass';
@@ -399,8 +403,8 @@ class Mapper extends AbstractMapper
             return false;
             
         if ($collection->have('type')) {
-            $name = $row->{$collection->getExtra('type')};
-            $entityClass = $this->entityNamespace . $this->getStyle()->tableToEntity($name);
+            $entityName = $row->{$collection->getExtra('type')};
+            $entityClass = $this->entityNamespace . $this->getStyle()->tableToEntity($entityName);
             $entityClass = class_exists($entityClass) ? $entityClass : '\stdClass';
             $newRow = new $entityClass;
             foreach ($row as $prop => $value) {
@@ -411,7 +415,7 @@ class Mapper extends AbstractMapper
 
         $entities = new SplObjectStorage();
         $entities[$row] = array(
-            'name' => $name,
+            'name' => $entityName,
             'table_name' => $name,
             'entity_class' => $entityClass,
             'pk_'.$primaryName => $row->{$primaryName},
