@@ -270,24 +270,6 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals('Sample Category', $cat->name);
     }
 
-    public function testTracking() {
-        $mapper = $this->mapper;
-        $c7 = $mapper->comment[7]->fetch();
-        $c8 = $mapper->comment[8]->fetch();
-        $p5 = $mapper->post[5]->fetch();
-        $c3 = $mapper->category[2]->fetch();
-        $this->assertTrue($mapper->isTracked($c7));
-        $this->assertTrue($mapper->isTracked($c8));
-        $this->assertTrue($mapper->isTracked($p5));
-        $this->assertTrue($mapper->isTracked($c3));
-        $this->assertSame($c7, $mapper->getTracked('comment', 7));
-        $this->assertSame($c8, $mapper->getTracked('comment', 8));
-        $this->assertSame($p5, $mapper->getTracked('post', 5));
-        $this->assertSame($c3, $mapper->getTracked('category', 2));
-        $this->assertFalse($mapper->getTracked('none', 3));
-        $this->assertFalse($mapper->getTracked('comment', 9889));
-    }
-
     public function testSimplePersist() {
         $mapper = $this->mapper;
         $entity = (object) array('id' => 4, 'name' => 'inserted', 'category_id' => null);

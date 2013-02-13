@@ -200,17 +200,6 @@ class Mapper extends AbstractMapper
         return $this->tracked->contains($entity);
     }
 
-    public function getTracked($name, $id)
-    {
-        $primaryName = $this->getStyle()->primaryFromTable($name);
-        foreach ($this->tracked as $entity)
-            if ($this->tracked[$entity]['pk_'.$primaryName] == $id
-                    && $this->tracked[$entity]['name'] === $name)
-                return $entity;
-
-        return false;
-    }
-
     protected function createStatement(Collection $collection, Sql $sqlExtra = null)
     {
         $query = $this->generateQuery($collection);
@@ -424,8 +413,7 @@ class Mapper extends AbstractMapper
 
         $entities = new SplObjectStorage();
         $entities[$row] = array(
-            'name' => $name,
-            'pk_'.$primaryName => $row->{$primaryName}
+            'name' => $name
         );
 
         return $entities;
