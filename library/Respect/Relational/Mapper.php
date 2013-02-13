@@ -92,7 +92,7 @@ class Mapper extends AbstractMapper
 
     protected function flushSingle($entity)
     {
-        $name = $this->tracked[$entity]['table_name'];
+        $name = $this->tracked[$entity]['name'];
         $cols = $this->extractColumns($entity, $name);
         
         if ($this->removed->contains($entity)) {
@@ -190,7 +190,6 @@ class Mapper extends AbstractMapper
         $id = $entity->{$primaryName};
         $this->tracked[$entity] = array(
             'name' => $name,
-            'table_name' => $name,
             'entity_class' => $this->getStyle()->tableToEntity($name),
             'pk_'.$primaryName => &$id,
         );
@@ -426,8 +425,7 @@ class Mapper extends AbstractMapper
 
         $entities = new SplObjectStorage();
         $entities[$row] = array(
-            'name' => $entityName,
-            'table_name' => $name,
+            'name' => $name,
             'entity_class' => $entityClass,
             'pk_'.$primaryName => $row->{$primaryName}
         );
@@ -473,7 +471,6 @@ class Mapper extends AbstractMapper
             }
             $entities[$entityInstance] = array(
                 'name' => $tableName,
-                'table_name' => $tableName,
                 'entity_class' => $entityClass,
                 'primary_name' => $primaryName,
                 'mixins' => $mixins
@@ -506,7 +503,7 @@ class Mapper extends AbstractMapper
             foreach ($instance as $field => &$v) {
                 if ($this->getStyle()->isForeignColumn($field)) {
                     foreach ($entitiesClone as $sub) {
-                        $tableName = $entities[$sub]['table_name'];
+                        $tableName = $entities[$sub]['name'];
                         $primaryName = $entities[$sub]['primary_name'];
                         if ($entities[$sub]['name'] === $this->getStyle()->tableFromForeignColumn($field)
                                 && $sub->{$primaryName} === $v) {
