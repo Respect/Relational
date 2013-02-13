@@ -522,11 +522,17 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         }
     }
 
-    public function test_nested_collections_should_hydrate_results_filtered() {
+    public function test_feching_a_single_filtered_collection_should_not_bring_filtered_children() {
         $mapper = $this->mapper;
         $mapper->authorsWithPosts = Filtered::post()->author;
         $author = $mapper->authorsWithPosts->fetch();
-        $this->assertEquals((object) array('name' => 'Author 1', 'id' => 1), $author);
+        $this->assertEquals($this->authors[0], $author);
+    }
+    
+    public function test_feching_a_single_filtered_collection_should_not_bring_filtered_children_2() {
+        $mapper = $this->mapper;
+        $mapper->authorsWithPosts = Filtered::post()->author;
+        $author = $mapper->authorsWithPosts->fetch();
         $author->name = 'Author Changed';
         $mapper->authorsWithPosts->persist($author);
         $mapper->flush();
