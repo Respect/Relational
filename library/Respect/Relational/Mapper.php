@@ -55,13 +55,8 @@ class Mapper extends AbstractMapper implements
      */
     protected function flushSingle($entity)
     {
-        $coll = $this->tracked[$entity];
-        
-        $cols = $this->extractAndUpdateMixins(
-            $coll, 
-            $this->extractColumns($entity, $coll)
-        );
-        
+        $coll    = $this->tracked[$entity];
+        $cols    = $this->extractColumns($entity, $coll);
         $primary = $this->getStyle()->identifier($coll->getName());
         
         if ($this->removed->contains($entity)) {
@@ -76,7 +71,8 @@ class Mapper extends AbstractMapper implements
     public function persist($object, Collection $onCollection)
     {
         $next = $onCollection->getNext();
-        if ($onCollection->have('filters')) {
+        
+        if ($this->filterable($onCollection)) {
             $next->setMapper($this);
             $next->persist($object);
             return;
@@ -108,12 +104,12 @@ class Mapper extends AbstractMapper implements
      *
      * @return array Columns left for the main collection
      */
-    protected function extractAndUpdateMixins(Collection $collection, $cols)
+    protected function extractAndOperateMixins(Collection $collection, $cols)
     {
         if (!$this->mixable($collection)) {
             return $cols;
         }
-            
+        
         foreach ($this->getMixins($collection) as $mix => $spec) {
             //Extract from $cols only the columns from the mixin
             $mixCols = array_intersect_key(
@@ -127,6 +123,10 @@ class Mapper extends AbstractMapper implements
                 $mixCols['id'] = $cols["{$mix}_id"];
                 $cols = array_diff($cols, $mixCols); //Remove mixin columns
                 $this->rawUpdate($mixCols, $this->__get($mix));
+            } else {
+                $mixCols['id'] = null;
+                $cols = array_diff($cols, $mixCols); //Remove mixin columns
+                $this->rawinsert($mixCols, $this->__get($mix));
             }
         }
         
@@ -156,6 +156,7 @@ class Mapper extends AbstractMapper implements
 
     protected function rawUpdate(array $columns, Collection $collection)
     {
+        $columns   = $this->extractAndOperateMixins($collection, $columns);
         $name      = $collection->getName();
         $condition = $this->guessCondition($columns, $collection);
 
@@ -169,6 +170,7 @@ class Mapper extends AbstractMapper implements
     protected function rawInsert(
         array $columns, Collection $collection, $entity = null
     ) {
+        $columns    = $this->extractAndOperateMixins($collection, $columns);
         $name       = $collection->getName();
         $isInserted = $this->db
                             ->insertInto($name, $columns)
