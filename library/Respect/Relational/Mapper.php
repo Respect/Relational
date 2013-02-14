@@ -13,6 +13,7 @@ use Respect\Data\AbstractMapper;
 use Respect\Data\Collections\Collection;
 use Respect\Data\Collections as c;
 use Respect\Data\CollectionIterator;
+use ReflectionProperty;
 
 /** Maps objects to database operations */
 class Mapper extends AbstractMapper implements 
@@ -456,9 +457,11 @@ class Mapper extends AbstractMapper implements
     protected function inferSet(&$entity, $prop, $value)
     {
         $setterName = $this->getSetterStyle($prop);
-        if (method_exists($entity, $setterName)) {
-            $entity->$setterName($value);
-        } else {
+        try {
+            $mirror = new \ReflectionProperty($entity, $prop);
+            $mirror->setAccessible(true);
+            $mirror->setValue($entity, $value);
+        } catch (\ReflectionException $e) {
             $entity->$prop = $value;
         }
     }

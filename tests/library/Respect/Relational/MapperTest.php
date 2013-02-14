@@ -822,13 +822,13 @@ class Improvement {
 class Comment {
     public $id=null, $post_id=null, $text=null;
     private $datetime;
-    public function setDatetime($value)
+    public function setDatetime(\Datetime $datetime)
     {
-        $this->datetime = $value;
+        $this->datetime = $datetime->format('Y-m-d H:i:s');
     }
     public function getDatetime()
     {
-        return $this->datetime . 'Due';
+        return new \Datetime($this->datetime);
     }
 }
 
