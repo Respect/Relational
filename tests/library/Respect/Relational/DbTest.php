@@ -98,7 +98,8 @@ class DbTest extends \PHPUnit_Framework_TestCase
     public function testGetSql()
     {
         $sql = $this->object->select('*')->from('unit')->where(array('testb' => 'abc'))->getSql();
-        $this->assertEquals('SELECT * FROM unit WHERE testb=:Testb', (string) $sql);
+        $this->assertEquals('SELECT * FROM unit WHERE testb = ?', (string) $sql);
+        $this->assertEquals(array('abc'), $sql->getParams());
     }
 
 }

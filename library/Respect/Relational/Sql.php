@@ -5,9 +5,9 @@ namespace Respect\Relational;
 class Sql
 {
     const SQL_OPERATORS = '/\s?(NOT)?\s?(=|==|<>|!=|>|>=|<|<=|LIKE)\s?$/';
+
     protected $query = '';
     protected $params = array();
-    protected $data = array();
 
     public static function __callStatic($operation, $parts)
     {
@@ -22,14 +22,16 @@ class Sql
 
     protected function preBuild($operation, $parts)
     {
-        $parts = $this->normalizeParts($parts, $operation === 'on' ? true : false);
+        $raw = ($operation === 'on');
+        $new = ($operation !== 'insertInto');
+        $parts = $this->normalizeParts($parts, $raw, $new);
         if (empty($parts))
             switch ($operation) {
                 case 'asc':
                 case 'desc':
                     break;
-                default: 
-                    return $this;   
+                default:
+                    return $this;
             }
         $this->buildOperation($operation);
         return $this->build($operation, $parts);
@@ -53,15 +55,16 @@ class Sql
                 $this->buildFirstPart($parts);
                 return $this->buildParts($parts, '%s ');
             case 'in':
-                $parts = array_map(array($this, 'buildName'), $parts);
-                return $this->buildParts($parts, '(:%s) ', ', :');
+            case 'values':
+                foreach ($parts as $key => $value) $parts[$key] = '?';
+                return $this->buildParts($parts, '(%s) ', ', ');
+            case 'values':
+                foreach ($parts as $key => $value) $parts[$key] = '?';
+                return $this->buildParts($parts, '(%s) ', ', ');
             case 'createTable':
             case 'insertInto':
                 $this->buildFirstPart($parts);
                 return $this->buildParts($parts, '(%s) ');
-            case 'values':
-                $parts = array_map(array($this, 'buildName'), $parts);
-                return $this->buildParts($parts, '(:%s) ', ', :');
             default: //defaults to any other SQL instruction
                 return $this->buildParts($parts);
         }
@@ -87,15 +90,13 @@ class Sql
 
     public function getParams()
     {
-        $data = array();
-        foreach ($this->data as $k => $v)
-            $data[$this->params[$k]] = $v;
-        return $data;
+        return $this->params;
     }
 
-    public function setQuery($rawSql)
+    public function setQuery($rawSql, array $params = null)
     {
         $this->query = $rawSql;
+        if ($params !== null) $this->params = $params;
         return $this;
     }
 
@@ -105,9 +106,10 @@ class Sql
             if (is_numeric($key))
                 $parts[$key] = "$part";
             else if (preg_match(static::SQL_OPERATORS, $key) > 0)
-                $parts[$key] = "$key :" . $this->buildName($part);
+                $parts[$key] = "$key ?";
             else
-                $parts[$key] = "$key=:" . $this->buildName($part);
+                $parts[$key] = "$key = ?";
+
         return $this->buildParts($parts, $format, $partSeparator);
     }
 
@@ -135,27 +137,18 @@ class Sql
         return $this;
     }
 
-    protected function buildName($identifier)
+    protected function normalizeParts($parts, $raw=false, $new=true)
     {
-        $translated = strtolower(preg_replace('/[^a-zA-Z0-9]/', ' ', $identifier));
-        $translated = str_replace(' ', '', ucwords($translated));
-        return $this->params[$identifier] = $translated;
-    }
-
-    protected function normalizeParts($parts, $raw=false)
-    {
-        $data = & $this->data;
+        $params = & $this->params;
         $newParts = array();
-        array_walk_recursive($parts, function ($value, $key) use ( &$newParts, &$data, &$raw) {
+        array_walk_recursive($parts, function ($value, $key) use (&$newParts, &$params, &$raw, &$new) {
                 if ($raw) {
                     $newParts[$key] = $value;
                 } elseif (is_int($key)) {
-                    $name = $value;
-                    $newParts[] = $name;
+                    $newParts[] = $value;
                 } else {
-                    $name = $key;
-                    $newParts[$key] = $name;
-                    $data[$key] = $value;
+                    $newParts[$key] = $key;
+                    if ($new) $params[] = $value;
                 }
             }
         );
@@ -166,5 +159,4 @@ class Sql
     {
         $this->query .= array_shift($parts) . ' ';
     }
-
 }
