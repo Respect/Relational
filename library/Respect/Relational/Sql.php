@@ -29,11 +29,13 @@ class Sql
             switch ($operation) {
                 case 'asc':
                 case 'desc':
+                case '_':
                     break;
                 default:
                     return $this;
             }
         $this->buildOperation($operation);
+        $operation = rtrim($operation, '_');
         return $this->build($operation, $parts);
     }
 
@@ -126,7 +128,12 @@ class Sql
     protected function buildOperation($operation)
     {
         $command = strtoupper(preg_replace('/[A-Z0-9]+/', ' $0', $operation));
-        $this->query .= trim($command) . ' ';
+        if ($command == '_')
+            $this->query = rtrim($this->query) . ') ';
+        elseif (substr($command, -1) == '_')
+            $this->query .= trim($command, '_ ') . ' (';
+        else
+            $this->query .= trim($command) . ' ';
     }
 
     protected function buildParts($parts, $format = '%s ', $partSeparator = ', ')

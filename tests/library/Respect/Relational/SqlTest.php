@@ -261,4 +261,23 @@ class SqlTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals("SELECT * FROM table WHERE a > ? AND b = ? OR a > ? AND b = ?", $sql);
         $this->assertEquals(array(1, 'foo', 4, 'bar'), $this->object->getParams());
     }
+
+    public function testSelectWhereWithGroupedConditions()
+    {
+        $data = array(array('a' => 1), array('b' => 2), array('c' => 3), array('d' => 4));
+
+        $sql = (string) $this->object->select('*')->from('table')->where($data[0])->and_($data[1])->or($data[2])->_();
+        $this->assertEquals("SELECT * FROM table WHERE a = ? AND (b = ? OR c = ?)", $sql);
+        $this->assertEquals(array(1, 2, 3), $this->object->getParams());
+        $this->object->setQuery('', array());
+
+        $sql = (string) $this->object->select('*')->from('table')->where_($data[0])->or($data[1])->_()->and_($data[2])->or($data[3])->_();
+        $this->assertEquals("SELECT * FROM table WHERE (a = ? OR b = ?) AND (c = ? OR d = ?)", $sql);
+        $this->assertEquals(array(1, 2, 3, 4), $this->object->getParams());
+        $this->object->setQuery('', array());
+
+        $sql = (string) $this->object->select('*')->from('table')->where($data[0])->and_($data[1])->or_($data[2])->and($data[3])->_()->_();
+        $this->assertEquals("SELECT * FROM table WHERE a = ? AND (b = ? OR (c = ? AND d = ?))", $sql);
+        $this->assertEquals(array(1, 2, 3, 4), $this->object->getParams());
+    }
 }
