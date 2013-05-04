@@ -35,7 +35,7 @@ class Sql
                     return $this;
             }
         $this->buildOperation($operation);
-        $operation = rtrim($operation, '_');
+        $operation = trim($operation, '_');
         return $this->build($operation, $parts);
     }
 
@@ -58,11 +58,7 @@ class Sql
                 return $this->buildParts($parts, '%s ');
             case 'in':
             case 'values':
-                foreach ($parts as $key => $value) $parts[$key] = '?';
-                return $this->buildParts($parts, '(%s) ', ', ');
-            case 'values':
-                foreach ($parts as $key => $value) $parts[$key] = '?';
-                return $this->buildParts($parts, '(%s) ', ', ');
+                return $this->buildValuesList($parts);
             case 'createTable':
             case 'insertInto':
                 $this->buildFirstPart($parts);
@@ -105,13 +101,15 @@ class Sql
     protected function buildKeyValues($parts, $format = '%s ', $partSeparator = ', ')
     {
         foreach ($parts as $key => $part)
-            if (is_numeric($key))
+            if (is_numeric($key)) {
                 $parts[$key] = "$part";
-            else if (preg_match(static::SQL_OPERATORS, $key) > 0)
-                $parts[$key] = "$key ?";
-            else
-                $parts[$key] = "$key = ?";
-
+            } else {
+                $value = ($part instanceof self) ? "$part" : '?';
+                if (preg_match(static::SQL_OPERATORS, $key) > 0)
+                    $parts[$key] = "$key $value";
+                else
+                    $parts[$key] = "$key = $value";
+            }
         return $this->buildParts($parts, $format, $partSeparator);
     }
 
@@ -125,11 +123,20 @@ class Sql
         return $this->buildParts($parts, $format, $partSeparator);
     }
 
+    protected function buildValuesList($parts)
+    {
+        foreach ($parts as $key => $part)
+            $parts[$key] = ($part instanceof self) ? "$part" : '?';
+        return $this->buildParts($parts, '(%s) ', ', ');
+    }
+
     protected function buildOperation($operation)
     {
         $command = strtoupper(preg_replace('/[A-Z0-9]+/', ' $0', $operation));
         if ($command == '_')
             $this->query = rtrim($this->query) . ') ';
+        elseif ($command[0] == '_')
+            $this->query .= '(' . trim($command, '_ ') . ' ';
         elseif (substr($command, -1) == '_')
             $this->query .= trim($command, '_ ') . ' (';
         else
@@ -149,7 +156,10 @@ class Sql
         $params = & $this->params;
         $newParts = array();
         array_walk_recursive($parts, function ($value, $key) use (&$newParts, &$params, &$raw, &$new) {
-                if ($raw) {
+                if ($value instanceof self) {
+                    $newParts[$key] = $value;
+                    $params = array_merge($params, $value->getParams());
+                } elseif ($raw) {
                     $newParts[$key] = $value;
                 } elseif (is_int($key)) {
                     $newParts[] = $value;

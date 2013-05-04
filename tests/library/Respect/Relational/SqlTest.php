@@ -280,4 +280,32 @@ class SqlTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals("SELECT * FROM table WHERE a = ? AND (b = ? OR (c = ? AND d = ?))", $sql);
         $this->assertEquals(array(1, 2, 3, 4), $this->object->getParams());
     }
+
+    public function testSelectWhereWithSubquery()
+    {
+        $subquery = Sql::_select('column1')->from('t2')->where(array('column2' => 2))->_();
+        $sql = (string) $this->object->select('column1')->from('t1')->where(array('column1' => $subquery, 'column2' => 'foo'));
+
+        $this->assertEquals("SELECT column1 FROM t1 WHERE column1 = (SELECT column1 FROM t2 WHERE column2 = ?) AND column2 = ?", $sql);
+        $this->assertEquals(array(2, 'foo'), $this->object->getParams());
+    }
+
+    public function testSelectWhereWithNestedSubqueries()
+    {
+        $subquery1 = Sql::_select('column1')->from('t3')->where(array('column3' => 3))->_();
+        $subquery2 = Sql::_select('column1')->from('t2')->where(array('column2' => $subquery1, 'column3' => 'foo'))->_();
+        $sql = (string) $this->object->select('column1')->from('t1')->where(array('column1' => $subquery2));
+
+        $this->assertEquals("SELECT column1 FROM t1 WHERE column1 = (SELECT column1 FROM t2 WHERE column2 = (SELECT column1 FROM t3 WHERE column3 = ?) AND column3 = ?)", $sql);
+        $this->assertEquals(array(3, 'foo'), $this->object->getParams());
+    }
+
+    public function testSelectWithColumnAsSubquery()
+    {
+        $subquery = Sql::_select('c')->from('t2')->where(array('d' => 2))->_();
+        $sql = (string) $this->object->select('a', $subquery->as('b'))->from('t1')->where(array('e' => 'foo'));
+
+        $this->assertEquals("SELECT a, (SELECT c FROM t2 WHERE d = ?) AS b FROM t1 WHERE e = ?", $sql);
+        $this->assertEquals(array(2, 'foo'), $this->object->getParams());
+    }
 }
