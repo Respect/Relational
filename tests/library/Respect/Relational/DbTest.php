@@ -94,7 +94,7 @@ class DbTest extends \PHPUnit_Framework_TestCase
         $line = $this->object->select('*')->from('unit')->where(array('testb' => 'abc'))->fetch(array());
         $this->assertTrue(is_array($line));
     }
-    
+
     public function testGetSql()
     {
         $sql = $this->object->select('*')->from('unit')->where(array('testb' => 'abc'))->getSql();
@@ -102,11 +102,16 @@ class DbTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(array('abc'), $sql->getParams());
     }
 
+    public function testRawSqlWithParams()
+    {
+        $line = $this->object->query('select * from unit WHERE testb = ?', array('abc'))->fetch();
+        $this->assertEquals(10, $line->testa);
+    }
 }
 
 class testFetchingClass
 {
-    
+
 }
 
 class testFetchingInto

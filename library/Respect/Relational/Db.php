@@ -74,9 +74,9 @@ class Db
         return $statement;
     }
 
-    public function query($rawSql)
+    public function query($rawSql, array $params = null)
     {
-        $this->currentSql->setQuery($rawSql);
+        $this->currentSql->setQuery($rawSql, $params);
         return $this;
     }
 
