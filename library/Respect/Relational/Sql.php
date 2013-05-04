@@ -22,9 +22,7 @@ class Sql
 
     protected function preBuild($operation, $parts)
     {
-        $raw = ($operation === 'on');
-        $new = ($operation !== 'insertInto');
-        $parts = $this->normalizeParts($parts, $raw, $new);
+        $parts = $this->normalizeParts($parts, $operation == 'on');
         if (empty($parts))
             switch ($operation) {
                 case 'asc':
@@ -61,6 +59,8 @@ class Sql
                 return $this->buildValuesList($parts);
             case 'createTable':
             case 'insertInto':
+            case 'replaceInto':
+                $this->params = array();
                 $this->buildFirstPart($parts);
                 return $this->buildParts($parts, '(%s) ');
             default: //defaults to any other SQL instruction
@@ -151,11 +151,11 @@ class Sql
         return $this;
     }
 
-    protected function normalizeParts($parts, $raw=false, $new=true)
+    protected function normalizeParts($parts, $raw=false)
     {
         $params = & $this->params;
         $newParts = array();
-        array_walk_recursive($parts, function ($value, $key) use (&$newParts, &$params, &$raw, &$new) {
+        array_walk_recursive($parts, function ($value, $key) use (&$newParts, &$params, &$raw) {
                 if ($value instanceof self) {
                     $newParts[$key] = $value;
                     $params = array_merge($params, $value->getParams());
@@ -165,7 +165,7 @@ class Sql
                     $newParts[] = $value;
                 } else {
                     $newParts[$key] = $key;
-                    if ($new) $params[] = $value;
+                    $params[] = $value;
                 }
             }
         );
