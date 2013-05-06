@@ -1,7 +1,7 @@
 {
     "name": "Respect/Relational",
     "description": "Fluent Database Toolkit",
-    "version": "0.4.7",
+    "version": "0.5.1",
     "type": "library",
     "time": "2012-05-05 19:11:23",
     "homepage": "http://respect.li",
@@ -37,7 +37,7 @@
         }
     ],
     "require": {
-        "Respect/Data": "dev-master"
+        "Respect/Data": "0.2.1"
     },
     "autoload": {
         "psr-0": {
