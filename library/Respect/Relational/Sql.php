@@ -5,6 +5,7 @@ namespace Respect\Relational;
 class Sql
 {
     const SQL_OPERATORS = '/\s?(NOT)?\s?(=|==|<>|!=|>|>=|<|<=|LIKE)\s?$/';
+    const PLACEHOLDER   = '?';
 
     protected $query = '';
     protected $params = array();
@@ -104,7 +105,7 @@ class Sql
             if (is_numeric($key)) {
                 $parts[$key] = "$part";
             } else {
-                $value = ($part instanceof self) ? "$part" : '?';
+                $value = ($part instanceof self) ? "$part" : static::PLACEHOLDER;
                 if (preg_match(static::SQL_OPERATORS, $key) > 0)
                     $parts[$key] = "$key $value";
                 else
@@ -126,7 +127,7 @@ class Sql
     protected function buildValuesList($parts)
     {
         foreach ($parts as $key => $part)
-            $parts[$key] = ($part instanceof self) ? "$part" : '?';
+            $parts[$key] = ($part instanceof self) ? "$part" : static::PLACEHOLDER;
         return $this->buildParts($parts, '(%s) ', ', ');
     }
 
