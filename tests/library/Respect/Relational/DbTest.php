@@ -104,7 +104,7 @@ class DbTest extends \PHPUnit_Framework_TestCase
 
     public function testRawSqlWithParams()
     {
-        $line = $this->object->query('select * from unit WHERE testb = ?', array('abc'))->fetch();
+        $line = $this->object->query('SELECT * FROM unit WHERE testb = ?', array('abc'))->fetch();
         $this->assertEquals(10, $line->testa);
     }
 }
