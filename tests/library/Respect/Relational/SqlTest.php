@@ -12,6 +12,15 @@ class SqlTest extends \PHPUnit_Framework_TestCase
         $this->object = new Sql;
     }
 
+    public function testCastingObjectToStringReturnsQuery()
+    {
+        $sql   = $this->object->select('*')->from('table');
+        $query = "SELECT * FROM table";
+        $this->assertNotSame($query, $sql);
+        $this->assertSame($query, (string) $sql);
+        $this->assertSame($query, "$sql");
+    }
+
     public function testSimpleSelect()
     {
         $sql = (string) $this->object->select('*')->from('table');

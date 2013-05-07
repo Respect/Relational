@@ -76,9 +76,7 @@ class Sql
 
     public function __toString()
     {
-        $q = rtrim($this->query);
-        $this->query = '';
-        return $q;
+        return rtrim($this->query);
     }
 
     public function appendQuery($rawSql)
