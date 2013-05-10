@@ -16,6 +16,16 @@ class Sql
         return call_user_func_array(array($sql, $operation), $parts);
     }
 
+    public static function enclose($sql)
+    {
+        if ($sql instanceof self)
+            $sql->query = '(' . trim($sql->query) . ') ';
+        elseif ($sql != '')
+            $sql = '(' . trim($sql) . ') ';
+
+        return $sql;
+    }
+
     public function __call($operation, $parts)
     {
         return $this->preBuild($operation, $parts);
@@ -23,7 +33,8 @@ class Sql
 
     protected function preBuild($operation, $parts)
     {
-        $parts = $this->normalizeParts($parts, $operation == 'on');
+        $raw   = ($operation == 'select' || $operation == 'on');
+        $parts = $this->normalizeParts($parts, $raw);
         if (empty($parts))
             switch ($operation) {
                 case 'asc':
@@ -33,6 +44,9 @@ class Sql
                 default:
                     return $this;
             }
+        if ($operation == 'cond') // condition list
+            return $this->build('and', $parts);
+
         $this->buildOperation($operation);
         $operation = trim($operation, '_');
         return $this->build($operation, $parts);
@@ -41,6 +55,8 @@ class Sql
     protected function build($operation, $parts)
     {
         switch ($operation) { //just special cases
+            case 'select':
+                return $this->buildAliases($parts);
             case 'and':
             case 'having':
             case 'where':
@@ -122,6 +138,16 @@ class Sql
         return $this->buildParts($parts, $format, $partSeparator);
     }
 
+     protected function buildAliases($parts, $format = '%s ', $partSeparator = ', ')
+    {
+        foreach ($parts as $key => $part)
+            if (is_numeric($key))
+                $parts[$key] = "$part";
+            else
+                $parts[$key] = "$part AS $key";
+        return $this->buildParts($parts, $format, $partSeparator);
+    }
+
     protected function buildValuesList($parts)
     {
         foreach ($parts as $key => $part)
@@ -156,8 +182,10 @@ class Sql
         $newParts = array();
         array_walk_recursive($parts, function ($value, $key) use (&$newParts, &$params, &$raw) {
                 if ($value instanceof self) {
-                    $newParts[$key] = $value;
                     $params = array_merge($params, $value->getParams());
+                    if ($value->query[0] != '(')
+                        $value = static::enclose($value);
+                    $newParts[$key] = $value;
                 } elseif ($raw) {
                     $newParts[$key] = $value;
                 } elseif (is_int($key)) {

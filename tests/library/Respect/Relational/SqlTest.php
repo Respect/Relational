@@ -271,7 +271,7 @@ class SqlTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(array(1, 'foo', 4, 'bar'), $this->object->getParams());
     }
 
-    public function testSelectWhereWithGroupedConditions()
+    public function testSelectWhereWithConditionsGroupedByUnderscores()
     {
         $data = array(array('a' => 1), array('b' => 2), array('c' => 3), array('d' => 4));
 
@@ -290,9 +290,28 @@ class SqlTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(array(1, 2, 3, 4), $this->object->getParams());
     }
 
+    public function testSelectWhereWithConditionsGroupedBySubqueries()
+    {
+        $data = array(array('a' => 1), array('b' => 2), array('c' => 3), array('d' => 4));
+
+        $sql = (string) $this->object->select('*')->from('table')->where($data[0], Sql::cond($data[1])->or($data[2]));
+        $this->assertEquals("SELECT * FROM table WHERE a = ? AND (b = ? OR c = ?)", $sql);
+        $this->assertEquals(array(1, 2, 3), $this->object->getParams());
+        $this->object->setQuery('', array());
+
+        $sql = (string) $this->object->select('*')->from('table')->where(Sql::cond($data[0])->or($data[1]), Sql::cond($data[2])->or($data[3]));
+        $this->assertEquals("SELECT * FROM table WHERE (a = ? OR b = ?) AND (c = ? OR d = ?)", $sql);
+        $this->assertEquals(array(1, 2, 3, 4), $this->object->getParams());
+        $this->object->setQuery('', array());
+
+        $sql = (string) $this->object->select('*')->from('table')->where($data[0], Sql::cond($data[1])->or(Sql::cond($data[2], $data[3])));
+        $this->assertEquals("SELECT * FROM table WHERE a = ? AND (b = ? OR (c = ? AND d = ?))", $sql);
+        $this->assertEquals(array(1, 2, 3, 4), $this->object->getParams());
+    }
+
     public function testSelectWhereWithSubquery()
     {
-        $subquery = Sql::_select('column1')->from('t2')->where(array('column2' => 2))->_();
+        $subquery = Sql::select('column1')->from('t2')->where(array('column2' => 2));
         $sql = (string) $this->object->select('column1')->from('t1')->where(array('column1' => $subquery, 'column2' => 'foo'));
 
         $this->assertEquals("SELECT column1 FROM t1 WHERE column1 = (SELECT column1 FROM t2 WHERE column2 = ?) AND column2 = ?", $sql);
@@ -301,18 +320,25 @@ class SqlTest extends \PHPUnit_Framework_TestCase
 
     public function testSelectWhereWithNestedSubqueries()
     {
-        $subquery1 = Sql::_select('column1')->from('t3')->where(array('column3' => 3))->_();
-        $subquery2 = Sql::_select('column1')->from('t2')->where(array('column2' => $subquery1, 'column3' => 'foo'))->_();
+        $subquery1 = Sql::select('column1')->from('t3')->where(array('column3' => 3));
+        $subquery2 = Sql::select('column1')->from('t2')->where(array('column2' => $subquery1, 'column3' => 'foo'));
         $sql = (string) $this->object->select('column1')->from('t1')->where(array('column1' => $subquery2));
 
         $this->assertEquals("SELECT column1 FROM t1 WHERE column1 = (SELECT column1 FROM t2 WHERE column2 = (SELECT column1 FROM t3 WHERE column3 = ?) AND column3 = ?)", $sql);
         $this->assertEquals(array(3, 'foo'), $this->object->getParams());
     }
 
+    public function testSelectUsingAliasedColumns()
+    {
+        $sql = (string) $this->object->select('a', array('b' => 'aliased1', 'c' => 'aliased2'))->from('table');
+        $this->assertEquals("SELECT a, aliased1 AS b, aliased2 AS c FROM table", $sql);
+        $this->assertEmpty($this->object->getParams());
+    }
+
     public function testSelectWithColumnAsSubquery()
     {
-        $subquery = Sql::_select('c')->from('t2')->where(array('d' => 2))->_();
-        $sql = (string) $this->object->select('a', $subquery->as('b'))->from('t1')->where(array('e' => 'foo'));
+        $subquery = Sql::select('c')->from('t2')->where(array('d' => 2));
+        $sql = (string) $this->object->select('a', array('b' => $subquery))->from('t1')->where(array('e' => 'foo'));
 
         $this->assertEquals("SELECT a, (SELECT c FROM t2 WHERE d = ?) AS b FROM t1 WHERE e = ?", $sql);
         $this->assertEquals(array(2, 'foo'), $this->object->getParams());
