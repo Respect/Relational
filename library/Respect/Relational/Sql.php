@@ -31,6 +31,37 @@ class Sql
         return $this->preBuild($operation, $parts);
     }
 
+    public function __construct($rawSql = '', array $params = null)
+    {
+        $this->setQuery($rawSql, $params);
+    }
+
+    public function __toString()
+    {
+        return rtrim($this->query);
+    }
+
+    public function getParams()
+    {
+        return $this->params;
+    }
+
+    public function setQuery($rawSql, array $params = null)
+    {
+        $this->query = $rawSql;
+        if ($params !== null)
+            $this->params = $params;
+        return $this;
+    }
+
+    public function appendQuery($rawSql, array $params = null)
+    {
+        $this->query .= " $rawSql";
+        if ($params !== null)
+            $this->params = array_merge($this->params, $params);
+        return $this;
+    }
+
     protected function preBuild($operation, $parts)
     {
         $raw   = ($operation == 'select' || $operation == 'on');
@@ -83,37 +114,6 @@ class Sql
             default: //defaults to any other SQL instruction
                 return $this->buildParts($parts);
         }
-    }
-
-    public function __construct($rawSql = '', array $params = null)
-    {
-        $this->setQuery($rawSql, $params);
-    }
-
-    public function __toString()
-    {
-        return rtrim($this->query);
-    }
-
-    public function appendQuery($rawSql, array $params = null)
-    {
-        $this->query .= " $rawSql";
-        if ($params !== null)
-            $this->params = array_merge($this->params, $params);
-        return $this;
-    }
-
-    public function getParams()
-    {
-        return $this->params;
-    }
-
-    public function setQuery($rawSql, array $params = null)
-    {
-        $this->query = $rawSql;
-        if ($params !== null)
-            $this->params = $params;
-        return $this;
     }
 
     protected function buildKeyValues($parts, $format = '%s ', $partSeparator = ', ')
@@ -171,6 +171,11 @@ class Sql
             $this->query .= trim($command) . ' ';
     }
 
+    protected function buildFirstPart(&$parts)
+    {
+        $this->query .= array_shift($parts) . ' ';
+    }
+
     protected function buildParts($parts, $format = '%s ', $partSeparator = ', ')
     {
         if (!empty($parts))
@@ -200,10 +205,5 @@ class Sql
             }
         );
         return $newParts;
-    }
-
-    protected function buildFirstPart(&$parts)
-    {
-        $this->query .= array_shift($parts) . ' ';
     }
 }
