@@ -330,17 +330,17 @@ class SqlTest extends \PHPUnit_Framework_TestCase
 
     public function testSelectUsingAliasedColumns()
     {
-        $sql = (string) $this->object->select('a', array('b' => 'aliased1', 'c' => 'aliased2'))->from('table');
-        $this->assertEquals("SELECT a, aliased1 AS b, aliased2 AS c FROM table", $sql);
+        $sql = (string) $this->object->select('f1', array('alias' => 'f2'), 'f3', array('another_alias' => 'f4'))->from('table');
+        $this->assertEquals("SELECT f1, f2 AS alias, f3, f4 AS another_alias FROM table", $sql);
         $this->assertEmpty($this->object->getParams());
     }
 
     public function testSelectWithColumnAsSubquery()
     {
-        $subquery = Sql::select('c')->from('t2')->where(array('d' => 2));
-        $sql = (string) $this->object->select('a', array('b' => $subquery))->from('t1')->where(array('e' => 'foo'));
+        $subquery = Sql::select('f1')->from('t2')->where(array('f2' => 2));
+        $sql = (string) $this->object->select('f1', array('subalias' => $subquery))->from('t1')->where(array('f2' => 'foo'));
 
-        $this->assertEquals("SELECT a, (SELECT c FROM t2 WHERE d = ?) AS b FROM t1 WHERE e = ?", $sql);
+        $this->assertEquals("SELECT f1, (SELECT f1 FROM t2 WHERE f2 = ?) AS subalias FROM t1 WHERE f2 = ?", $sql);
         $this->assertEquals(array(2, 'foo'), $this->object->getParams());
     }
 }
