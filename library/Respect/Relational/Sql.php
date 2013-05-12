@@ -85,9 +85,9 @@ class Sql
         }
     }
 
-    public function __construct($rawSql = '')
+    public function __construct($rawSql = '', array $params = null)
     {
-        $this->setQuery($rawSql);
+        $this->setQuery($rawSql, $params);
     }
 
     public function __toString()
@@ -95,9 +95,11 @@ class Sql
         return rtrim($this->query);
     }
 
-    public function appendQuery($rawSql)
+    public function appendQuery($rawSql, array $params = null)
     {
         $this->query .= " $rawSql";
+        if ($params !== null)
+            $this->params = array_merge($this->params, $params);
         return $this;
     }
 
@@ -109,7 +111,8 @@ class Sql
     public function setQuery($rawSql, array $params = null)
     {
         $this->query = $rawSql;
-        if ($params !== null) $this->params = $params;
+        if ($params !== null)
+            $this->params = $params;
         return $this;
     }
 

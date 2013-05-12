@@ -260,6 +260,26 @@ class SqlTest extends \PHPUnit_Framework_TestCase
         $this->assertEmpty($this->object->getParams());
     }
 
+    public function testSetQueryWithParamsViaConstructor()
+    {
+        $query = 'SELECT * FROM table WHERE a > ? AND b = ?';
+        $params = array(1, 'foo');
+
+        $sql = new Sql($query, $params);
+        $this->assertEquals($query, (string) $sql);
+        $this->assertEquals($params, $sql->getParams());
+    }
+
+    public function testAppendQueryWithParams()
+    {
+        $query = 'SELECT * FROM table WHERE a > ? AND b = ?';
+        $this->object->setQuery('SELECT * FROM table WHERE a > ? AND b = ?', array(1, 'foo'));
+        $sql = (string) $this->object->appendQuery('AND c = ?', array(2));
+
+        $this->assertEquals($query.' AND c = ?', $sql);
+        $this->assertEquals(array(1, 'foo', 2), $this->object->getParams());
+    }
+
     public function testSelectWhereWithRepeatedReferences()
     {
         $data1 = array('a >' => 1, 'b' => 'foo');
