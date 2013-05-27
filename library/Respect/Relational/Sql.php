@@ -154,7 +154,10 @@ class Sql
     protected function buildValuesList($parts)
     {
         foreach ($parts as $key => $part)
-            $parts[$key] = ($part instanceof self) ? "$part" : static::PLACEHOLDER;
+            if (is_numeric($key) || $part instanceof self)
+                $parts[$key] = "$part";
+            else
+                $parts[$key] = static::PLACEHOLDER;
         return $this->buildParts($parts, '(%s) ', ', ');
     }
 

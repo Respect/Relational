@@ -363,4 +363,13 @@ class SqlTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals("SELECT f1, (SELECT f1 FROM t2 WHERE f2 = ?) AS subalias FROM t1 WHERE f2 = ?", $sql);
         $this->assertEquals(array(2, 'foo'), $this->object->getParams());
     }
+
+    public function testInsertWithValueFunctions()
+    {
+        $data = array('column' => 123, 'column_2' => 234);
+        $sql = (string) $this->object->insertInto('table', $data, 'date')->values($data, 'NOW()');
+        $this->assertEquals("INSERT INTO table (column, column_2, date) VALUES (?, ?, NOW())", $sql);
+        $this->assertEquals(array_values($data), $this->object->getParams());
+    }
+
 }
