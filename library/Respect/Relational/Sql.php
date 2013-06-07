@@ -54,9 +54,11 @@ class Sql
         return $this;
     }
 
-    public function appendQuery($rawSql, array $params = null)
+    public function appendQuery($sql, array $params = null)
     {
-        $this->query .= " $rawSql";
+        $this->query = trim($this->query) . " $sql";
+        if ($sql instanceof self)
+            $this->params = array_merge($this->params, $sql->getParams());
         if ($params !== null)
             $this->params = array_merge($this->params, $params);
         return $this;

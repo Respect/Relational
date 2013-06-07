@@ -372,4 +372,13 @@ class SqlTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(array_values($data), $this->object->getParams());
     }
 
+    public function testInsertWithSelectSubquery()
+    {
+        $data = array('f3' => 3, 'f4' => 4);
+        $subquery = Sql::select('f1', 'f2')->from('t2')->where($data);
+        $sql = (string) $this->object->insertInto('t1', array('f1', 'f2'))->appendQuery($subquery);
+
+        $this->assertEquals("INSERT INTO t1 (f1, f2) SELECT f1, f2 FROM t2 WHERE f3 = ? AND f4 = ?", $sql);
+        $this->assertEquals(array_values($data), $this->object->getParams());
+    }
 }
