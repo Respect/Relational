@@ -5,9 +5,10 @@ namespace Respect\Relational;
 class Sql
 {
     const SQL_OPERATORS = '/\s?(NOT)?\s?(=|==|<>|!=|>|>=|<|<=|LIKE)\s?$/';
+    const PLACEHOLDER   = '?';
+
     protected $query = '';
     protected $params = array();
-    protected $data = array();
 
     public static function __callStatic($operation, $parts)
     {
@@ -15,29 +16,80 @@ class Sql
         return call_user_func_array(array($sql, $operation), $parts);
     }
 
+    public static function enclose($sql)
+    {
+        if ($sql instanceof self)
+            $sql->query = '(' . trim($sql->query) . ') ';
+        elseif ($sql != '')
+            $sql = '(' . trim($sql) . ') ';
+
+        return $sql;
+    }
+
     public function __call($operation, $parts)
     {
         return $this->preBuild($operation, $parts);
     }
 
+    public function __construct($rawSql = '', array $params = null)
+    {
+        $this->setQuery($rawSql, $params);
+    }
+
+    public function __toString()
+    {
+        return rtrim($this->query);
+    }
+
+    public function getParams()
+    {
+        return $this->params;
+    }
+
+    public function setQuery($rawSql, array $params = null)
+    {
+        $this->query = $rawSql;
+        if ($params !== null)
+            $this->params = $params;
+        return $this;
+    }
+
+    public function appendQuery($sql, array $params = null)
+    {
+        $this->query = trim($this->query) . " $sql";
+        if ($sql instanceof self)
+            $this->params = array_merge($this->params, $sql->getParams());
+        if ($params !== null)
+            $this->params = array_merge($this->params, $params);
+        return $this;
+    }
+
     protected function preBuild($operation, $parts)
     {
-        $parts = $this->normalizeParts($parts, $operation === 'on' ? true : false);
+        $raw   = ($operation == 'select' || $operation == 'on');
+        $parts = $this->normalizeParts($parts, $raw);
         if (empty($parts))
             switch ($operation) {
                 case 'asc':
                 case 'desc':
+                case '_':
                     break;
-                default: 
-                    return $this;   
+                default:
+                    return $this;
             }
+        if ($operation == 'cond') // condition list
+            return $this->build('and', $parts);
+
         $this->buildOperation($operation);
+        $operation = trim($operation, '_');
         return $this->build($operation, $parts);
     }
 
     protected function build($operation, $parts)
     {
         switch ($operation) { //just special cases
+            case 'select':
+                return $this->buildAliases($parts);
             case 'and':
             case 'having':
             case 'where':
@@ -53,61 +105,31 @@ class Sql
                 $this->buildFirstPart($parts);
                 return $this->buildParts($parts, '%s ');
             case 'in':
-                $parts = array_map(array($this, 'buildName'), $parts);
-                return $this->buildParts($parts, '(:%s) ', ', :');
+            case 'values':
+                return $this->buildValuesList($parts);
             case 'createTable':
             case 'insertInto':
+            case 'replaceInto':
+                $this->params = array();
                 $this->buildFirstPart($parts);
                 return $this->buildParts($parts, '(%s) ');
-            case 'values':
-                $parts = array_map(array($this, 'buildName'), $parts);
-                return $this->buildParts($parts, '(:%s) ', ', :');
             default: //defaults to any other SQL instruction
                 return $this->buildParts($parts);
         }
     }
 
-    public function __construct($rawSql = '')
-    {
-        $this->setQuery($rawSql);
-    }
-
-    public function __toString()
-    {
-        $q = rtrim($this->query);
-        $this->query = '';
-        return $q;
-    }
-
-    public function appendQuery($rawSql)
-    {
-        $this->query .= " $rawSql";
-        return $this;
-    }
-
-    public function getParams()
-    {
-        $data = array();
-        foreach ($this->data as $k => $v)
-            $data[$this->params[$k]] = $v;
-        return $data;
-    }
-
-    public function setQuery($rawSql)
-    {
-        $this->query = $rawSql;
-        return $this;
-    }
-
     protected function buildKeyValues($parts, $format = '%s ', $partSeparator = ', ')
     {
         foreach ($parts as $key => $part)
-            if (is_numeric($key))
+            if (is_numeric($key)) {
                 $parts[$key] = "$part";
-            else if (preg_match(static::SQL_OPERATORS, $key) > 0)
-                $parts[$key] = "$key :" . $this->buildName($part);
-            else
-                $parts[$key] = "$key=:" . $this->buildName($part);
+            } else {
+                $value = ($part instanceof self) ? "$part" : static::PLACEHOLDER;
+                if (preg_match(static::SQL_OPERATORS, $key) > 0)
+                    $parts[$key] = "$key $value";
+                else
+                    $parts[$key] = "$key = $value";
+            }
         return $this->buildParts($parts, $format, $partSeparator);
     }
 
@@ -121,10 +143,42 @@ class Sql
         return $this->buildParts($parts, $format, $partSeparator);
     }
 
+     protected function buildAliases($parts, $format = '%s ', $partSeparator = ', ')
+    {
+        foreach ($parts as $key => $part)
+            if (is_numeric($key))
+                $parts[$key] = "$part";
+            else
+                $parts[$key] = "$part AS $key";
+        return $this->buildParts($parts, $format, $partSeparator);
+    }
+
+    protected function buildValuesList($parts)
+    {
+        foreach ($parts as $key => $part)
+            if (is_numeric($key) || $part instanceof self)
+                $parts[$key] = "$part";
+            else
+                $parts[$key] = static::PLACEHOLDER;
+        return $this->buildParts($parts, '(%s) ', ', ');
+    }
+
     protected function buildOperation($operation)
     {
         $command = strtoupper(preg_replace('/[A-Z0-9]+/', ' $0', $operation));
-        $this->query .= trim($command) . ' ';
+        if ($command == '_')
+            $this->query = rtrim($this->query) . ') ';
+        elseif ($command[0] == '_')
+            $this->query .= '(' . trim($command, '_ ') . ' ';
+        elseif (substr($command, -1) == '_')
+            $this->query .= trim($command, '_ ') . ' (';
+        else
+            $this->query .= trim($command) . ' ';
+    }
+
+    protected function buildFirstPart(&$parts)
+    {
+        $this->query .= array_shift($parts) . ' ';
     }
 
     protected function buildParts($parts, $format = '%s ', $partSeparator = ', ')
@@ -135,36 +189,26 @@ class Sql
         return $this;
     }
 
-    protected function buildName($identifier)
-    {
-        $translated = strtolower(preg_replace('/[^a-zA-Z0-9]/', ' ', $identifier));
-        $translated = str_replace(' ', '', ucwords($translated));
-        return $this->params[$identifier] = $translated;
-    }
-
     protected function normalizeParts($parts, $raw=false)
     {
-        $data = & $this->data;
+        $params = & $this->params;
         $newParts = array();
-        array_walk_recursive($parts, function ($value, $key) use ( &$newParts, &$data, &$raw) {
-                if ($raw) {
+        array_walk_recursive($parts, function ($value, $key) use (&$newParts, &$params, &$raw) {
+                if ($value instanceof self) {
+                    $params = array_merge($params, $value->getParams());
+                    if ($value->query[0] != '(')
+                        $value = static::enclose($value);
+                    $newParts[$key] = $value;
+                } elseif ($raw) {
                     $newParts[$key] = $value;
                 } elseif (is_int($key)) {
-                    $name = $value;
-                    $newParts[] = $name;
+                    $newParts[] = $value;
                 } else {
-                    $name = $key;
-                    $newParts[$key] = $name;
-                    $data[$key] = $value;
+                    $newParts[$key] = $key;
+                    $params[] = $value;
                 }
             }
         );
         return $newParts;
     }
-
-    protected function buildFirstPart(&$parts)
-    {
-        $this->query .= array_shift($parts) . ' ';
-    }
-
 }
