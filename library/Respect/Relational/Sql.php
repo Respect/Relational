@@ -198,7 +198,7 @@ class Sql
                 if ($value instanceof Sql) {
                     $params = array_merge($params, $value->getParams());
                     if (0 !== stripos($value, '('))
-                        $value = static::enclose($value);
+                        $value = Sql::enclose($value);
                     $newParts[$key] = $value;
                 } elseif ($raw) {
                     $newParts[$key] = $value;
