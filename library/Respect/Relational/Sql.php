@@ -197,7 +197,7 @@ class Sql
         array_walk_recursive($parts, function ($value, $key) use (&$newParts, &$params, &$raw) {
                 if ($value instanceof Sql) {
                     $params = array_merge($params, $value->getParams());
-                    if (0 === stripos($value, '('))
+                    if (0 !== stripos($value, '('))
                         $value = static::enclose($value);
                     $newParts[$key] = $value;
                 } elseif ($raw) {
