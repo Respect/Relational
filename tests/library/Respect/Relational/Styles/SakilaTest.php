@@ -263,7 +263,7 @@ class SakilaTest extends \PHPUnit_Framework_TestCase
         $mapper = $this->mapper;
         $comment = $mapper->comment[8]->fetch();
         $this->assertInstanceOf(__NAMESPACE__ . '\Comment', $comment);
-        $comment->Text = 'HeyHey';
+        $comment->text = 'HeyHey';
         $mapper->comment->persist($comment);
         $mapper->flush();
         $result = $this->conn->query('select text from comment where comment_id=8')->fetchColumn(0);
@@ -274,7 +274,7 @@ class SakilaTest extends \PHPUnit_Framework_TestCase
     {
         $mapper = $this->mapper;
         $comment = new Comment();
-        $comment->Text = 'HeyHey';
+        $comment->text = 'HeyHey';
         $mapper->comment->persist($comment);
         $mapper->flush();
         $result = $this->conn->query('select text from comment where comment_id=9')->fetchColumn(0);
