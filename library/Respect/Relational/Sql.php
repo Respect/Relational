@@ -200,7 +200,7 @@ class Sql
         $newParts = array();
         
         array_walk_recursive($parts, function ($value, $key) use (&$newParts, &$params, &$raw) {
-                if ($value instanceof static) {
+                if ($value instanceof Sql) {
                     $params = array_merge($params, $value->getParams());
                     if ($value->isSubQuery())
                         $value = static::enclose($value);
