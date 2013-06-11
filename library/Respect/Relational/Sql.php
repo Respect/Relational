@@ -188,6 +188,11 @@ class Sql
 
         return $this;
     }
+    
+    protected function isSubQuery() 
+    {
+        return 0 === stripos($this->query, '(');
+    }
 
     protected function normalizeParts($parts, $raw=false)
     {
@@ -195,9 +200,9 @@ class Sql
         $newParts = array();
         
         array_walk_recursive($parts, function ($value, $key) use (&$newParts, &$params, &$raw) {
-                if ($value instanceof Sql) {
+                if ($value instanceof static) {
                     $params = array_merge($params, $value->getParams());
-                    if ($value->query[0] != '(')
+                    if ($value->isSubQuery())
                         $value = static::enclose($value);
                     $newParts[$key] = $value;
                 } elseif ($raw) {
