@@ -193,8 +193,9 @@ class Sql
     {
         $params = & $this->params;
         $newParts = array();
+        
         array_walk_recursive($parts, function ($value, $key) use (&$newParts, &$params, &$raw) {
-                if ($value instanceof self) {
+                if ($value instanceof Sql) {
                     $params = array_merge($params, $value->getParams());
                     if ($value->query[0] != '(')
                         $value = static::enclose($value);
