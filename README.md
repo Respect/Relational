@@ -121,7 +121,7 @@ request from a form with the field _name_ to create an author. You can do someth
       $mapper->flush();
 ```
 
-This is just to show what you can do, ofcourse you have to validate the `$_POST` var first.
+This is just to show what you can do, ofcourse you have to [validate](https://github.com/Respect/Validation) the `$_POST` var first.
 
 ### Joining
 
