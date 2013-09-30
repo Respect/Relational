@@ -806,6 +806,17 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals('Title Changed', $result->title);
     }
 
+    public function test_persist_new_with_arrayobject()
+    {
+        $mapper = $this->mapper;
+        $arrayEntity = array('id' => 10, 'name' => 'array_object_category', 'category_id' => null);
+        $entity = new \ArrayObject($arrayEntity);
+        $mapper->category->persist($entity);
+        $mapper->flush();
+        $result = $this->conn->query('select * from category where id=10')->fetch(PDO::FETCH_OBJ);
+        $this->assertEquals('array_object_category', $result->name);
+    }
+
 }
 
 class Postcomment {
