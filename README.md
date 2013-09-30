@@ -86,6 +86,8 @@ dive on automatic `JOIN` mapping, ordering and limiting below, keep reading!
 
 ### Persisting
 
+#### Persist with stdClass
+
 You can insert a new author into the database using the following example. We're using
 `stdClass`, but you will see later on in this guide just how easy it is to use specific classes
 for each mapping.
@@ -105,6 +107,21 @@ keep the state in memory, flushing sends it all to the database.
 
 After a `flush()` if you `print $alexandre->id`, it will reflect the auto incremented
 value from the database.
+
+#### Persist with ArrayObject
+
+You can create a new author with `ArrayObject` too. Let's supose that you get a post 
+request from a form with the field _name_ to create an author. You can do something like this:
+
+```php
+<?php $alexandre = new \ArrayObject($_POST, \ArrayObject::STD_PROP_LIST);
+      $alexandre->created_at = date('Y-m-d H:i:s');
+
+      $mapper->author->persist($alexandre);
+      $mapper->flush();
+```
+
+This is just to show what you can do, ofcourse you have to validate the `$_POST` var first.
 
 ### Joining
 
