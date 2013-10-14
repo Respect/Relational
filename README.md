@@ -267,6 +267,16 @@ Posts created after 2012 (note the `>=` sign):
 <?php $mapper->post(array("created_at >="=>strtotime('2012-01-01'))->fetchAll();
 ```
 
+The same to LIKE:
+```php
+<?php $mapper->post(array("name LIKE "=>"Ale"))->fetchAll();
+```
+
+IS NULL or IS NOT NULL is very simple:
+```php
+<?php $mapper->post(array("name IS NOT NULL"))->fetchAll();
+```
+
 Comments on any post from the author named Alexandre:
 
 ```php
