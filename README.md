@@ -1,4 +1,4 @@
-Respect\Relational [![Build Status](https://secure.travis-ci.org/Respect/Relational.png)](http://travis-ci.org/Respect/Relational)
+Respect\Relational [![Build Status](https://secure.travis-ci.org/Respect/Relational.png)](http://travis-ci.org/Respect/Relational) [![Latest Stable Version](https://poser.pugx.org/respect/relational/v/stable.png)](https://packagist.org/packages/respect/relational) [![Total Downloads](https://poser.pugx.org/respect/relational/downloads.png)](https://packagist.org/packages/respect/relational) [![Latest Unstable Version](https://poser.pugx.org/respect/relational/v/unstable.png)](https://packagist.org/packages/respect/relational) [![License](https://poser.pugx.org/respect/relational/license.png)](https://packagist.org/packages/respect/relational)
 ==================
  
 the Relational database persistence tool.
