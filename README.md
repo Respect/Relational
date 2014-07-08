@@ -220,6 +220,8 @@ constructor please.
 
 Currently entity classes are only supported through the use of `->setStyle()`.
 
+To skip properties that not exist in database you can use `@Relational\isNotColumn` annotation.
+
 ### Updating
 
 You've fetched something, changed it and you need to save it back. Easy:
