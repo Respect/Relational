@@ -817,6 +817,65 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals('array_object_category', $result->name);
     }
 
+    // --------------------------------------------------------------
+    public function testFetchingEntityWithoutPublicPropertiesTyped()
+    {
+        $mapper = $this->mapper;
+        $mapper->entityNamespace = '\Respect\Relational\OtherEntity\\';
+        $post = $mapper->post[5]->fetch();
+        $this->assertInstanceOf('\Respect\Relational\OtherEntity\Post', $post);
+    }
+
+    public function testFetchingAllEntityWithoutPublicPropertiesTyped()
+    {
+        $mapper = $this->mapper;
+        $mapper->entityNamespace = '\Respect\Relational\OtherEntity\\';
+        $posts = $mapper->post->fetchAll();
+        $this->assertInstanceOf('\Respect\Relational\OtherEntity\Post', $posts[0]);
+    }
+
+    public function testFetchingAllEntityWithoutPublicPropertiesTypedNested()
+    {
+        $mapper = $this->mapper;
+        $mapper->entityNamespace = '\Respect\Relational\OtherEntity\\';
+        $posts = $mapper->post->author->fetchAll();
+        $this->assertInstanceOf('\Respect\Relational\OtherEntity\Post', $posts[0]);
+        $this->assertInstanceOf('\Respect\Relational\OtherEntity\Author', $posts[0]->getAuthor());
+    }
+
+    public function testPersistingEntityWithoutPublicPropertiesTyped()
+    {
+        $mapper = $this->mapper;
+        $mapper->entityNamespace = '\Respect\Relational\OtherEntity\\';
+        
+        $post = $mapper->post[5]->fetch();
+        $post->setText('HeyHey');
+        
+        $mapper->post->persist($post);
+        $mapper->flush();
+        $result = $this->conn->query('select text from post where id=5')->fetchColumn(0);
+        $this->assertEquals('HeyHey', $result);
+    }
+
+    public function testPersistingNewEntityWithoutPublicPropertiesTyped()
+    {
+        $mapper = $this->mapper;
+        $mapper->entityNamespace = '\Respect\Relational\OtherEntity\\';
+        
+        $author = new OtherEntity\Author();
+        $author->setId(1);
+        $author->setName('Author 1');
+        
+        $post = new OtherEntity\Post();
+        $post->setAuthor($author);
+        $post->setTitle('My New Post Title');
+        $post->setText('My new Post Text');
+        $mapper->post->persist($post);
+        $mapper->flush();
+        $result = $this->conn->query('select text from post where id=6')->fetchColumn(0);
+        $this->assertEquals('My new Post Text', $result);
+    }
+    
 }
 
 class Postcomment {
@@ -845,6 +904,7 @@ class Comment {
 
 class Post {
     public $id=null, $author_id=null, $text=null;
+    /** @Relational\isNotColumn -> annotation because generate a sql error case column not exists in db. */
     private $datetime;
     public function setDatetime(\Datetime $datetime)
     {
@@ -856,3 +916,61 @@ class Post {
     }
 }
 
+namespace Respect\Relational\OtherEntity;
+
+class Post {
+    private $id, $author_id, $title, $text;
+    public function getTitle()
+    {
+        return $this->title;
+    }
+    public function setTitle($title)
+    {
+        $this->title = $title;
+    }
+    public function getId()
+    {
+        return $this->id;
+    }
+    public function getAuthor()
+    {
+        return $this->author_id;
+    }
+    public function getText()
+    {
+        return $this->text;
+    }
+    public function setId($id)
+    {
+        $this->id = $id;
+    }
+    public function setAuthor(Author $author)
+    {
+        $this->author_id = $author;
+    }
+    public function setText($text)
+    {
+        $this->text = $text;
+    }
+}
+
+class Author {
+    private $id, $name;
+
+    public function getId()
+    {
+        return $this->id;
+    }
+    public function getName()
+    {
+        return $this->name;
+    }
+    public function setId($id)
+    {
+        $this->id = $id;
+    }
+    public function setName($name)
+    {
+        $this->name = $name;
+    }
+}

@@ -58,7 +58,6 @@ class Mapper extends AbstractMapper implements
     {
         $coll    = $this->tracked[$entity];
         $cols    = $this->extractColumns($entity, $coll);
-        $primary = $this->getStyle()->identifier($coll->getName());
         
         if ($this->removed->contains($entity)) {
             $this->rawDelete($cols, $coll, $entity);
@@ -82,12 +81,12 @@ class Mapper extends AbstractMapper implements
         if ($next) {
             $remote = $this->getStyle()->remoteIdentifier($next->getName());
             $next->setMapper($this);
-            $next->persist($object->$remote);
+            $next->persist($this->inferGet($object, $remote));
         }
         
         foreach($onCollection->getChildren() as $child) {
             $remote = $this->getStyle()->remoteIdentifier($child->getName());
-            $child->persist($object->$remote);
+            $child->persist($this->inferGet($object, $remote));
         }
             
         return parent::persist($object, $onCollection);
@@ -216,7 +215,7 @@ class Mapper extends AbstractMapper implements
         }
 
         $primaryName = $this->getStyle()->identifier($collection->getName());
-        $entity->$primaryName = $identity;
+        $this->inferSet($entity, $primaryName, $identity);
         return true;
     }
 
@@ -249,12 +248,12 @@ class Mapper extends AbstractMapper implements
 
     protected function extractColumns($entity, Collection $collection)
     {
-        $primaryName = $this->getStyle()->identifier($collection->getName());
-        $cols = get_object_vars($entity);
+        $primaryName = $this->getStyle()->identifier($collection->getName());        
+        $cols = $this->getAllProperties($entity);
 
         foreach ($cols as &$c) {
             if (is_object($c)) {
-                $c = $c->{$primaryName};
+                $c = $this->inferGet($c, $primaryName);
             }
         }
 
@@ -419,15 +418,14 @@ class Mapper extends AbstractMapper implements
     ) {
         $name        = $collection->getName();
         $entityName  = $name;
-        $primaryName = $this->getStyle()->identifier($name);
         $row         = $statement->fetch(PDO::FETCH_OBJ);
 
         if (!$row) {
             return false;
         }
-            
+
         if ($this->typable($collection)) {
-            $entityName = $row->{$this->getType($collection)};
+            $entityName = $this->inferGet($row, $this->getType($collection));
         }
       
         $entities = new SplObjectStorage();
@@ -456,20 +454,29 @@ class Mapper extends AbstractMapper implements
     
     protected function inferSet(&$entity, $prop, $value)
     {
-        $setterName = $this->getSetterStyle($prop);
         try {
             $mirror = new \ReflectionProperty($entity, $prop);
             $mirror->setAccessible(true);
             $mirror->setValue($entity, $value);
         } catch (\ReflectionException $e) {
-            $entity->$prop = $value;
+            $entity->{$prop} = $value;
+        }
+    }
+
+    protected function inferGet(&$object, $prop)
+    {
+        try {
+            $mirror = new \ReflectionProperty($object, $prop);
+            $mirror->setAccessible(true);
+            return $mirror->getValue($object);
+        } catch (\ReflectionException $e) {
+            return null;
         }
     }
 
     protected function fetchMulti(
         Collection $collection, PDOStatement $statement
     ) {
-        $entityInstance = null;
         $entities       = array();
         $row            = $statement->fetch(PDO::FETCH_NUM);
 
@@ -543,12 +550,13 @@ class Mapper extends AbstractMapper implements
         $entitiesClone = clone $entities;
 
         foreach ($entities as $instance) {
-            foreach ($instance as $field => &$v) {
-                if ($this->getStyle()->isRemoteIdentifier($field)) {
-                    foreach ($entitiesClone as $sub) {
-                        $this->tryHydration($entities, $sub, $field, $v);
-                    }
+            foreach ($this->getAllProperties($instance) as $field => $v) {
+                if (!$this->getStyle()->isRemoteIdentifier($field)) continue;
+
+                foreach ($entitiesClone as $sub) {
+                    $this->tryHydration($entities, $sub, $field, $v);
                 }
+                $this->inferSet($instance, $field, $v);
             }
         }
     }
@@ -559,7 +567,7 @@ class Mapper extends AbstractMapper implements
         $primaryName = $this->getStyle()->identifier($tableName);
         
         if ($tableName === $this->getStyle()->remoteFromIdentifier($field)
-                && $sub->{$primaryName} === $v) {
+                && $this->inferGet($sub, $primaryName) === $v) {
             $v = $sub;
         }
     }
@@ -570,6 +578,19 @@ class Mapper extends AbstractMapper implements
         return "set{$name}";
     }
 
+    protected function getAllProperties($object)
+    {
+        $cols = get_object_vars($object);
+        $ref = new \ReflectionClass($object);
+        foreach ($ref->getProperties() as $prop) {
+            if (preg_match('/@Relational\\\isNotColumn/', $prop->getDocComment())) 
+                continue;
+            $prop->setAccessible(true);
+            $cols[$prop->name] = $prop->getValue($object);
+        }
+        return $cols;
+    }
+    
     public function getFilters(Collection $collection)
     {
         return $collection->getExtra('filters');
@@ -596,4 +617,3 @@ class Mapper extends AbstractMapper implements
     }
     
 }
-
