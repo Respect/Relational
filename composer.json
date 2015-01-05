@@ -1,9 +1,7 @@
 {
-    "name": "Respect/Relational",
+    "name": "respect/relational",
     "description": "Fluent Database Toolkit",
-    "version": "0.5.1-dev",
     "type": "library",
-    "time": "2012-05-05 19:11:23",
     "homepage": "http://respect.li",
     "license": "BSD Style",
     "authors": [
@@ -16,7 +14,7 @@
             "email": "claudsonweb@gmail.com"
         },
         {
-            "name": "Fa\u0301bio da Silva Ribeiro",
+            "name": "Fabio da Silva Ribeiro",
             "email": "fabiorphp@gmail.com"
         },
         {
@@ -24,7 +22,7 @@
             "email": "henriquemoody@gmail.com"
         },
         {
-            "name": "Kinn Coelho Julia\u0303o",
+            "name": "Kinn Coelho Juliao",
             "email": "kinncj@gmail.com"
         },
         {
@@ -37,11 +35,20 @@
         }
     ],
     "require": {
-        "Respect/Data": "dev-master"
+        "php": ">=5.3.0",
+        "respect/data": "0.2.2"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "~4.4.0"
     },
     "autoload": {
         "psr-0": {
             "Respect\\Relational": "library/"
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-master": "0.6-dev"
         }
     }
 }
