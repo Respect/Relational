@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 namespace Respect\Relational;
 
@@ -6,7 +6,6 @@ use \PDO as PDO;
 
 class Db
 {
-
     protected $connection;
     protected $currentSql;
     protected $protoSql;
@@ -56,20 +55,21 @@ class Db
     {
         $statement = $this->connection->prepare($queryString);
 
-        if (is_int($object))
+        if (is_int($object)) {
             $statement->setFetchMode($object);
-        elseif ('\stdClass' === $object || 'stdClass' === $object)
+        } elseif ('\stdClass' === $object || 'stdClass' === $object) {
             $statement->setFetchMode(PDO::FETCH_OBJ);
-        elseif (is_callable($object))
+        } elseif (is_callable($object)) {
             $statement->setFetchMode(PDO::FETCH_OBJ);
-        elseif (is_object($object))
+        } elseif (is_object($object)) {
             $statement->setFetchMode(PDO::FETCH_INTO, $object);
-        elseif (is_array($object))
+        } elseif (is_array($object)) {
             $statement->setFetchMode(PDO::FETCH_ASSOC);
-        elseif (is_null($extra))
+        } elseif (is_null($extra)) {
             $statement->setFetchMode(PDO::FETCH_CLASS, $object);
-        else
+        } else {
             $statement->setFetchMode(PDO::FETCH_CLASS, $object, $extra);
+        }
 
         return $statement;
     }
@@ -94,5 +94,4 @@ class Db
         $result = $statement->{$method}();
         return $result;
     }
-
 }
