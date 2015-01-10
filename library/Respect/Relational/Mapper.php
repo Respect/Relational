@@ -16,9 +16,9 @@ use Respect\Data\CollectionIterator;
 use ReflectionProperty;
 
 /** Maps objects to database operations */
-class Mapper extends AbstractMapper implements 
-    c\Filterable, 
-    c\Mixable, 
+class Mapper extends AbstractMapper implements
+    c\Filterable,
+    c\Mixable,
     c\Typable
 {
     /** @var Respect\Relational\Db Holds our connector**/
@@ -84,13 +84,12 @@ class Mapper extends AbstractMapper implements
             $next->persist($this->inferGet($object, $remote));
         }
         
-        foreach($onCollection->getChildren() as $child) {
+        foreach ($onCollection->getChildren() as $child) {
             $remote = $this->getStyle()->remoteIdentifier($child->getName());
             $child->persist($this->inferGet($object, $remote));
         }
             
         return parent::persist($object, $onCollection);
-        
     }
     
     /**
@@ -114,8 +113,8 @@ class Mapper extends AbstractMapper implements
             //Extract from $cols only the columns from the mixin
             $mixCols = array_intersect_key(
                 $cols,
-                array_combine( //create array with keys only
-                    $spec, 
+                array_combine(//create array with keys only
+                    $spec,
                     array_fill(0, count($spec), '')
                 )
             );
@@ -190,8 +189,9 @@ class Mapper extends AbstractMapper implements
         $conn->beginTransaction();
         
         try {
-            foreach ($this->changed as $entity)
+            foreach ($this->changed as $entity) {
                 $this->flushSingle($entity);
+            }
         } catch (Exception $e) {
             $conn->rollback();
             throw $e;
@@ -248,7 +248,7 @@ class Mapper extends AbstractMapper implements
 
     protected function extractColumns($entity, Collection $collection)
     {
-        $primaryName = $this->getStyle()->identifier($collection->getName());        
+        $primaryName = $this->getStyle()->identifier($collection->getName());
         $cols = $this->getAllProperties($entity);
 
         foreach ($cols as &$c) {
@@ -269,8 +269,8 @@ class Mapper extends AbstractMapper implements
                     foreach ($columns as $col) {
                         $selectTable[] = "{$tableSpecifier}_mix{$mixin}.$col";
                     }
-                    $selectTable[] = "{$tableSpecifier}_mix{$mixin}." . 
-                    $this->getStyle()->identifier($mixin) . 
+                    $selectTable[] = "{$tableSpecifier}_mix{$mixin}." .
+                    $this->getStyle()->identifier($mixin) .
                     " as {$mixin}_id";
                 }
             }
@@ -293,7 +293,7 @@ class Mapper extends AbstractMapper implements
                     }
                     
                     if ($c->getNext()) {
-                        $selectColumns[] = $tableSpecifier . '.' . 
+                        $selectColumns[] = $tableSpecifier . '.' .
                             $this->getStyle()->remoteIdentifier(
                                 $c->getNext()->getName()
                             );
@@ -313,10 +313,11 @@ class Mapper extends AbstractMapper implements
     {
         $conditions = $aliases = array();
 
-        foreach ($collections as $alias => $collection)
+        foreach ($collections as $alias => $collection) {
             $this->parseCollection(
                 $sql, $collection, $alias, $aliases, $conditions
             );
+        }
 
         return $sql->where($conditions);
     }
@@ -354,7 +355,6 @@ class Mapper extends AbstractMapper implements
                 $sql->as("{$entity}_mix{$mix}");
             }
         }
-        
     }
 
     protected function parseCollection(
@@ -368,8 +368,8 @@ class Mapper extends AbstractMapper implements
         $parentAlias = $parent ? $aliases[$parent] : null;
         $aliases[$entity] = $alias;
         $conditions = $this->parseConditions(
-            $conditions, 
-            $collection, 
+            $conditions,
+            $collection,
             $alias
         ) ?: $conditions;
 
@@ -379,7 +379,6 @@ class Mapper extends AbstractMapper implements
             $this->parseMixins($sql, $collection, $entity);
             return;
         } else {
-            
             if ($collection->isRequired()) {
                 $sql->innerJoin($entity);
             } else {
@@ -443,7 +442,7 @@ class Mapper extends AbstractMapper implements
     }
     
     protected function transformSingleRow($row, $entityName)
-    {  
+    {
         $newRow = $this->getNewEntityByName($entityName);
         
         foreach ($row as $prop => $value) {
@@ -494,10 +493,9 @@ class Mapper extends AbstractMapper implements
     protected function createEntities(
         $row, PDOStatement $statement, Collection $collection
     ) {
-    
         $entities          = new SplObjectStorage();
         $entitiesInstances = $this->buildEntitiesInstances(
-            $collection, 
+            $collection,
             $entities
         );
         $entityInstance    = array_pop($entitiesInstances);
@@ -551,7 +549,9 @@ class Mapper extends AbstractMapper implements
 
         foreach ($entities as $instance) {
             foreach ($this->getAllProperties($instance) as $field => $v) {
-                if (!$this->getStyle()->isRemoteIdentifier($field)) continue;
+                if (!$this->getStyle()->isRemoteIdentifier($field)) {
+                    continue;
+                }
 
                 foreach ($entitiesClone as $sub) {
                     $this->tryHydration($entities, $sub, $field, $v);
@@ -583,8 +583,9 @@ class Mapper extends AbstractMapper implements
         $cols = get_object_vars($object);
         $ref = new \ReflectionClass($object);
         foreach ($ref->getProperties() as $prop) {
-            if (preg_match('/@Relational\\\isNotColumn/', $prop->getDocComment())) 
+            if (preg_match('/@Relational\\\isNotColumn/', $prop->getDocComment())) {
                 continue;
+            }
             $prop->setAccessible(true);
             $cols[$prop->name] = $prop->getValue($object);
         }
@@ -615,5 +616,4 @@ class Mapper extends AbstractMapper implements
     {
         return $collection->have('filters');
     }
-    
 }

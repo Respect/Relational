@@ -18,10 +18,11 @@ class Sql
 
     public static function enclose($sql)
     {
-        if ($sql instanceof self)
+        if ($sql instanceof self) {
             $sql->query = '(' . trim($sql->query) . ') ';
-        elseif ($sql != '')
+        } elseif ($sql != '') {
             $sql = '(' . trim($sql) . ') ';
+        }
 
         return $sql;
     }
@@ -49,18 +50,21 @@ class Sql
     public function setQuery($rawSql, array $params = null)
     {
         $this->query = $rawSql;
-        if ($params !== null)
+        if ($params !== null) {
             $this->params = $params;
+        }
         return $this;
     }
 
     public function appendQuery($sql, array $params = null)
     {
         $this->query = trim($this->query) . " $sql";
-        if ($sql instanceof self)
+        if ($sql instanceof self) {
             $this->params = array_merge($this->params, $sql->getParams());
-        if ($params !== null)
+        }
+        if ($params !== null) {
             $this->params = array_merge($this->params, $params);
+        }
         return $this;
     }
 
@@ -68,7 +72,7 @@ class Sql
     {
         $raw   = ($operation == 'select' || $operation == 'on');
         $parts = $this->normalizeParts($parts, $raw);
-        if (empty($parts))
+        if (empty($parts)) {
             switch ($operation) {
                 case 'asc':
                 case 'desc':
@@ -77,8 +81,10 @@ class Sql
                 default:
                     return $this;
             }
-        if ($operation == 'cond') // condition list
+        }
+        if ($operation == 'cond') {// condition list
             return $this->build('and', $parts);
+        }
 
         $this->buildOperation($operation);
         $operation = trim($operation, '_');
@@ -120,60 +126,69 @@ class Sql
 
     protected function buildKeyValues($parts, $format = '%s ', $partSeparator = ', ')
     {
-        foreach ($parts as $key => $part)
+        foreach ($parts as $key => $part) {
             if (is_numeric($key)) {
                 $parts[$key] = "$part";
             } else {
                 $value = ($part instanceof self) ? "$part" : static::PLACEHOLDER;
-                if (preg_match(static::SQL_OPERATORS, $key) > 0)
+                if (preg_match(static::SQL_OPERATORS, $key) > 0) {
                     $parts[$key] = "$key $value";
-                else
+                } else {
                     $parts[$key] = "$key = $value";
+                }
             }
+        }
         return $this->buildParts($parts, $format, $partSeparator);
     }
 
     protected function buildComparators($parts, $format = '%s ', $partSeparator = ', ')
     {
-        foreach ($parts as $key => $part)
-            if (is_numeric($key))
+        foreach ($parts as $key => $part) {
+            if (is_numeric($key)) {
                 $parts[$key] = "$part";
-            else
+            } else {
                 $parts[$key] = "$key = $part";
+            }
+        }
         return $this->buildParts($parts, $format, $partSeparator);
     }
 
-     protected function buildAliases($parts, $format = '%s ', $partSeparator = ', ')
+    protected function buildAliases($parts, $format = '%s ', $partSeparator = ', ')
     {
-        foreach ($parts as $key => $part)
-            if (is_numeric($key))
+        foreach ($parts as $key => $part) {
+            if (is_numeric($key)) {
                 $parts[$key] = "$part";
-            else
+            } else {
                 $parts[$key] = "$part AS $key";
+            }
+        }
         return $this->buildParts($parts, $format, $partSeparator);
     }
 
     protected function buildValuesList($parts)
     {
-        foreach ($parts as $key => $part)
-            if (is_numeric($key) || $part instanceof self)
+        foreach ($parts as $key => $part) {
+            if (is_numeric($key) || $part instanceof self) {
                 $parts[$key] = "$part";
-            else
+            } else {
                 $parts[$key] = static::PLACEHOLDER;
+            }
+        }
         return $this->buildParts($parts, '(%s) ', ', ');
     }
 
     protected function buildOperation($operation)
     {
         $command = strtoupper(preg_replace('/[A-Z0-9]+/', ' $0', $operation));
-        if ($command == '_')
+        if ($command == '_') {
             $this->query = rtrim($this->query) . ') ';
-        elseif ($command[0] == '_')
+        } elseif ($command[0] == '_') {
             $this->query .= '(' . trim($command, '_ ') . ' ';
-        elseif (substr($command, -1) == '_')
+        } elseif (substr($command, -1) == '_') {
             $this->query .= trim($command, '_ ') . ' (';
-        else
+        } else {
             $this->query .= trim($command) . ' ';
+        }
     }
 
     protected function buildFirstPart(&$parts)
@@ -183,8 +198,9 @@ class Sql
 
     protected function buildParts($parts, $format = '%s ', $partSeparator = ', ')
     {
-        if (!empty($parts))
+        if (!empty($parts)) {
             $this->query .= sprintf($format, implode($partSeparator, $parts));
+        }
 
         return $this;
     }
@@ -197,8 +213,9 @@ class Sql
         array_walk_recursive($parts, function ($value, $key) use (&$newParts, &$params, &$raw) {
                 if ($value instanceof Sql) {
                     $params = array_merge($params, $value->getParams());
-                    if (0 !== stripos($value, '('))
+                    if (0 !== stripos($value, '(')) {
                         $value = Sql::enclose($value);
+                    }
                     $newParts[$key] = $value;
                 } elseif ($raw) {
                     $newParts[$key] = $value;
