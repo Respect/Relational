@@ -10,28 +10,8 @@
             "email": "alexandre@gaigalas.net"
         },
         {
-            "name": "Claudson Oliveira",
-            "email": "claudsonweb@gmail.com"
-        },
-        {
-            "name": "Fabio da Silva Ribeiro",
-            "email": "fabiorphp@gmail.com"
-        },
-        {
-            "name": "Henrique Moody",
-            "email": "henriquemoody@gmail.com"
-        },
-        {
-            "name": "Kinn Coelho Juliao",
-            "email": "kinncj@gmail.com"
-        },
-        {
-            "name": "Rogerio Prado de Jesus",
-            "email": "rogeriopradoj@gmail.com"
-        },
-        {
-            "name": "Thiago Rigo",
-            "email": "thiagophx@gmail.com"
+            "name": "Respect/Data Contributors",
+            "homepage": "https://github.com/Respect/Data/graphs/contributors"
         }
     ],
     "require": {
@@ -42,8 +22,8 @@
         "phpunit/phpunit": "~4.4.0"
     },
     "autoload": {
-        "psr-0": {
-            "Respect\\Relational": "library/"
+        "psr-4": {
+            "Respect\\": "library/Respect"
         }
     },
     "extra": {
