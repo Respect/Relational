@@ -18,8 +18,6 @@
 *.xpi
 *.xz
 *.zip
-/pirum
-/library/Respect/Data
 /nbproject
 /tests/reports
 /vendor

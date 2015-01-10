@@ -2,7 +2,7 @@ Respect\Relational
 ==================
 
 [![Build Status](https://secure.travis-ci.org/Respect/Relational.png)](http://travis-ci.org/Respect/Relational) [![Latest Stable Version](https://poser.pugx.org/respect/relational/v/stable.png)](https://packagist.org/packages/respect/relational) [![Total Downloads](https://poser.pugx.org/respect/relational/downloads.png)](https://packagist.org/packages/respect/relational) [![Latest Unstable Version](https://poser.pugx.org/respect/relational/v/unstable.png)](https://packagist.org/packages/respect/relational) [![License](https://poser.pugx.org/respect/relational/license.png)](https://packagist.org/packages/respect/relational)
- 
+
 the Relational database persistence tool.
 
   * Near-zero configuration.
@@ -19,14 +19,18 @@ This documentation is a work in progress! Kindly forward any issues you may find
 Installation
 ------------
 
-Packages available on [PEAR](http://respect.li/pear) and [Composer](http://packagist.org/packages/Respect/Relational).
-Autoloading with [composer](http://getcomposer.org/) is [PSR-0](https://github.com/php-fig/fig-standards/blob/master/accepted/PSR-0.md) compatible.
+The package is available on [Packagist](https://packagist.org/packages/arara/process).
+You can install it using [Composer](http://getcomposer.org).
+
+```bash
+composer require respect/relational
+```
 
 ### Dependence
 
 * Respect\Data
 
-Respect\Data allows you to use multiple, cooperative database mapping with a single solid API. You can even mix out MySQL and 
+Respect\Data allows you to use multiple, cooperative database mapping with a single solid API. You can even mix out MySQL and
 MongoDB databases in a single model.
 
 Feature Guide
@@ -112,7 +116,7 @@ value from the database.
 
 #### Persist with ArrayObject
 
-You can create a new author with `ArrayObject` too. Let's supose that you get a post 
+You can create a new author with `ArrayObject` too. Let's supose that you get a post
 request from a form with the field _name_ to create an author. You can do something like this:
 
 ```php
