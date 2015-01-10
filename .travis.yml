@@ -20,7 +20,7 @@ before_script:
   - composer install --dev --no-interaction --prefer-source
 
 script:
-  - vendor/bin/phpunit --configuration tests/phpunit.xml tests/
+  - vendor/bin/phpunit --configuration phpunit.xml.dist --colors
 
 matrix:
   allow_failures:
