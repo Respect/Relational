@@ -2,7 +2,7 @@
 
 [![Build Status](https://img.shields.io/travis/Respect/Relational.svg?style=flat-square)](http://travis-ci.org/Respect/Relational)
 [![Code Coverage](https://img.shields.io/scrutinizer/coverage/g/Respect/Relational.svg?style=flat-square)](https://scrutinizer-ci.com/g/Respect/Relational/?branch=master)
-[![Latest Stable Version](https://img.shields.io/packagist/v/respect/relational.svg?style=flat-square&label=stable)](https://packagist.org/packages/respect/relational)
+[![Latest Stable Version](https://img.shields.io/packagist/v/respect/relational.svg?style=flat-square)](https://packagist.org/packages/respect/relational)
 [![Total Downloads](https://img.shields.io/packagist/dt/respect/relational.svg?style=flat-square)](https://packagist.org/packages/respect/relational)
 [![License](https://img.shields.io/packagist/l/respect/relational.svg?style=flat-square)](https://packagist.org/packages/respect/relational)
 
@@ -20,7 +20,7 @@ This documentation is a work in progress! Kindly forward any issues you may find
 
 ## Installation
 
-The package is available on [Packagist](https://packagist.org/packages/arara/process).
+The package is available on [Packagist](https://packagist.org/packages/respect/relational).
 You can install it using [Composer](http://getcomposer.org).
 
 ```bash
