@@ -9,7 +9,7 @@
 the Relational database persistence tool.
 
   * Near-zero configuration.
-  * Fluent interfaces like `$mapper->author[7]->fetch();`
+  * Fluent interfaces like `$mapper->author[7]->fetch();` (and [concrete ones if you want](https://gist.github.com/alganet/4957800)).
   * Adapts itself to different database styles.
   * Records are handled as Plain Data Object.
   * No need to generate a thing, nada, nothing, zilch, bugger all!
