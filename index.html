@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <title>Respect\Relational</title>
+
+        <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
+        <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap-theme.min.css">
+        <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css">
+        <link rel="stylesheet" href="http://respect.github.io/Relational/css/main.css">
+    </head>
+    <body>
+
+        <header class="navbar navbar-default navbar-fixed-top">
+
+            <a class="navbar-brand" href="http://respect.github.io/Relational/">
+                Respect\Relational
+                <small class="hidden-xs hidden-sm">
+                    A fluent, intuitive ORM for any relational database engine
+                </small>
+            </a>
+
+                            <a href="https://github.com/Respect/Relational">
+                    <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/38ef81f8aca64bb9a64448d0d70f1308ef5341ab/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f6461726b626c75655f3132313632312e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png">
+                </a>
+            
+        </header>
+
+        <main class="container-fluid">
+            <div class="row">
+                                    <nav id="sidebar" class="col-sm-3 col-lg-2" role="navigation">
+
+                        
+                            
+                            <ul class="nav nav-pills nav-stacked">
+                                                                    <li class="">
+                                        <a href="http://respect.github.io/Relational/">
+                                            Home
+                                        </a>
+                                    </li>
+                                                                    <li class="">
+                                        <a href="http://respect.github.io/Relational/contributing.html">
+                                            Contributing
+                                        </a>
+                                    </li>
+                                                                    <li class="">
+                                        <a href="http://respect.github.io/Relational/docs/db-class.html">
+                                            Db class
+                                        </a>
+                                    </li>
+                                                                    <li class="">
+                                        <a href="http://respect.github.io/Relational/docs/">
+                                            Feature Guide
+                                        </a>
+                                    </li>
+                                                                    <li class="">
+                                        <a href="http://respect.github.io/Relational/docs/install.html">
+                                            Installation
+                                        </a>
+                                    </li>
+                                                                    <li class="">
+                                        <a href="http://respect.github.io/Relational/license.html">
+                                            License
+                                        </a>
+                                    </li>
+                                                            </ul>
+
+                        
+                    </nav>
+                
+                <section class="col-sm-offset-3 col-lg-offset-2 col-sm-9 col-lg-10">
+                    <h1 id="respectrelational">Respect\Relational</h1>
+<p><a href="http://travis-ci.org/Respect/Relational"><img src="https://img.shields.io/travis/Respect/Relational.svg?style=flat-square" alt="Build Status" /></a>
+<a href="https://scrutinizer-ci.com/g/Respect/Relational/?branch=master"><img src="https://img.shields.io/scrutinizer/coverage/g/Respect/Relational.svg?style=flat-square" alt="Code Coverage" /></a>
+<a href="https://packagist.org/packages/respect/relational"><img src="https://img.shields.io/packagist/v/respect/relational.svg?style=flat-square" alt="Latest Stable Version" /></a>
+<a href="https://packagist.org/packages/respect/relational"><img src="https://img.shields.io/packagist/dt/respect/relational.svg?style=flat-square" alt="Total Downloads" /></a>
+<a href="https://packagist.org/packages/respect/relational"><img src="https://img.shields.io/packagist/l/respect/relational.svg?style=flat-square" alt="License" /></a></p>
+<p>A fluent, intuitive ORM for any relational database engine.</p>
+<ul>
+<li>Near-zero configuration.</li>
+<li>Fluent interfaces like <code>$mapper-&gt;author[7]-&gt;fetch();</code> (and <a href="https://gist.github.com/alganet/4957800">concrete ones if you want</a>).</li>
+<li>Adapts itself to different database styles.</li>
+<li>Records are handled as Plain Data Object.</li>
+<li>No need to generate a thing, nada, nothing, zilch, bugger all!</li>
+</ul>
+<p>This documentation is a work in progress! Kindly forward any issues you may find back to us =)</p>
+<h2 id="table-of-contents">Table of contents</h2>
+<ul>
+<li><a href="contributing.html">Contributing</a></li>
+<li><a href="docs/db-class.html">Db class</a></li>
+<li><a href="docs/index.html">Feature Guide</a></li>
+<li><a href="docs/install.html">Installation</a></li>
+<li><a href="license.html">License</a></li>
+</ul>
+                    <div id="go-top">
+                        <hr />
+                        <p>
+                            <a class="btn btn-primary btn-sm" href="#" role="button">
+                                <span class="glyphicon glyphicon-arrow-up" aria-hidden="true"></span>
+                            </a>
+                        </p>
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <script src="//code.jquery.com/jquery-1.11.2.min.js"></script>
+        <script src="//netdna.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/highlight.min.js"></script>
+
+        <script>
+            $(function() {
+                hljs.initHighlightingOnLoad();
+
+                var top = $('#go-top');
+
+                $(window).scroll(function() {
+                    if($(window).scrollTop() + $(window).height() <= $(document).height() - 100) {
+                        return;
+                    }
+
+                    top.fadeIn();
+                });
+            });
+
+            
+                (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+                (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+                m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+                })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+                ga('create', 'UA-59839366-1', 'auto');
+                ga('send', 'pageview');
+
+            
+        </script>
+    </body>
+</html>

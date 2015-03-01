@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <title>Respect\Relational</title>
+
+        <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
+        <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap-theme.min.css">
+        <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css">
+        <link rel="stylesheet" href="http://respect.github.io/Relational/css/main.css">
+    </head>
+    <body>
+
+        <header class="navbar navbar-default navbar-fixed-top">
+
+            <a class="navbar-brand" href="http://respect.github.io/Relational/">
+                Respect\Relational
+                <small class="hidden-xs hidden-sm">
+                    A fluent, intuitive ORM for any relational database engine
+                </small>
+            </a>
+
+                            <a href="https://github.com/Respect/Relational">
+                    <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/38ef81f8aca64bb9a64448d0d70f1308ef5341ab/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f6461726b626c75655f3132313632312e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png">
+                </a>
+            
+        </header>
+
+        <main class="container-fluid">
+            <div class="row">
+                                    <nav id="sidebar" class="col-sm-3 col-lg-2" role="navigation">
+
+                        
+                            
+                            <ul class="nav nav-pills nav-stacked">
+                                                                    <li class="">
+                                        <a href="http://respect.github.io/Relational/">
+                                            Home
+                                        </a>
+                                    </li>
+                                                                    <li class="">
+                                        <a href="http://respect.github.io/Relational/contributing.html">
+                                            Contributing
+                                        </a>
+                                    </li>
+                                                                    <li class="">
+                                        <a href="http://respect.github.io/Relational/docs/db-class.html">
+                                            Db class
+                                        </a>
+                                    </li>
+                                                                    <li class="">
+                                        <a href="http://respect.github.io/Relational/docs/">
+                                            Feature Guide
+                                        </a>
+                                    </li>
+                                                                    <li class="">
+                                        <a href="http://respect.github.io/Relational/docs/install.html">
+                                            Installation
+                                        </a>
+                                    </li>
+                                                                    <li class="">
+                                        <a href="http://respect.github.io/Relational/license.html">
+                                            License
+                                        </a>
+                                    </li>
+                                                            </ul>
+
+                        
+                    </nav>
+                
+                <section class="col-sm-offset-3 col-lg-offset-2 col-sm-9 col-lg-10">
+                    <h1 id="feature-guide">Feature Guide</h1>
+<h2 id="the-near-zero-part">The Near-zero Part</h2>
+<p>You're ready to go playing with your database with 2 lines of code:</p>
+<pre><code class="language-php">use Respect\Relational\Mapper;
+$mapper = new Mapper(new PDO('sqlite:database.sq3'));</code></pre>
+<p>We love using SQLite, but you can use any PDO adapter. Even PDO adapters
+that do not exist yet.</p>
+<p>Here is an example of what a mysql connection might look like, just because we are nice. =)</p>
+<pre><code class="language-php">use Respect\Relational\Mapper;
+$mapper = new Mapper(new PDO('mysql:host=127.0.0.1;port=3306;dbname=database_mysql','root',''));</code></pre>
+<h2 id="a-sample-database">A Sample Database</h2>
+<p>For the samples below, consider the following database structure:</p>
+<pre><code class="language-sql">author (id INT AUTO_INCREMENT, name VARCHAR(32))
+post (id INT AUTO_INCREMENT, author_id INT, title VARCHAR(255), text TEXT, created_at TIMESTAMP)
+comment (id INT AUTO_INCREMENT, post_id INT text TEXT, created_at TIMESTAMP)</code></pre>
+<p>Consider these tables with referencing foreign keys, but that's really
+only a best practice and its not required for Respect\Relational to work. We'll
+explain how that works later, but that's only a detail.</p>
+<h2 id="fetching">Fetching</h2>
+<p>We now have a database and a configured <code>$mapper</code>. To get a list of all authors,
+you only need:</p>
+<pre><code class="language-php">$authors = $mapper-&gt;author-&gt;fetchAll();</code></pre>
+<p>This will give you an array of PHP objects that represents the authors. You can
+use them like this:</p>
+<pre><code class="language-php">foreach ($authors as $author) {
+    echo $author-&gt;name . PHP_EOL;
+}</code></pre>
+<p>All properties are available, so you can <code>$author-&gt;created_at</code> if you want. We'll
+dive on automatic <code>JOIN</code> mapping, ordering and limiting below, keep reading!</p>
+<h2 id="persisting">Persisting</h2>
+<h3 id="persist-with-stdclass">Persist with stdClass</h3>
+<p>You can insert a new author into the database using the following example. We're using
+<code>stdClass</code>, but you will see later on in this guide just how easy it is to use specific classes
+for each mapping.</p>
+<pre><code class="language-php">$alexandre = new stdClass;
+$alexandre-&gt;name = 'Alexandre Gaigalas';
+$alexandre-&gt;created_at = date('Y-m-d H:i:s');
+
+$mapper-&gt;author-&gt;persist($alexandre);
+$mapper-&gt;flush();</code></pre>
+<p>We use <code>flush()</code> to persist all changes to the database in one batch.
+You can perform several <code>persist()</code>s before calling <code>flush()</code>. Persist will
+keep the state in memory, flushing sends it all to the database.</p>
+<p>After a <code>flush()</code> if you <code>print $alexandre-&gt;id</code>, it will reflect the auto incremented
+value from the database.</p>
+<h3 id="persist-with-arrayobject">Persist with ArrayObject</h3>
+<p>You can create a new author with <code>ArrayObject</code> too. Let's supose that you get a post
+request from a form with the field <em>name</em> to create an author. You can do something like this:</p>
+<pre><code class="language-php">$alexandre = new \ArrayObject($_POST, \ArrayObject::STD_PROP_LIST);
+$alexandre-&gt;created_at = date('Y-m-d H:i:s');
+
+$mapper-&gt;author-&gt;persist($alexandre);
+$mapper-&gt;flush();</code></pre>
+<p>This is just to show what you can do, ofcourse you have to <a href="https://github.com/Respect/Validation">validate</a> the <code>$_POST</code> var first.</p>
+<h2 id="joining">Joining</h2>
+<p>In the sample below we're going to get all the comments, from all the posts created
+by the author that has the id 42. In one line:</p>
+<pre><code class="language-php">$manyComments = $mapper-&gt;comment-&gt;post-&gt;author[42]-&gt;fetchAll();</code></pre>
+<p>We like to read this as:</p>
+<p>&quot;Mapper, give me all comments from posts made by author 42&quot;</p>
+<p>This will be easier to understand if you know what Respect\Relational is doing.</p>
+<p>Results are automatically hydrated, so you can:</p>
+<pre><code class="language-php">print $manyCmments[0]-&gt;post_id-&gt;author_id-&gt;name; //prints the post author name from the
+                                                 //first comment</code></pre>
+<p>Many-to-many and left joins are also possible and will be covered below.</p>
+<h2 id="mapping-shortcuts">Mapping Shortcuts</h2>
+<p>Before digging in on complex joins, conditions, ordering, entity classes, database
+styles and other complicated (but simple with Respect\Relational) things, let's simplify
+everything.</p>
+<p>You can assign shortcuts to the mapper. For example:</p>
+<pre><code class="language-php">$mapper-&gt;postsFromAuthor = $mapper-&gt;post-&gt;author;</code></pre>
+<p>Then use them:</p>
+<pre><code class="language-php">$mapper-&gt;postsFromAuthor[7]-&gt;fetchAll();</code></pre>
+<p>With this you can centralize most of the persistence logic and avoid
+duplicating code.</p>
+<h2 id="conventions">Conventions</h2>
+<p>For now, you must be asking yourself how Respect\Relational can work with these guys
+with just stdClasses and no configuration. This is done by conventions.</p>
+<p>Any good database is based on conventions. Our defaults are:</p>
+<ul>
+<li>A table must have a primary key named <code>id</code> as the first column.</li>
+<li>A foreign key must be named as <code>table_id</code>.</li>
+<li>A many-to-many table must be named as <code>table_othertable</code>.</li>
+</ul>
+<p>Nodes on the fluent chain are these table names.</p>
+<p>Conventions differ in style, we support many styles of casing (camel case, studly
+caps, lowercase) and underscoring:</p>
+<ul>
+<li>Default style (The above)</li>
+<li>Sakila style (MySQL sample database)</li>
+<li>Northwind style (SQL Server sample database)</li>
+<li>CakePHP style (to make it easier to migrate from apps written in CakePHP)</li>
+</ul>
+<p>Usage:</p>
+<pre><code class="language-php">$mapper-&gt;setStyle(new Styles\Sakila);</code></pre>
+<p>Styles are implemented as plugins. Refer to the <code>Respect\Relational\Styles\Stylable</code>
+interface.</p>
+<pre><code class="language-php">$mapper-&gt;setStyle(new MyStyle);</code></pre>
+<h2 id="entity-classes">Entity Classes</h2>
+<p>Every example we looked at so far used the stdClasses. You can use your own model classes for each
+table by setting an entity namespace:</p>
+<pre><code class="language-php">$mapper-&gt;entityNamespace = '\\MyApplication\\Entities';</code></pre>
+<p>This will search for entities like <code>\\My\Application\\Entities\\Comment</code>. Public
+properties for each column must be set. You don't need to extend or implement
+anything and you can put any methods you want. No mandatory params on the
+constructor please.</p>
+<p>Currently entity classes are only supported through the use of <code>-&gt;setStyle()</code>.</p>
+<p>To skip properties that not exist in database you can use <code>@Relational\isNotColumn</code> annotation.</p>
+<h2 id="updating">Updating</h2>
+<p>You've fetched something, changed it and you need to save it back. Easy:</p>
+<pre><code class="language-php">$post122 = $mapper-&gt;post[122]-&gt;fetch();
+$post122-&gt;title = "New Title!";
+$mapper-&gt;post-&gt;persist($post122);
+$mapper-&gt;flush();</code></pre>
+<p>You may also change multiple items all at once:</p>
+<pre><code class="language-php">//Mapper, give me comments from post 5
+$commentsFromPost5 = $mapper-&gt;comment-&gt;post[5];
+
+//Marking all comments as moderated
+foreach ($commentsFromPost5 as $c) {
+    $c-&gt;text = "Moderated comment";
+    $mapper-&gt;comment-&gt;persist($c);
+}
+
+$mapper-&gt;flush();</code></pre>
+<h2 id="removing">Removing</h2>
+<p>...is also trivial:</p>
+<pre><code class="language-php">$mapper-&gt;author-&gt;remove($alexandre);
+$mapper-&gt;flush();</code></pre>
+<h2 id="conditions">Conditions</h2>
+<p>First author named &quot;Alexandre&quot;:</p>
+<pre><code class="language-php">$mapper-&gt;author(array("name"=&gt;"Alexandre"))-&gt;fetch();</code></pre>
+<p>Posts created after 2012 (note the <code>&gt;=</code> sign):</p>
+<pre><code class="language-php">$mapper-&gt;post(array("created_at &gt;="=&gt;strtotime('2012-01-01'))-&gt;fetchAll();</code></pre>
+<p>The same to LIKE:</p>
+<pre><code class="language-php">$mapper-&gt;post(array("name LIKE "=&gt;"Ale"))-&gt;fetchAll();</code></pre>
+<p>IS NULL or IS NOT NULL is very simple:</p>
+<pre><code class="language-php">$mapper-&gt;post(array("name IS NOT NULL"))-&gt;fetchAll();</code></pre>
+<p>Comments on any post from the author named Alexandre:</p>
+<pre><code class="language-php">//Mapper, give me comments from posts by author named Alexandre
+$mapper-&gt;comment-&gt;post-&gt;author(array("name"=&gt;"Alexandre"))-&gt;fetchAll();</code></pre>
+<p>Comments from today on posts of the past week by the author 7:</p>
+<pre><code class="language-php">$mapper-&gt;comment(array("created_at &gt;"=&gt;strtotime('today')))
+       -&gt;post(array("created_at &gt;"=&gt;strtotime('7 days ago')))
+       -&gt;author[7]
+       -&gt;fetchAll();</code></pre>
+<p>Just for the curiosity, the generated query from those complex conditions look exactly like this:</p>
+<pre><code class="language-sql">SELECT
+  *
+FROM
+  comment
+INNER JOIN
+  post
+ON
+  comment.post_id = post.id
+INNER JOIN
+  author
+ON
+  post.author_id = author.id
+WHERE
+  comment.created_at &gt; 123456
+AND
+  post.created_at &gt; 234567
+AND
+  author.id = 7;</code></pre>
+<h2 id="ordering-limiting">Ordering, Limiting</h2>
+<p>We accomplish ordering and limiting of results through the Sql helper so ensure that you've
+sperified the following 'use':</p>
+<pre><code class="language-php">use Respect\Relational\Sql;</code></pre>
+<p>10 last posts ordered by creation time</p>
+<pre><code class="language-php">$mapper-&gt;post-&gt;fetchAll(Sql::orderBy('created_at')-&gt;desc()-&gt;limit(10));</code></pre>
+<p>Using multiple tables:</p>
+<pre><code class="language-php">$mapper-&gt;comment-&gt;post[5]-&gt;fetchAll(Sql::orderBy('comment.created_at')-&gt;limit(20));</code></pre>
+<p><strong><em>You must use <code>Sql::</code> as a suffix. It must respect SQL order, so LIMIT must always
+be used after ORDER BY. All extra Sql is placed at the end of the query.</em></strong></p>
+<h2 id="left-joins">Left Joins</h2>
+<p>Getting all posts left joining authors:</p>
+<pre><code class="language-php">$mapper-&gt;post($mapper-&gt;author)-&gt;fetchAll();</code></pre>
+<p>If a post doesn't have an author, it will return a <code>null</code> when hydrated. You can
+left join at any point in the chain.</p>
+<p>Left joining with conditions are also possible:</p>
+<pre><code class="language-php">$mapper-&gt;post($mapper-&gt;author, array("title" =&gt; "Spammed Title"))-&gt;fetchAll();</code></pre>
+<p>It doesn't matter which order they are in place either Conditions or the Joins first.
+Queries by primary key are also easy with left joins:</p>
+<pre><code class="language-php">//Post with id, optionally its author if present
+$mapper-&gt;post(7, $mapper-&gt;author)-&gt;fetch();</code></pre>
+<h2 id="many-to-many-queries">Many-to-Many queries</h2>
+<p>For this sample, we're now assuming two more tables:</p>
+<pre><code class="language-sql">category (id INT AUTO_INCREMENT, name VARCHAR(32))
+post_category (id INT AUTO_INCREMENT, post_id INT, category_id INT)</code></pre>
+<p>All categories from a post:</p>
+<pre><code class="language-php">$mapper-&gt;category-&gt;post_category-&gt;post[7]-&gt;fetchAll();</code></pre>
+<p>Please, use shortcuts for these! Is this not easier to remember them by?</p>
+<pre><code class="language-php">$mapper-&gt;categoriesFromPost = $mapper-&gt;category-&gt;post_category-&gt;post;</code></pre>
+<h2 id="multi-join-tables">Multi-join tables</h2>
+<p>A hint: a table may appear multiple times in the same chain. They're aliased suffixed
+by a number in the SQL statement ie. (post, post2, post3, etc).</p>
+<h2 id="sql">Sql</h2>
+<p>The Sql class is a bonus. Its an advanced gramatical lightweight query builder.</p>
+<pre><code class="language-php">print Sql::select('*')
+           -&gt;from('post', 'comment', 'author')
+           -&gt;where(array(
+              "post.id" =&gt; 7,
+              "comment.post_id" =&gt; "post.id",
+              "post.author_id" =&gt; "author.id"
+           ));</code></pre>
+<p>Do yourself a favour and consult the tests for the complete reference implementation for this class.</p>
+<hr />
+<ul>
+<li><a href="../index.html">Home</a></li>
+<li><a href="../contributing.html">Contributing</a></li>
+<li><a href="db-class.html">Db class</a></li>
+<li><a href="install.html">Installation</a></li>
+<li><a href="../license.html">License</a></li>
+</ul>
+                    <div id="go-top">
+                        <hr />
+                        <p>
+                            <a class="btn btn-primary btn-sm" href="#" role="button">
+                                <span class="glyphicon glyphicon-arrow-up" aria-hidden="true"></span>
+                            </a>
+                        </p>
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <script src="//code.jquery.com/jquery-1.11.2.min.js"></script>
+        <script src="//netdna.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/highlight.min.js"></script>
+
+        <script>
+            $(function() {
+                hljs.initHighlightingOnLoad();
+
+                var top = $('#go-top');
+
+                $(window).scroll(function() {
+                    if($(window).scrollTop() + $(window).height() <= $(document).height() - 100) {
+                        return;
+                    }
+
+                    top.fadeIn();
+                });
+            });
+
+            
+                (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+                (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+                m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+                })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+                ga('create', 'UA-59839366-1', 'auto');
+                ga('send', 'pageview');
+
+            
+        </script>
+    </body>
+</html>
