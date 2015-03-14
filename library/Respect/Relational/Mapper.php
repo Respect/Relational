@@ -14,6 +14,7 @@ use Respect\Data\Collections\Collection;
 use Respect\Data\Collections as c;
 use Respect\Data\CollectionIterator;
 use ReflectionProperty;
+use ReflectionClass;
 
 /** Maps objects to database operations */
 class Mapper extends AbstractMapper implements
@@ -23,7 +24,7 @@ class Mapper extends AbstractMapper implements
 {
     /** @var Respect\Relational\Db Holds our connector**/
     protected $db;
-    
+
     /** @var string Namespace to look for entities **/
     public $entityNamespace = '\\';
 
@@ -33,7 +34,7 @@ class Mapper extends AbstractMapper implements
     public function __construct($db)
     {
         parent::__construct();
-        
+
         if ($db instanceof PDO) {
             $this->db = new Db($db);
         } elseif ($db instanceof Db) {
@@ -58,7 +59,7 @@ class Mapper extends AbstractMapper implements
     {
         $coll    = $this->tracked[$entity];
         $cols    = $this->extractColumns($entity, $coll);
-        
+
         if ($this->removed->contains($entity)) {
             $this->rawDelete($cols, $coll, $entity);
         } elseif ($this->new->contains($entity)) {
@@ -67,31 +68,31 @@ class Mapper extends AbstractMapper implements
             $this->rawUpdate($cols, $coll);
         }
     }
-    
+
     public function persist($object, Collection $onCollection)
     {
         $next = $onCollection->getNext();
-        
+
         if ($this->filterable($onCollection)) {
             $next->setMapper($this);
             $next->persist($object);
             return;
         }
-        
+
         if ($next) {
             $remote = $this->getStyle()->remoteIdentifier($next->getName());
             $next->setMapper($this);
             $next->persist($this->inferGet($object, $remote));
         }
-        
+
         foreach ($onCollection->getChildren() as $child) {
             $remote = $this->getStyle()->remoteIdentifier($child->getName());
             $child->persist($this->inferGet($object, $remote));
         }
-            
+
         return parent::persist($object, $onCollection);
     }
-    
+
     /**
      * Receives columns from an entity and her collection. Returns the columns
      * that belong only to the main entity. This method supports mixing, so
@@ -108,12 +109,13 @@ class Mapper extends AbstractMapper implements
         if (!$this->mixable($collection)) {
             return $cols;
         }
-        
+
         foreach ($this->getMixins($collection) as $mix => $spec) {
             //Extract from $cols only the columns from the mixin
             $mixCols = array_intersect_key(
                 $cols,
-                array_combine(//create array with keys only
+                array_combine(
+                    //create array with keys only
                     $spec,
                     array_fill(0, count($spec), '')
                 )
@@ -128,7 +130,7 @@ class Mapper extends AbstractMapper implements
                 $this->rawinsert($mixCols, $this->__get($mix));
             }
         }
-        
+
         return $cols;
     }
 
@@ -141,7 +143,9 @@ class Mapper extends AbstractMapper implements
     }
 
     protected function rawDelete(
-        array $condition, Collection $collection, $entity
+        array $condition,
+        Collection $collection,
+        $entity
     ) {
         $name      = $collection->getName();
         $columns   = $this->extractColumns($entity, $collection);
@@ -167,7 +171,9 @@ class Mapper extends AbstractMapper implements
     }
 
     protected function rawInsert(
-        array $columns, Collection $collection, $entity = null
+        array $columns,
+        Collection $collection,
+        $entity = null
     ) {
         $columns    = $this->extractAndOperateMixins($collection, $columns);
         $name       = $collection->getName();
@@ -182,12 +188,12 @@ class Mapper extends AbstractMapper implements
 
         return $isInserted;
     }
-    
+
     public function flush()
     {
         $conn = $this->db->getConnection();
         $conn->beginTransaction();
-        
+
         try {
             foreach ($this->changed as $entity) {
                 $this->flushSingle($entity);
@@ -196,7 +202,7 @@ class Mapper extends AbstractMapper implements
             $conn->rollback();
             throw $e;
         }
-        
+
         $this->reset();
         $conn->commit();
     }
@@ -220,14 +226,15 @@ class Mapper extends AbstractMapper implements
     }
 
     protected function createStatement(
-        Collection $collection, $withExtra = null
+        Collection $collection,
+        $withExtra = null
     ) {
         $query = $this->generateQuery($collection);
-        
+
         if ($withExtra instanceof Sql) {
             $query->appendQuery($withExtra);
         }
-        
+
         $statement = $this->db->prepare((string) $query, PDO::FETCH_NUM);
         $statement->execute($query->getParams());
         return $statement;
@@ -236,7 +243,8 @@ class Mapper extends AbstractMapper implements
     protected function generateQuery(Collection $collection)
     {
         $collections = iterator_to_array(
-            CollectionIterator::recursive($collection), true
+            CollectionIterator::recursive($collection),
+            true
         );
         $sql = new Sql;
 
@@ -279,7 +287,7 @@ class Mapper extends AbstractMapper implements
                 if ($filters) {
                     $pkName = $tableSpecifier . '.' .
                         $this->getStyle()->identifier($c->getName());
-                        
+
                     if ($filters == array('*')) {
                         $selectColumns[] = $pkName;
                     } else {
@@ -291,14 +299,14 @@ class Mapper extends AbstractMapper implements
                             $selectColumns[] = "{$tableSpecifier}.{$f}";
                         }
                     }
-                    
+
                     if ($c->getNext()) {
                         $selectColumns[] = $tableSpecifier . '.' .
                             $this->getStyle()->remoteIdentifier(
                                 $c->getNext()->getName()
                             );
                     }
-                    
+
                     $selectTable = array_merge($selectTable, $selectColumns);
                 }
             } else {
@@ -315,7 +323,11 @@ class Mapper extends AbstractMapper implements
 
         foreach ($collections as $alias => $collection) {
             $this->parseCollection(
-                $sql, $collection, $alias, $aliases, $conditions
+                $sql,
+                $collection,
+                $alias,
+                $aliases,
+                $conditions
             );
         }
 
@@ -336,7 +348,9 @@ class Mapper extends AbstractMapper implements
             foreach ($originalConditions as $column => $value) {
                 if (is_numeric($column)) {
                     $parsedConditions[$column] = preg_replace(
-                        "/{$entity}[.](\w+)/", "$alias.$1", $value
+                        "/{$entity}[.](\w+)/",
+                        "$alias.$1",
+                        $value
                     );
                 } else {
                     $parsedConditions["$alias.$column"] = $value;
@@ -346,7 +360,7 @@ class Mapper extends AbstractMapper implements
 
         return $parsedConditions;
     }
-    
+
     protected function parseMixins(Sql $sql, Collection $collection, $entity)
     {
         if ($this->mixable($collection)) {
@@ -358,7 +372,11 @@ class Mapper extends AbstractMapper implements
     }
 
     protected function parseCollection(
-        Sql $sql, Collection $collection, $alias, &$aliases, &$conditions
+        Sql $sql,
+        Collection $collection,
+        $alias,
+        &$aliases,
+        &$conditions
     ) {
         $s      = $this->getStyle();
         $entity = $collection->getName();
@@ -384,13 +402,13 @@ class Mapper extends AbstractMapper implements
             } else {
                 $sql->leftJoin($entity);
             }
-            
+
             $this->parseMixins($sql, $collection, $entity);
 
             if ($alias !== $entity) {
                 $sql->as($alias);
             }
-            
+
             $aliasedPk       = $alias . '.' . $s->identifier($entity);
             $aliasedParentPk = $parentAlias . '.' . $s->identifier($parent);
 
@@ -404,7 +422,7 @@ class Mapper extends AbstractMapper implements
             return $sql->on(array($onName => $onAlias));
         }
     }
-    
+
     protected function hasComposition($entity, $next, $parent)
     {
         $s = $this->getStyle();
@@ -413,7 +431,8 @@ class Mapper extends AbstractMapper implements
     }
 
     protected function fetchSingle(
-        Collection $collection, PDOStatement $statement
+        Collection $collection,
+        PDOStatement $statement
     ) {
         $name        = $collection->getName();
         $entityName  = $name;
@@ -426,31 +445,33 @@ class Mapper extends AbstractMapper implements
         if ($this->typable($collection)) {
             $entityName = $this->inferGet($row, $this->getType($collection));
         }
-      
+
         $entities = new SplObjectStorage();
         $entities[$this->transformSingleRow($row, $entityName)] = $collection;
 
         return $entities;
     }
-    
+
     protected function getNewEntityByName($entityName)
     {
         $entityName = $this->getStyle()->styledName($entityName);
         $entityClass = $this->entityNamespace . $entityName;
         $entityClass = class_exists($entityClass) ? $entityClass : '\stdClass';
-        return new $entityClass;
+        $entityReflection = new ReflectionClass($entityClass);
+
+        return $entityReflection->newInstanceWithoutConstructor();
     }
-    
+
     protected function transformSingleRow($row, $entityName)
     {
         $newRow = $this->getNewEntityByName($entityName);
-        
+
         foreach ($row as $prop => $value) {
             $this->inferSet($newRow, $prop, $value);
         }
         return $newRow;
     }
-    
+
     protected function inferSet(&$entity, $prop, $value)
     {
         try {
@@ -474,7 +495,8 @@ class Mapper extends AbstractMapper implements
     }
 
     protected function fetchMulti(
-        Collection $collection, PDOStatement $statement
+        Collection $collection,
+        PDOStatement $statement
     ) {
         $entities       = array();
         $row            = $statement->fetch(PDO::FETCH_NUM);
@@ -482,16 +504,18 @@ class Mapper extends AbstractMapper implements
         if (!$row) {
             return false;
         }
-        
+
         $this->postHydrate(
             $entities = $this->createEntities($row, $statement, $collection)
         );
 
         return $entities;
     }
-    
+
     protected function createEntities(
-        $row, PDOStatement $statement, Collection $collection
+        $row,
+        PDOStatement $statement,
+        Collection $collection
     ) {
         $entities          = new SplObjectStorage();
         $entitiesInstances = $this->buildEntitiesInstances(
@@ -499,7 +523,7 @@ class Mapper extends AbstractMapper implements
             $entities
         );
         $entityInstance    = array_pop($entitiesInstances);
-        
+
         //Reversely traverses the columns to avoid conflicting foreign key names
         foreach (array_reverse($row, true) as $col => $value) {
             $columnMeta    = $statement->getColumnMeta($col);
@@ -507,42 +531,43 @@ class Mapper extends AbstractMapper implements
             $primaryName   = $this->getStyle()->identifier(
                 $entities[$entityInstance]->getName()
             );
-            
+
             $this->inferSet($entityInstance, $columnName, $value);
-                
+
             if ($primaryName == $columnName) {
                 $entityInstance = array_pop($entitiesInstances);
             }
         }
         return $entities;
     }
-    
+
     protected function buildEntitiesInstances(
-        Collection $collection, SplObjectStorage $entities
+        Collection $collection,
+        SplObjectStorage $entities
     ) {
         $entitiesInstances = array();
-        
+
         foreach (CollectionIterator::recursive($collection) as $c) {
             if ($this->filterable($c) && !$this->getFilters($c)) {
                 continue;
             }
-            
+
             $entityInstance = $this->getNewEntityByName($c->getName());
             $mixins = array();
-            
+
             if ($this->mixable($c)) {
                 $mixins = $this->getMixins($c);
                 foreach ($mixins as $mix) {
                     $entitiesInstances[] = $entityInstance;
                 }
             }
-            
+
             $entities[$entityInstance] = $c;
             $entitiesInstances[] = $entityInstance;
         }
         return $entitiesInstances;
     }
-    
+
     protected function postHydrate(SplObjectStorage $entities)
     {
         $entitiesClone = clone $entities;
@@ -560,12 +585,12 @@ class Mapper extends AbstractMapper implements
             }
         }
     }
-    
+
     protected function tryHydration($entities, $sub, $field, &$v)
     {
         $tableName = $entities[$sub]->getName();
         $primaryName = $this->getStyle()->identifier($tableName);
-        
+
         if ($tableName === $this->getStyle()->remoteFromIdentifier($field)
                 && $this->inferGet($sub, $primaryName) === $v) {
             $v = $sub;
@@ -591,7 +616,7 @@ class Mapper extends AbstractMapper implements
         }
         return $cols;
     }
-    
+
     public function getFilters(Collection $collection)
     {
         return $collection->getExtra('filters');
