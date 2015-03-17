@@ -15,7 +15,7 @@
         }
     ],
     "require": {
-        "php": ">=5.3.0",
+        "php": ">=5.4.0",
         "respect/data": "~0.2.2"
     },
     "require-dev": {
