@@ -120,7 +120,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
 
         foreach ($this->postsCategories as $postCategory)
             $db->insertInto('post_category', (array) $postCategory)->values((array) $postCategory)->exec();
-            
+
         foreach ($this->issues as $issue)
             $db->insertInto('issues', (array) $issue)->values((array) $issue)->exec();
 
@@ -511,7 +511,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $author = $mapper->authorsWithPosts->fetch();
         $this->assertEquals($this->authors[0], $author);
     }
-    
+
     public function test_persisting_a_previously_fetched_filtered_entity_back_into_its_collection() {
         $mapper = $this->mapper;
         $mapper->authorsWithPosts = Filtered::post()->author();
@@ -522,7 +522,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $result = $this->conn->query('select name from author where id=1')->fetch(PDO::FETCH_OBJ);
         $this->assertEquals('Author Changed', $result->name);
     }
-    
+
     public function test_persisting_a_previously_fetched_filtered_entity_back_into_a_foreign_compatible_collection() {
         $mapper = $this->mapper;
         $mapper->authorsWithPosts = Filtered::post()->author();
@@ -533,7 +533,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $result = $this->conn->query('select name from author where id=1')->fetch(PDO::FETCH_OBJ);
         $this->assertEquals('Author Changed', $result->name);
     }
-    
+
     public function test_persisting_a_newly_created_filtered_entity_into_its_collection() {
         $mapper = $this->mapper;
         $mapper->authorsWithPosts = Filtered::post()->author();
@@ -545,7 +545,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $result = $this->conn->query('select name from author order by id desc')->fetch(PDO::FETCH_OBJ);
         $this->assertEquals('Author Changed', $result->name);
     }
-    
+
     public function test_persisting_a_newly_created_filtered_entity_into_a_foreig_compatible_collection() {
         $mapper = $this->mapper;
         $mapper->authorsWithPosts = Filtered::post()->author();
@@ -564,7 +564,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $authors = $mapper->authorsWithPosts->fetchAll();
         $this->assertEquals($this->authors, $authors);
     }
-    
+
     public function test_filtered_collections_should_hydrate_non_filtered_parts_as_usual() {
         $mapper = $this->mapper;
         $mapper->postsFromAuthorsWithComments = Filtered::comment()->post()->author();
@@ -572,7 +572,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals((object) (array('author_id' => $post->author_id) + (array) $this->posts[0]), $post);
         $this->assertEquals($this->authors[0], $post->author_id);
     }
-    
+
     public function test_filtered_collections_should_persist_hydrated_non_filtered_parts_as_usual() {
         $mapper = $this->mapper;
         $mapper->postsFromAuthorsWithComments = Filtered::comment()->post()->author();
@@ -588,7 +588,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $result = $this->conn->query('select name from author where id=1')->fetch(PDO::FETCH_OBJ);
         $this->assertEquals('John', $result->name);
     }
-    
+
     public function test_multiple_filtered_collections_dont_persist() {
         $mapper = $this->mapper;
         $mapper->authorsWithPosts = Filtered::comment()->post->stack(Filtered::author());
@@ -620,7 +620,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $result = $this->conn->query('select name from author order by id desc')->fetch(PDO::FETCH_OBJ);
         $this->assertNotEquals('A', $result->name);
     }
-    
+
     public function test_multiple_filtered_collections_fetch_at_once_dont_persist() {
         $mapper = $this->mapper;
         $mapper->authorsWithPosts = Filtered::comment()->post->stack(Filtered::author());
@@ -637,7 +637,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $result = $this->conn->query('select name from author where id=1')->fetch(PDO::FETCH_OBJ);
         $this->assertNotEquals('A', $result->name);
     }
-    
+
     public function test_reusing_registered_filtered_collections_keeps_their_filtering() {
         $mapper = $this->mapper;
         $mapper->commentFil = Filtered::comment();
@@ -728,7 +728,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $post = $mapper->postComment->fetch();
         $this->assertEquals((object) array('name' => 'Author 1', 'id' => 1), $post->author_id);
         $this->assertEquals((object) array('id' => '5', 'author_id' => $post->author_id, 'text' => 'Comment Text', 'title' => 'Post Title', 'comment_id' => 7), $post);
-        
+
     }
     public function test_mixins_persists_results_on_two_tables() {
         $mapper = $this->mapper;
@@ -744,7 +744,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals('Title Changed', $result->title);
         $result = $this->conn->query('select text from comment where id=7')->fetch(PDO::FETCH_OBJ);
         $this->assertEquals('Comment Changed', $result->text);
-        
+
     }
     public function test_mixins_persists_newly_created_entities_on_two_tables() {
         $mapper = $this->mapper;
@@ -758,7 +758,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals('', $result->text);
         $result = $this->conn->query('select text from comment order by id desc')->fetch(PDO::FETCH_OBJ);
         $this->assertEquals('Comment X', $result->text);
-        
+
     }
     public function test_mixins_all() {
         $mapper = $this->mapper;
@@ -775,7 +775,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals('Title Changed', $result->title);
         $result = $this->conn->query('select text from comment where id=7')->fetch(PDO::FETCH_OBJ);
         $this->assertEquals('Comment Changed', $result->text);
-        
+
     }
     public function test_typed() {
         $mapper = $this->mapper;
@@ -847,10 +847,10 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
     {
         $mapper = $this->mapper;
         $mapper->entityNamespace = '\Respect\Relational\OtherEntity\\';
-        
+
         $post = $mapper->post[5]->fetch();
         $post->setText('HeyHey');
-        
+
         $mapper->post->persist($post);
         $mapper->flush();
         $result = $this->conn->query('select text from post where id=5')->fetchColumn(0);
@@ -861,11 +861,11 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
     {
         $mapper = $this->mapper;
         $mapper->entityNamespace = '\Respect\Relational\OtherEntity\\';
-        
+
         $author = new OtherEntity\Author();
         $author->setId(1);
         $author->setName('Author 1');
-        
+
         $post = new OtherEntity\Post();
         $post->setAuthor($author);
         $post->setTitle('My New Post Title');
@@ -875,7 +875,29 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $result = $this->conn->query('select text from post where id=6')->fetchColumn(0);
         $this->assertEquals('My new Post Text', $result);
     }
-    
+
+    public function testShouldExecuteEntityConstructorByDefault()
+    {
+        $mapper = $this->mapper;
+        $mapper->entityNamespace = 'Respect\\Relational\\OtherEntity\\';
+
+        try {
+            $mapper->comment->fetch();
+            $this->fail('This should throws exception');
+        } catch (\DomainException $e) {
+            $this->assertEquals('Exception from __construct', $e->getMessage());
+        }
+    }
+
+    public function testShouldNotExecuteEntityConstructorWhenDisabled()
+    {
+        $mapper = $this->mapper;
+        $mapper->entityNamespace = 'Respect\\Relational\\OtherEntity\\';
+        $mapper->disableEntityConstructor = true;
+
+        $this->assertInstanceOf('Respect\\Relational\\OtherEntity\\Comment', $mapper->comment->fetch());
+    }
+
 }
 
 class Postcomment {
@@ -972,5 +994,14 @@ class Author {
     public function setName($name)
     {
         $this->name = $name;
+    }
+}
+
+
+class Comment
+{
+    public function __construct()
+    {
+        throw new \DomainException('Exception from __construct');
     }
 }
