@@ -37,6 +37,13 @@ class Mapper extends AbstractMapper implements
     public $entityNamespace = '\\';
 
     /**
+     * Disable or enable entity constructors.
+     *
+     * @var bool
+     */
+    public $disableEntityConstructor = false;
+
+    /**
      * @param mixed $db Db or Pdo
      */
     public function __construct($db)
@@ -471,6 +478,10 @@ class Mapper extends AbstractMapper implements
         $entityClass = $this->entityNamespace.$entityName;
         $entityClass = class_exists($entityClass) ? $entityClass : '\stdClass';
         $entityReflection = new ReflectionClass($entityClass);
+
+        if (!$this->disableEntityConstructor) {
+            return $entityReflection->newInstanceArgs();
+        }
 
         return $entityReflection->newInstanceWithoutConstructor();
     }
