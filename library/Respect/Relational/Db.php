@@ -2,7 +2,7 @@
 
 namespace Respect\Relational;
 
-use \PDO as PDO;
+use PDO;
 
 class Db
 {
@@ -13,6 +13,7 @@ class Db
     public function __call($methodName, $arguments)
     {
         $this->currentSql->__call($methodName, $arguments);
+
         return $this;
     }
 
@@ -20,7 +21,7 @@ class Db
     {
         $connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $this->connection = $connection;
-        $this->protoSql = $sqlPrototype ? : new Sql();
+        $this->protoSql = $sqlPrototype ?: new Sql();
         $this->currentSql = clone $this->protoSql;
     }
 
@@ -32,12 +33,14 @@ class Db
     public function fetch($object = '\stdClass', $extra = null)
     {
         $result = $this->performFetch(__FUNCTION__, $object, $extra);
+
         return is_callable($object) ? $object($result) : $result;
     }
 
     public function fetchAll($object = '\stdClass', $extra = null)
     {
         $result = $this->performFetch(__FUNCTION__, $object, $extra);
+
         return is_callable($object) ? array_map($object, $result) : $result;
     }
 
@@ -77,6 +80,7 @@ class Db
     public function query($rawSql, array $params = null)
     {
         $this->currentSql->setQuery($rawSql, $params);
+
         return $this;
     }
 
@@ -85,6 +89,7 @@ class Db
         $statement = $this->prepare((string) $this->currentSql, $object, $extra);
         $statement->execute($this->currentSql->getParams());
         $this->currentSql = clone $this->protoSql;
+
         return $statement;
     }
 
@@ -92,6 +97,7 @@ class Db
     {
         $statement = $this->executeStatement($object, $extra);
         $result = $statement->{$method}();
+
         return $result;
     }
 }

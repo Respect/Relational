@@ -12,16 +12,17 @@ class Sql
 
     public static function __callStatic($operation, $parts)
     {
-        $sql = new static;
+        $sql = new static();
+
         return call_user_func_array(array($sql, $operation), $parts);
     }
 
     public static function enclose($sql)
     {
         if ($sql instanceof self) {
-            $sql->query = '(' . trim($sql->query) . ') ';
+            $sql->query = '('.trim($sql->query).') ';
         } elseif ($sql != '') {
-            $sql = '(' . trim($sql) . ') ';
+            $sql = '('.trim($sql).') ';
         }
 
         return $sql;
@@ -53,18 +54,20 @@ class Sql
         if ($params !== null) {
             $this->params = $params;
         }
+
         return $this;
     }
 
     public function appendQuery($sql, array $params = null)
     {
-        $this->query = trim($this->query) . " $sql";
+        $this->query = trim($this->query)." $sql";
         if ($sql instanceof self) {
             $this->params = array_merge($this->params, $sql->getParams());
         }
         if ($params !== null) {
             $this->params = array_merge($this->params, $params);
         }
+
         return $this;
     }
 
@@ -82,12 +85,14 @@ class Sql
                     return $this;
             }
         }
-        if ($operation == 'cond') {// condition list
+        if ($operation == 'cond') {
+            // condition list
             return $this->build('and', $parts);
         }
 
         $this->buildOperation($operation);
         $operation = trim($operation, '_');
+
         return $this->build($operation, $parts);
     }
 
@@ -109,6 +114,7 @@ class Sql
                 return $this->buildComparators($parts, '%s ', ' AND ');
             case 'alterTable':
                 $this->buildFirstPart($parts);
+
                 return $this->buildParts($parts, '%s ');
             case 'in':
             case 'values':
@@ -118,6 +124,7 @@ class Sql
             case 'replaceInto':
                 $this->params = array();
                 $this->buildFirstPart($parts);
+
                 return $this->buildParts($parts, '(%s) ');
             default: //defaults to any other SQL instruction
                 return $this->buildParts($parts);
@@ -138,6 +145,7 @@ class Sql
                 }
             }
         }
+
         return $this->buildParts($parts, $format, $partSeparator);
     }
 
@@ -150,6 +158,7 @@ class Sql
                 $parts[$key] = "$key = $part";
             }
         }
+
         return $this->buildParts($parts, $format, $partSeparator);
     }
 
@@ -162,6 +171,7 @@ class Sql
                 $parts[$key] = "$part AS $key";
             }
         }
+
         return $this->buildParts($parts, $format, $partSeparator);
     }
 
@@ -174,6 +184,7 @@ class Sql
                 $parts[$key] = static::PLACEHOLDER;
             }
         }
+
         return $this->buildParts($parts, '(%s) ', ', ');
     }
 
@@ -181,19 +192,19 @@ class Sql
     {
         $command = strtoupper(preg_replace('/[A-Z0-9]+/', ' $0', $operation));
         if ($command == '_') {
-            $this->query = rtrim($this->query) . ') ';
+            $this->query = rtrim($this->query).') ';
         } elseif ($command[0] == '_') {
-            $this->query .= '(' . trim($command, '_ ') . ' ';
+            $this->query .= '('.trim($command, '_ ').' ';
         } elseif (substr($command, -1) == '_') {
-            $this->query .= trim($command, '_ ') . ' (';
+            $this->query .= trim($command, '_ ').' (';
         } else {
-            $this->query .= trim($command) . ' ';
+            $this->query .= trim($command).' ';
         }
     }
 
     protected function buildFirstPart(&$parts)
     {
-        $this->query .= array_shift($parts) . ' ';
+        $this->query .= array_shift($parts).' ';
     }
 
     protected function buildParts($parts, $format = '%s ', $partSeparator = ', ')
@@ -204,12 +215,12 @@ class Sql
 
         return $this;
     }
-    
-    protected function normalizeParts($parts, $raw=false)
+
+    protected function normalizeParts($parts, $raw = false)
     {
         $params = & $this->params;
         $newParts = array();
-        
+
         array_walk_recursive($parts, function ($value, $key) use (&$newParts, &$params, &$raw) {
                 if ($value instanceof Sql) {
                     $params = array_merge($params, $value->getParams());
@@ -227,6 +238,7 @@ class Sql
                 }
             }
         );
+
         return $newParts;
     }
 }
