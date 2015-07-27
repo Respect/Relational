@@ -141,7 +141,7 @@ class Mapper extends AbstractMapper implements
             } else {
                 $mixCols['id'] = null;
                 $cols = array_diff($cols, $mixCols); //Remove mixin columns
-                $this->rawinsert($mixCols, $this->__get($mix));
+                $this->rawInsert($mixCols, $this->__get($mix));
             }
         }
 
