@@ -136,6 +136,14 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
         $this->assertAttributeSame($db, 'db', $mapper);
     }
 
+    public function test_get_defined_db_instance()
+    {
+        $db = new Db($this->conn);
+        $mapper = new Mapper($db);
+
+        $this->assertSame($db, $mapper->getDb());
+    }
+
     public function test_creating_with_invalid_args_should_throw_exception()
     {
         $this->setExpectedException('InvalidArgumentException');

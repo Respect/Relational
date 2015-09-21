@@ -62,6 +62,14 @@ class Mapper extends AbstractMapper implements
     }
 
     /**
+     * @return Db
+     */
+    public function getDb()
+    {
+        return $this->db;
+    }
+
+    /**
      * Flushes a single instance into the database. This method supports
      * mixing, so flushing a mixed instance will flush distinct tables on the
      * database.
