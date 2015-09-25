@@ -499,6 +499,10 @@ class Mapper extends AbstractMapper implements
 
     protected function inferSet(&$entity, $prop, $value)
     {
+        if ($entity === $value) {
+            return;
+        }
+
         try {
             $mirror = new \ReflectionProperty($entity, $prop);
             $mirror->setAccessible(true);
