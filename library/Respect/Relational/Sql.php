@@ -33,7 +33,7 @@ class Sql
         return $this->preBuild($operation, $parts);
     }
 
-    public function __construct($rawSql = '', array $params = null)
+    public function __construct($rawSql = '', array|null $params = null)
     {
         $this->setQuery($rawSql, $params);
     }
@@ -48,7 +48,7 @@ class Sql
         return $this->params;
     }
 
-    public function setQuery($rawSql, array $params = null)
+    public function setQuery($rawSql, array|null $params = null)
     {
         $this->query = $rawSql;
         if ($params !== null) {
@@ -58,7 +58,7 @@ class Sql
         return $this;
     }
 
-    public function appendQuery($sql, array $params = null)
+    public function appendQuery($sql, array|null $params = null)
     {
         $this->query = trim($this->query)." $sql";
         if ($sql instanceof self) {

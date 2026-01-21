@@ -8,7 +8,7 @@ use PDO,
     Respect\Data\Styles\Plural,
     Respect\Relational\Mapper;
 
-class PluralTest extends \PHPUnit_Framework_TestCase
+class PluralTest extends \PHPUnit\Framework\TestCase
 {
     /**
      * @var Respect\Data\Styles\Plural
@@ -25,7 +25,13 @@ class PluralTest extends \PHPUnit_Framework_TestCase
      */
     private $conn;
 
-    public function setUp()
+    private $posts;
+    private $authors;
+    private $comments;
+    private $categories;
+    private $postsCategories;
+
+    protected function setUp(): void
     {
 
         $conn = new PDO('sqlite::memory:');
@@ -145,7 +151,7 @@ class PluralTest extends \PHPUnit_Framework_TestCase
         $this->mapper->entityNamespace = __NAMESPACE__ . '\\';
     }
 
-    public function tearDown()
+    protected function tearDown(): void
     {
         $this->style = null;
     }
@@ -239,7 +245,7 @@ class PluralTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals('HeyHey', $result);
     }
 
-    public function tableEntityProvider()
+    public static function tableEntityProvider()
     {
         return array(
             array('posts',              'Post'),
@@ -250,7 +256,7 @@ class PluralTest extends \PHPUnit_Framework_TestCase
         );
     }
 
-    public function manyToMantTableProvider()
+    public static function manyToMantTableProvider()
     {
         return array(
             array('post',   'category', 'posts_categories'),
@@ -259,7 +265,7 @@ class PluralTest extends \PHPUnit_Framework_TestCase
         );
     }
 
-    public function columnsPropertyProvider()
+    public static function columnsPropertyProvider()
     {
         return array(
             array('id'),
@@ -270,7 +276,7 @@ class PluralTest extends \PHPUnit_Framework_TestCase
         );
     }
 
-    public function foreignProvider()
+    public static function foreignProvider()
     {
         return array(
             array('posts',      'post_id'),

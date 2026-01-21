@@ -8,7 +8,7 @@ use PDO,
     Respect\Data\Styles\CakePHP,
     Respect\Relational\Mapper;
 
-class CakePHPTest extends \PHPUnit_Framework_TestCase
+class CakePHPTest extends \PHPUnit\Framework\TestCase
 {
 
     /**
@@ -26,7 +26,13 @@ class CakePHPTest extends \PHPUnit_Framework_TestCase
      */
     private $conn;
 
-    public function setUp()
+    private $posts;
+    private $authors;
+    private $comments;
+    private $categories;
+    private $postsCategories;
+
+    protected function setUp(): void
     {
 
         $conn = new PDO('sqlite::memory:');
@@ -151,7 +157,7 @@ class CakePHPTest extends \PHPUnit_Framework_TestCase
         $this->mapper->entityNamespace = __NAMESPACE__ . '\\';
     }
 
-    public function tearDown()
+    protected function tearDown(): void
     {
         $this->style = null;
     }
@@ -245,7 +251,7 @@ class CakePHPTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals('HeyHey', $result);
     }
 
-    public function tableEntityProvider()
+    public static function tableEntityProvider()
     {
         return array(
             array('posts',              'Post'),
@@ -256,7 +262,7 @@ class CakePHPTest extends \PHPUnit_Framework_TestCase
         );
     }
 
-    public function manyToMantTableProvider()
+    public static function manyToMantTableProvider()
     {
         return array(
             array('post',   'category', 'post_categories'),
@@ -265,7 +271,7 @@ class CakePHPTest extends \PHPUnit_Framework_TestCase
         );
     }
 
-    public function columnsPropertyProvider()
+    public static function columnsPropertyProvider()
     {
         return array(
             array('id'),
@@ -276,7 +282,7 @@ class CakePHPTest extends \PHPUnit_Framework_TestCase
         );
     }
 
-    public function foreignProvider()
+    public static function foreignProvider()
     {
         return array(
             array('posts',      'post_id'),

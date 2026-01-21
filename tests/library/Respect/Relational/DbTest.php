@@ -2,12 +2,12 @@
 
 namespace Respect\Relational;
 
-class DbTest extends \PHPUnit_Framework_TestCase
+class DbTest extends \PHPUnit\Framework\TestCase
 {
 
     protected $object;
 
-    protected function setUp()
+    protected function setUp(): void
     {
         if (!in_array('sqlite', \PDO::getAvailableDrivers())) {
             $this->markTestSkipped('PDO_SQLITE is not available');
@@ -20,7 +20,7 @@ class DbTest extends \PHPUnit_Framework_TestCase
         $this->object = new Db($db);
     }
 
-    protected function tearDown()
+    protected function tearDown(): void
     {
         unset($this->object);
     }
@@ -111,20 +111,17 @@ class DbTest extends \PHPUnit_Framework_TestCase
 
 class testFetchingClass
 {
-
+    public $testa, $testb, $testez;
 }
 
 class testFetchingInto
 {
-
-    public $testa, $testb, $testz;
-
+    public $testa, $testb, $testez;
 }
 
 class testFetchingClassArgs
 {
-
-    public $testd;
+    public $testd, $testa, $testb, $testez;
 
     public function __construct($testd)
     {

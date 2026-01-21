@@ -8,7 +8,7 @@ use PDO,
     Respect\Data\Styles\Sakila,
     Respect\Relational\Mapper;
 
-class SakilaTest extends \PHPUnit_Framework_TestCase
+class SakilaTest extends \PHPUnit\Framework\TestCase
 {
 
     /**
@@ -26,7 +26,13 @@ class SakilaTest extends \PHPUnit_Framework_TestCase
      */
     private $conn;
 
-    public function setUp()
+    private $posts;
+    private $authors;
+    private $comments;
+    private $categories;
+    private $postsCategories;
+
+    protected function setUp(): void
     {
 
         $conn = new PDO('sqlite::memory:');
@@ -151,7 +157,7 @@ class SakilaTest extends \PHPUnit_Framework_TestCase
         $this->mapper->entityNamespace = __NAMESPACE__ . '\\';
     }
 
-    public function tableEntityProvider()
+    public static function tableEntityProvider()
     {
         return array(
             array('post',           'Post'),
@@ -162,7 +168,7 @@ class SakilaTest extends \PHPUnit_Framework_TestCase
         );
     }
 
-    public function manyToMantTableProvider()
+    public static function manyToMantTableProvider()
     {
         return array(
             array('post',   'category', 'post_category'),
@@ -171,7 +177,7 @@ class SakilaTest extends \PHPUnit_Framework_TestCase
         );
     }
 
-    public function columnsPropertyProvider()
+    public static function columnsPropertyProvider()
     {
         return array(
             array('id'),
@@ -182,7 +188,7 @@ class SakilaTest extends \PHPUnit_Framework_TestCase
         );
     }
 
-    public function keyProvider()
+    public static function keyProvider()
     {
         return array(
             array('post',       'post_id'),
@@ -297,7 +303,7 @@ class Comment
 }
 class Category
 {
-    public $category_id, $name, $description;
+    public $category_id, $name, $content, $description;
 }
 class PostCategory
 {

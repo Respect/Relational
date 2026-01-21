@@ -2,12 +2,12 @@
 
 namespace Respect\Relational;
 
-class SqlTest extends \PHPUnit_Framework_TestCase
+class SqlTest extends \PHPUnit\Framework\TestCase
 {
 
     protected $object;
 
-    protected function setUp()
+    protected function setUp(): void
     {
         $this->object = new Sql;
     }
