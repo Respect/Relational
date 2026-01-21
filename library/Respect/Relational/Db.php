@@ -17,7 +17,7 @@ class Db
         return $this;
     }
 
-    public function __construct(PDO $connection, Sql $sqlPrototype = null)
+    public function __construct(PDO $connection, Sql|null $sqlPrototype = null)
     {
         $connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $this->connection = $connection;
@@ -54,7 +54,7 @@ class Db
         return $this->currentSql;
     }
 
-    public function prepare($queryString, $object = '\stdClass', array $extra = null)
+    public function prepare($queryString, $object = '\stdClass', array|null $extra = null)
     {
         $statement = $this->connection->prepare($queryString);
 
@@ -77,7 +77,7 @@ class Db
         return $statement;
     }
 
-    public function query($rawSql, array $params = null)
+    public function query($rawSql, array|null $params = null)
     {
         $this->currentSql->setQuery($rawSql, $params);
 

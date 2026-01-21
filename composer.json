@@ -2,24 +2,24 @@
     "name": "respect/relational",
     "description": "Fluent Database Toolkit",
     "type": "library",
-    "homepage": "http://respect.li",
-    "license": "BSD Style",
+    "homepage": "https://github.com/Respect",
+    "license": "BSD-3-Clause",
     "authors": [
         {
             "name": "Alexandre Gomes Gaigalas",
-            "email": "alexandre@gaigalas.net"
+            "email": "alganet@gmail.com"
         },
         {
-            "name": "Respect/Data Contributors",
-            "homepage": "https://github.com/Respect/Data/graphs/contributors"
+            "name": "Respect/Relational Contributors",
+            "homepage": "https://github.com/Respect/Relational/graphs/contributors"
         }
     ],
     "require": {
-        "php": ">=5.4.0",
-        "respect/data": "~0.2.2"
+        "php": ">=8.5.0",
+        "respect/data": "dev-master"
     },
     "require-dev": {
-        "phpunit/phpunit": "~4.4.0"
+        "phpunit/phpunit": "^10.0"
     },
     "autoload": {
         "psr-4": {
@@ -28,7 +28,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-master": "0.9-dev"
+            "dev-master": "3.0-dev"
         }
     }
 }

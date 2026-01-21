@@ -4,15 +4,15 @@ namespace Respect\Relational;
 
 use PDO;
 use Respect\Data\Collections\Filtered;
-use Respect\Data\Collections\Mixed;
+use Respect\Data\Collections\Mix;
 use Respect\Data\Collections\Typed;
 use Respect\Data\Styles;
 
-class MapperTest extends \PHPUnit_Framework_TestCase {
+class MapperTest extends \PHPUnit\Framework\TestCase {
 
-    protected $mapper, $posts, $authors, $comments, $categories, $postsCategories;
+    protected $conn, $mapper, $posts, $authors, $comments, $categories, $postsCategories, $issues;
 
-    public function setUp() {
+    protected function setUp(): void {
         $conn = new PDO('sqlite::memory:');
         $db = new Db($conn);
         $conn->exec((string) Sql::createTable('post', array(
@@ -133,7 +133,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
     {
         $db = new Db($this->conn);
         $mapper = new Mapper($db);
-        $this->assertAttributeSame($db, 'db', $mapper);
+        $this->assertSame($db, $mapper->getDb());
     }
 
     public function test_get_defined_db_instance()
@@ -146,17 +146,16 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
 
     public function test_creating_with_invalid_args_should_throw_exception()
     {
-        $this->setExpectedException('InvalidArgumentException');
+        $this->expectException('InvalidArgumentException');
         $mapper = new Mapper('foo');
     }
 
     public function test_rolling_back_transaction()
     {
-        $conn = $this->getMock(
-            'PDO',
-            array('beginTransaction', 'rollback', 'prepare', 'execute'),
-            array('sqlite::memory:')
-        );
+        $conn = $this->getMockBuilder('PDO')
+            ->setConstructorArgs(array('sqlite::memory:'))
+            ->onlyMethods(array('beginTransaction', 'rollback', 'prepare'))
+            ->getMock();
         $conn->expects($this->any())
              ->method('prepare')
              ->will($this->throwException(new \Exception));
@@ -175,21 +174,22 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
 
     public function test_ignoring_last_insert_id_errors()
     {
-        $conn = $this->getMock(
-            'PDO',
-            array('lastInsertId'),
-            array('sqlite::memory:')
-        );
-        $conn->exec('CREATE TABLE foo(id INTEGER PRIMARY KEY)');
+        $conn = $this->getMockBuilder('PDO')
+            ->setConstructorArgs(array('sqlite::memory:'))
+            ->onlyMethods(array('lastInsertId'))
+            ->getMock();
+        $conn->exec('CREATE TABLE foo(id INTEGER PRIMARY KEY, name VARCHAR(255))');
         $conn->expects($this->any())
              ->method('lastInsertId')
              ->will($this->throwException(new \PDOException));
         $mapper = new Mapper($conn);
         $obj = new \stdClass();
         $obj->id = null;
+        $obj->name = 'bar';
         $mapper->foo->persist($obj);
         $mapper->flush();
-        //Ok, should not throw PDOException on this.
+        $this->assertNull($obj->id);
+        $this->assertEquals('bar', $obj->name);
     }
 
     public function test_removing_untracked_object()
@@ -387,12 +387,12 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
     public function testPassedIdentity() {
         $mapper = $this->mapper;
 
-        $post = new \stdClass;
+        $post = new \stdClass();
         $post->id = null;
         $post->title = 12345;
         $post->text = 'text abc';
 
-        $comment = new \stdClass;
+        $comment = new \stdClass();
         $comment->id = null;
         $comment->post_id = $post;
         $comment->text = 'abc';
@@ -732,7 +732,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
     }
     public function test_mixins_bring_results_from_two_tables() {
         $mapper = $this->mapper;
-        $mapper->postComment = Mixed::with(array('comment' => array('text')))->post()->author();
+        $mapper->postComment = Mix::with(array('comment' => array('text')))->post()->author();
         $post = $mapper->postComment->fetch();
         $this->assertEquals((object) array('name' => 'Author 1', 'id' => 1), $post->author_id);
         $this->assertEquals((object) array('id' => '5', 'author_id' => $post->author_id, 'text' => 'Comment Text', 'title' => 'Post Title', 'comment_id' => 7), $post);
@@ -740,7 +740,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
     }
     public function test_mixins_persists_results_on_two_tables() {
         $mapper = $this->mapper;
-        $mapper->postComment = Mixed::with(array('comment' => array('text')))->post()->author();
+        $mapper->postComment = Mix::with(array('comment' => array('text')))->post()->author();
         $post = $mapper->postComment->fetch();
         $this->assertEquals((object) array('name' => 'Author 1', 'id' => 1), $post->author_id);
         $this->assertEquals((object) array('id' => '5', 'author_id' => $post->author_id, 'text' => 'Comment Text', 'title' => 'Post Title', 'comment_id' => 7), $post);
@@ -756,7 +756,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
     }
     public function test_mixins_persists_newly_created_entities_on_two_tables() {
         $mapper = $this->mapper;
-        $mapper->postComment = Mixed::with(array('comment' => array('text')))->post()->author();
+        $mapper->postComment = Mix::with(array('comment' => array('text')))->post()->author();
         $post = (object) array('text' => 'Comment X', 'title' => 'Post X', 'id' => null);
         $post->author_id = (object) array('name' => 'Author X', 'id' => null);
         $mapper->postComment->persist($post);
@@ -770,7 +770,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
     }
     public function test_mixins_all() {
         $mapper = $this->mapper;
-        $mapper->postComment = Mixed::with(array('comment' => array('text')))->post()->author();
+        $mapper->postComment = Mix::with(array('comment' => array('text')))->post()->author();
         $post = $mapper->postComment->fetchAll();
         $post = $post[0];
         $this->assertEquals((object) array('name' => 'Author 1', 'id' => 1), $post->author_id);
@@ -818,7 +818,7 @@ class MapperTest extends \PHPUnit_Framework_TestCase {
     {
         $mapper = $this->mapper;
         $arrayEntity = array('id' => 10, 'name' => 'array_object_category', 'category_id' => null);
-        $entity = new \ArrayObject($arrayEntity);
+        $entity = (object) $arrayEntity;
         $mapper->category->persist($entity);
         $mapper->flush();
         $result = $this->conn->query('select * from category where id=10')->fetch(PDO::FETCH_OBJ);
@@ -913,10 +913,10 @@ class Postcomment {
 }
 
 class Bug {
-    public $id=null, $title;
+    public $id=null, $title, $type;
 }
 class Improvement {
-    public $id=null, $title;
+    public $id=null, $title, $type;
 }
 
 class Comment {
@@ -933,9 +933,9 @@ class Comment {
 }
 
 class Post {
-    public $id=null, $author_id=null, $text=null;
+    public $id=null, $author_id=null, $text=null, $title=null;
     /** @Relational\isNotColumn -> annotation because generate a sql error case column not exists in db. */
-    private $datetime;
+    private $datetime = '';
     public function setDatetime(\Datetime $datetime)
     {
         $this->datetime = $datetime->format('Y-m-d H:i:s');
@@ -1008,6 +1008,10 @@ class Author {
 
 class Comment
 {
+    public $id = null;
+    public $post_id = null;
+    public $text = null;
+    public $datetime = null;
     public function __construct()
     {
         throw new \DomainException('Exception from __construct');

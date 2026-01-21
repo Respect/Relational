@@ -2,3 +2,4 @@
 /.couscous/
 /vendor/
 Makefile
+.phpunit.result.cache

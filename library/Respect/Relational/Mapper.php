@@ -81,9 +81,9 @@ class Mapper extends AbstractMapper implements
         $coll    = $this->tracked[$entity];
         $cols    = $this->extractColumns($entity, $coll);
 
-        if ($this->removed->contains($entity)) {
+        if ($this->removed->offsetExists($entity)) {
             $this->rawDelete($cols, $coll, $entity);
-        } elseif ($this->new->contains($entity)) {
+        } elseif ($this->new->offsetExists($entity)) {
             $this->rawInsert($cols, $coll, $entity);
         } else {
             $this->rawUpdate($cols, $coll);
@@ -513,7 +513,6 @@ class Mapper extends AbstractMapper implements
 
         try {
             $mirror = new \ReflectionProperty($entity, $prop);
-            $mirror->setAccessible(true);
             $mirror->setValue($entity, $value);
         } catch (\ReflectionException $e) {
             $entity->{$prop} = $value;
@@ -524,7 +523,6 @@ class Mapper extends AbstractMapper implements
     {
         try {
             $mirror = new \ReflectionProperty($object, $prop);
-            $mirror->setAccessible(true);
 
             return $mirror->getValue($object);
         } catch (\ReflectionException $e) {
@@ -652,7 +650,6 @@ class Mapper extends AbstractMapper implements
             if (preg_match('/@Relational\\\isNotColumn/', $prop->getDocComment())) {
                 continue;
             }
-            $prop->setAccessible(true);
             $cols[$prop->name] = $prop->getValue($object);
         }
 

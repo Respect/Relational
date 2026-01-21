@@ -2,7 +2,7 @@
 
 namespace Respect\Data\Styles;
 
-class AbstractStyleTest extends \PHPUnit_Framework_TestCase
+class AbstractStyleTest extends \PHPUnit\Framework\TestCase
 {
 
     /**
@@ -10,7 +10,7 @@ class AbstractStyleTest extends \PHPUnit_Framework_TestCase
      */
     private $style;
 
-    public function singularPluralProvider()
+    public static function singularPluralProvider()
     {
         return array(
             array('post', 'posts'),
@@ -21,7 +21,7 @@ class AbstractStyleTest extends \PHPUnit_Framework_TestCase
         );
     }
 
-    public function camelCaseToSeparatorProvider()
+    public static function camelCaseToSeparatorProvider()
     {
         return array(
             array('-', 'HenriqueMoody', 'Henrique-Moody'),
@@ -31,12 +31,12 @@ class AbstractStyleTest extends \PHPUnit_Framework_TestCase
     }
 
 
-    public function setUp()
+    protected function setUp(): void
     {
         $this->style = $this->getMockForAbstractClass('\Respect\Data\Styles\AbstractStyle');
     }
 
-    public function tearDown()
+    protected function tearDown(): void
     {
         $this->style = null;
     }
@@ -47,11 +47,9 @@ class AbstractStyleTest extends \PHPUnit_Framework_TestCase
     public function test_plural_to_singular_and_vice_versa($singular, $plural)
     {
         $pluralToSingular = new \ReflectionMethod($this->style, 'pluralToSingular');
-        $pluralToSingular->setAccessible(true);
         $this->assertEquals($singular,  $pluralToSingular->invoke($this->style, $plural));
 
         $singularToPlural = new \ReflectionMethod($this->style, 'singularToPlural');
-        $singularToPlural->setAccessible(true);
         $this->assertEquals($plural,    $singularToPlural->invoke($this->style, $singular));
     }
 
@@ -61,11 +59,10 @@ class AbstractStyleTest extends \PHPUnit_Framework_TestCase
     public function test_camel_case_to_separator_and_vice_versa($separator, $camelCase, $separated)
     {
         $camelCaseToSeparatorMethod = new \ReflectionMethod($this->style, 'camelCaseToSeparator');
-        $camelCaseToSeparatorMethod->setAccessible(true);
+        
         $this->assertEquals($separated,  $camelCaseToSeparatorMethod->invoke($this->style, $camelCase, $separator));
 
         $separatorToCamelCaseMethod = new \ReflectionMethod($this->style, 'separatorToCamelCase');
-        $separatorToCamelCaseMethod->setAccessible(true);
         $this->assertEquals($camelCase, $separatorToCamelCaseMethod->invoke($this->style, $separated, $separator));
     }
 

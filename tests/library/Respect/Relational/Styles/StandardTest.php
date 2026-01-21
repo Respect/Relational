@@ -2,7 +2,7 @@
 
 namespace Respect\Data\Styles;
 
-class StandardTest extends \PHPUnit_Framework_TestCase
+class StandardTest extends \PHPUnit\Framework\TestCase
 {
 
     /**
@@ -11,7 +11,7 @@ class StandardTest extends \PHPUnit_Framework_TestCase
     private $style;
 
 
-    public function tableEntityProvider()
+    public static function tableEntityProvider()
     {
         return array(
             array('post',           'Post'),
@@ -22,7 +22,7 @@ class StandardTest extends \PHPUnit_Framework_TestCase
         );
     }
 
-    public function manyToMantTableProvider()
+    public static function manyToMantTableProvider()
     {
         return array(
             array('post',   'category', 'post_category'),
@@ -31,7 +31,7 @@ class StandardTest extends \PHPUnit_Framework_TestCase
         );
     }
 
-    public function columnsPropertyProvider()
+    public static function columnsPropertyProvider()
     {
         return array(
             array('id'),
@@ -42,7 +42,7 @@ class StandardTest extends \PHPUnit_Framework_TestCase
         );
     }
     
-    public function foreignProvider()
+    public static function foreignProvider()
     {
         return array(
             array('post',       'post_id'),
@@ -53,12 +53,12 @@ class StandardTest extends \PHPUnit_Framework_TestCase
     }
 
 
-    public function setUp()
+    protected function setUp(): void
     {
         $this->style = new Standard();
     }
 
-    public function tearDown()
+    protected function tearDown(): void
     {
         $this->style = null;
     }
