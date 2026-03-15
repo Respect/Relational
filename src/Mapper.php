@@ -525,7 +525,7 @@ final class Mapper extends AbstractMapper implements
     {
         $newRow = $this->getNewEntityByName($entityName);
 
-        foreach ($row as $prop => $value) {
+        foreach (get_object_vars($row) as $prop => $value) {
             $this->inferSet($newRow, $prop, $value);
         }
 
@@ -557,7 +557,11 @@ final class Mapper extends AbstractMapper implements
         }
     }
 
-    /** @param array<int, mixed> $row */
+    /**
+     * @param array<int, mixed> $row
+     *
+     * @return SplObjectStorage<object, Collection>
+     */
     protected function createEntities(
         array $row,
         PDOStatement $statement,
@@ -573,6 +577,10 @@ final class Mapper extends AbstractMapper implements
         //Reversely traverses the columns to avoid conflicting foreign key names
         foreach (array_reverse($row, true) as $col => $value) {
             $columnMeta    = $statement->getColumnMeta($col);
+            if ($columnMeta === false) {
+                continue;
+            }
+
             $columnName    = $columnMeta['name'];
             $primaryName   = $this->getStyle()->identifier(
                 $entities[$entityInstance]->getName(),
@@ -590,7 +598,11 @@ final class Mapper extends AbstractMapper implements
         return $entities;
     }
 
-    /** @return array<int, object> */
+    /**
+     * @param SplObjectStorage<object, Collection> $entities
+     *
+     * @return array<int, object>
+     */
     protected function buildEntitiesInstances(
         Collection $collection,
         SplObjectStorage $entities,
@@ -620,6 +632,7 @@ final class Mapper extends AbstractMapper implements
         return $entitiesInstances;
     }
 
+    /** @param SplObjectStorage<object, Collection> $entities */
     protected function postHydrate(SplObjectStorage $entities): void
     {
         $entitiesClone = clone $entities;
@@ -639,6 +652,7 @@ final class Mapper extends AbstractMapper implements
         }
     }
 
+    /** @param SplObjectStorage<object, Collection> $entities */
     protected function tryHydration(SplObjectStorage $entities, object $sub, string $field, mixed &$v): void
     {
         $tableName = $entities[$sub]->getName();
@@ -678,6 +692,7 @@ final class Mapper extends AbstractMapper implements
         return $cols;
     }
 
+    /** @param SplObjectStorage<object, Collection> $hydrated */
     private function parseHydrated(SplObjectStorage $hydrated): mixed
     {
         $this->tracked->addAll($hydrated);
@@ -686,6 +701,7 @@ final class Mapper extends AbstractMapper implements
         return $hydrated->current();
     }
 
+    /** @return SplObjectStorage<object, Collection>|false */
     private function fetchHydrated(Collection $collection, PDOStatement $statement): SplObjectStorage|false
     {
         if (!$collection->hasMore()) {
@@ -711,6 +727,7 @@ final class Mapper extends AbstractMapper implements
         return $statement;
     }
 
+    /** @return SplObjectStorage<object, Collection>|false */
     private function fetchSingle(
         Collection $collection,
         PDOStatement $statement,
@@ -733,6 +750,7 @@ final class Mapper extends AbstractMapper implements
         return $entities;
     }
 
+    /** @return SplObjectStorage<object, Collection>|false */
     private function fetchMulti(
         Collection $collection,
         PDOStatement $statement,

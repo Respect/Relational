@@ -341,7 +341,7 @@ class MapperTest extends TestCase
         $entity = (object) ['id' => 4, 'name' => 'inserted', 'category_id' => null];
         $mapper->category->persist($entity);
         $mapper->flush();
-        $result = $this->conn->query('select * from category where id=4')
+        $result = $this->query('select * from category where id=4')
             ->fetch(PDO::FETCH_OBJ);
         $this->assertEquals($entity, $result);
     }
@@ -352,7 +352,7 @@ class MapperTest extends TestCase
         $entity = (object) ['id' => 4, 'name' => 'inserted', 'category_id' => null];
         $mapper->category->persist($entity);
         $mapper->flush();
-        $result = $this->conn->query('select * from category where id=4')
+        $result = $this->query('select * from category where id=4')
             ->fetch(PDO::FETCH_OBJ);
         $this->assertEquals($entity, $result);
     }
@@ -370,10 +370,10 @@ class MapperTest extends TestCase
         ];
         $this->mapper->post->author->persist($postWithAuthor);
         $this->mapper->flush();
-        $author = $this->conn->query(
+        $author = $this->query(
             'select * from author order by id desc limit 1',
         )->fetch(PDO::FETCH_OBJ);
-        $post = $this->conn->query(
+        $post = $this->query(
             'select * from post order by id desc limit 1',
         )->fetch(PDO::FETCH_OBJ);
         $this->assertEquals('New', $author->name);
@@ -394,10 +394,10 @@ class MapperTest extends TestCase
         $this->mapper->postAuthor = $this->mapper->post->author;
         $this->mapper->postAuthor->persist($postWithAuthor);
         $this->mapper->flush();
-        $author = $this->conn->query(
+        $author = $this->query(
             'select * from author order by id desc limit 1',
         )->fetch(PDO::FETCH_OBJ);
-        $post = $this->conn->query(
+        $post = $this->query(
             'select * from post order by id desc limit 1',
         )->fetch(PDO::FETCH_OBJ);
         $this->assertEquals('New', $author->name);
@@ -418,10 +418,10 @@ class MapperTest extends TestCase
         $this->mapper->postAuthor = $this->mapper->post($this->mapper->author);
         $this->mapper->postAuthor->persist($postWithAuthor);
         $this->mapper->flush();
-        $author = $this->conn->query(
+        $author = $this->query(
             'select * from author order by id desc limit 1',
         )->fetch(PDO::FETCH_OBJ);
-        $post = $this->conn->query(
+        $post = $this->query(
             'select * from post order by id desc limit 1',
         )->fetch(PDO::FETCH_OBJ);
         $this->assertEquals('New', $author->name);
@@ -434,7 +434,7 @@ class MapperTest extends TestCase
         $entity = (object) ['id' => 8, 'name' => 'inserted', 'category_id' => 2];
         $mapper->category->persist($entity);
         $mapper->flush();
-        $result = $this->conn->query('select * from category where id=8')
+        $result = $this->query('select * from category where id=8')
             ->fetch(PDO::FETCH_OBJ);
         $result2 = $mapper->category[8]->category->fetch();
         $this->assertEquals($result->id, $result2->id);
@@ -448,7 +448,7 @@ class MapperTest extends TestCase
         $entity = (object) ['id' => 8, 'name' => 'inserted', 'category_id' => 2];
         $mapper->category->persist($entity);
         $mapper->flush();
-        $result = $this->conn->query('select * from category where id=8')
+        $result = $this->query('select * from category where id=8')
             ->fetch(PDO::FETCH_OBJ);
         $result2 = $mapper->category(['id' => 8])->category->fetch();
         $this->assertEquals($result->id, $result2->id);
@@ -462,7 +462,7 @@ class MapperTest extends TestCase
         $entity = (object) ['id' => null, 'name' => 'inserted', 'category_id' => null];
         $mapper->category->persist($entity);
         $mapper->flush();
-        $result = $this->conn->query(
+        $result = $this->query(
             'select * from category where name="inserted"',
         )->fetch(PDO::FETCH_OBJ);
         $this->assertEquals($entity, $result);
@@ -487,14 +487,13 @@ class MapperTest extends TestCase
         $mapper->comment->persist($comment);
         $mapper->flush();
 
-        $postId = $this->conn
-            ->query('select id from post where title = 12345')
+        $postId = $this->query('select id from post where title = 12345')
             ->fetchColumn(0);
 
-        $comment = $this->conn
-            ->query('select * from comment where post_id = ' . $postId)
+        $comment = $this->query('select * from comment where post_id = ' . $postId)
             ->fetchObject();
 
+        self::assertInstanceOf(stdClass::class, $comment);
         $this->assertEquals('abc', $comment->text);
     }
 
@@ -505,7 +504,7 @@ class MapperTest extends TestCase
         $entity->text = 'HeyHey';
         $mapper->comment->persist($entity);
         $mapper->flush();
-        $result = $this->conn->query('select text from comment where id=8')
+        $result = $this->query('select text from comment where id=8')
             ->fetchColumn(0);
         $this->assertEquals('HeyHey', $result);
     }
@@ -514,10 +513,10 @@ class MapperTest extends TestCase
     {
         $mapper = $this->mapper;
         $c8 = $mapper->comment[8]->fetch();
-        $pre = $this->conn->query('select count(*) from comment')->fetchColumn(0);
+        $pre = (int) $this->query('select count(*) from comment')->fetchColumn(0);
         $mapper->comment->remove($c8);
         $mapper->flush();
-        $total = $this->conn->query('select count(*) from comment')->fetchColumn(0);
+        $total = (int) $this->query('select count(*) from comment')->fetchColumn(0);
         $this->assertEquals($total, $pre - 1);
     }
 
@@ -554,7 +553,7 @@ class MapperTest extends TestCase
         $comment->text = 'HeyHey';
         $mapper->comment->persist($comment);
         $mapper->flush();
-        $result = $this->conn->query('select text from comment where id=8')
+        $result = $this->query('select text from comment where id=8')
             ->fetchColumn(0);
         $this->assertEquals('HeyHey', $result);
     }
@@ -567,7 +566,7 @@ class MapperTest extends TestCase
         $comment->text = 'HeyHey';
         $mapper->comment->persist($comment);
         $mapper->flush();
-        $result = $this->conn->query('select text from comment where id=9')
+        $result = $this->query('select text from comment where id=9')
             ->fetchColumn(0);
         $this->assertEquals('HeyHey', $result);
     }
@@ -626,7 +625,7 @@ class MapperTest extends TestCase
         $author->name = 'Author Changed';
         $mapper->authorsWithPosts->persist($author);
         $mapper->flush();
-        $result = $this->conn->query('select name from author where id=1')
+        $result = $this->query('select name from author where id=1')
             ->fetch(PDO::FETCH_OBJ);
         $this->assertEquals('Author Changed', $result->name);
     }
@@ -639,7 +638,7 @@ class MapperTest extends TestCase
         $author->name = 'Author Changed';
         $mapper->author->persist($author);
         $mapper->flush();
-        $result = $this->conn->query('select name from author where id=1')
+        $result = $this->query('select name from author where id=1')
             ->fetch(PDO::FETCH_OBJ);
         $this->assertEquals('Author Changed', $result->name);
     }
@@ -653,7 +652,7 @@ class MapperTest extends TestCase
         $author->name = 'Author Changed';
         $mapper->authorsWithPosts->persist($author);
         $mapper->flush();
-        $result = $this->conn->query(
+        $result = $this->query(
             'select name from author order by id desc',
         )->fetch(PDO::FETCH_OBJ);
         $this->assertEquals('Author Changed', $result->name);
@@ -668,7 +667,7 @@ class MapperTest extends TestCase
         $author->name = 'Author Changed';
         $mapper->author->persist($author);
         $mapper->flush();
-        $result = $this->conn->query(
+        $result = $this->query(
             'select name from author order by id desc',
         )->fetch(PDO::FETCH_OBJ);
         $this->assertEquals('Author Changed', $result->name);
@@ -708,10 +707,10 @@ class MapperTest extends TestCase
         $post->author_id->name = 'John';
         $mapper->postsFromAuthorsWithComments->persist($post);
         $mapper->flush();
-        $result = $this->conn->query('select title from post where id=5')
+        $result = $this->query('select title from post where id=5')
             ->fetch(PDO::FETCH_OBJ);
         $this->assertEquals('Title Changed', $result->title);
-        $result = $this->conn->query('select name from author where id=1')
+        $result = $this->query('select name from author where id=1')
             ->fetch(PDO::FETCH_OBJ);
         $this->assertEquals('John', $result->name);
     }
@@ -730,10 +729,10 @@ class MapperTest extends TestCase
         $post->author_id->name = 'A';
         $mapper->postsFromAuthorsWithComments->persist($post);
         $mapper->flush();
-        $result = $this->conn->query('select title from post where id=5')
+        $result = $this->query('select title from post where id=5')
             ->fetch(PDO::FETCH_OBJ);
         $this->assertEquals('Title Changed', $result->title);
-        $result = $this->conn->query('select name from author where id=1')
+        $result = $this->query('select name from author where id=1')
             ->fetch(PDO::FETCH_OBJ);
         $this->assertNotEquals('A', $result->name);
     }
@@ -753,10 +752,10 @@ class MapperTest extends TestCase
         $post->author_id->name = 'A';
         $mapper->postsFromAuthorsWithComments->persist($post);
         $mapper->flush();
-        $result = $this->conn->query('select title from post where id=5')
+        $result = $this->query('select title from post where id=5')
             ->fetch(PDO::FETCH_OBJ);
         $this->assertEquals('Title Changed', $result->title);
-        $result = $this->conn->query(
+        $result = $this->query(
             'select name from author order by id desc',
         )->fetch(PDO::FETCH_OBJ);
         $this->assertNotEquals('A', $result->name);
@@ -777,10 +776,10 @@ class MapperTest extends TestCase
         $post->author_id->name = 'A';
         $mapper->postsFromAuthorsWithComments->persist($post);
         $mapper->flush();
-        $result = $this->conn->query('select title from post where id=5')
+        $result = $this->query('select title from post where id=5')
             ->fetch(PDO::FETCH_OBJ);
         $this->assertEquals('Title Changed', $result->title);
-        $result = $this->conn->query('select name from author where id=1')
+        $result = $this->query('select name from author where id=1')
             ->fetch(PDO::FETCH_OBJ);
         $this->assertNotEquals('A', $result->name);
     }
@@ -798,7 +797,7 @@ class MapperTest extends TestCase
         $post->title = 'Title Changed';
         $mapper->postsFromAuthorsWithComments->persist($post);
         $mapper->flush();
-        $result = $this->conn->query('select title from post where id=5')
+        $result = $this->query('select title from post where id=5')
             ->fetch(PDO::FETCH_OBJ);
         $this->assertEquals('Title Changed', $result->title);
     }
@@ -817,7 +816,7 @@ class MapperTest extends TestCase
         $post->title = 'Title Changed';
         $mapper->postsFromAuthorsWithComments->persist($post);
         $mapper->flush();
-        $result = $this->conn->query('select title from post where id=5')
+        $result = $this->query('select title from post where id=5')
             ->fetch(PDO::FETCH_OBJ);
         $this->assertEquals('Title Changed', $result->title);
     }
@@ -834,7 +833,7 @@ class MapperTest extends TestCase
         $post->title = 'Title Changed';
         $mapper->postsFromAuthorsWithComments->persist($post);
         $mapper->flush();
-        $result = $this->conn->query('select title from post where id=5')
+        $result = $this->query('select title from post where id=5')
             ->fetch(PDO::FETCH_OBJ);
         $this->assertEquals('Title Changed', $result->title);
     }
@@ -852,7 +851,7 @@ class MapperTest extends TestCase
         $post->title = 'Title Changed';
         $mapper->postsFromAuthorsWithComments->persist($post);
         $mapper->flush();
-        $result = $this->conn->query('select title from post where id=5')
+        $result = $this->query('select title from post where id=5')
             ->fetch(PDO::FETCH_OBJ);
         $this->assertEquals('Title Changed', $result->title);
     }
@@ -866,7 +865,7 @@ class MapperTest extends TestCase
         $post->title = 'Title Changed';
         $mapper->postsFromAuthorsWithComments->persist($post);
         $mapper->flush();
-        $result = $this->conn->query('select title from post where id=5')
+        $result = $this->query('select title from post where id=5')
             ->fetch(PDO::FETCH_OBJ);
         $this->assertEquals('Title Changed', $result->title);
     }
@@ -881,7 +880,7 @@ class MapperTest extends TestCase
         $post->title = 'Title Changed';
         $mapper->postsFromAuthorsWithComments->persist($post);
         $mapper->flush();
-        $result = $this->conn->query('select title from post where id=5')
+        $result = $this->query('select title from post where id=5')
             ->fetch(PDO::FETCH_OBJ);
         $this->assertEquals('Title Changed', $result->title);
     }
@@ -903,7 +902,7 @@ class MapperTest extends TestCase
         $post->title = 'Title Changed';
         $mapper->postsFromAuthorsWithComments->persist($post);
         $mapper->flush();
-        $result = $this->conn->query('select title from post where id=5')
+        $result = $this->query('select title from post where id=5')
             ->fetch(PDO::FETCH_OBJ);
         $this->assertEquals('Title Changed', $result->title);
     }
@@ -952,10 +951,10 @@ class MapperTest extends TestCase
         $post->text = 'Comment Changed';
         $mapper->postsFromAuthorsWithComments->persist($post);
         $mapper->flush();
-        $result = $this->conn->query('select title from post where id=5')
+        $result = $this->query('select title from post where id=5')
             ->fetch(PDO::FETCH_OBJ);
         $this->assertEquals('Title Changed', $result->title);
-        $result = $this->conn->query('select text from comment where id=7')
+        $result = $this->query('select text from comment where id=7')
             ->fetch(PDO::FETCH_OBJ);
         $this->assertEquals('Comment Changed', $result->text);
     }
@@ -968,12 +967,12 @@ class MapperTest extends TestCase
         $post->author_id = (object) ['name' => 'Author X', 'id' => null];
         $mapper->postComment->persist($post);
         $mapper->flush();
-        $result = $this->conn->query(
+        $result = $this->query(
             'select title, text from post order by id desc',
         )->fetch(PDO::FETCH_OBJ);
         $this->assertEquals('Post X', $result->title);
         $this->assertEquals('', $result->text);
-        $result = $this->conn->query(
+        $result = $this->query(
             'select text from comment order by id desc',
         )->fetch(PDO::FETCH_OBJ);
         $this->assertEquals('Comment X', $result->text);
@@ -1003,10 +1002,10 @@ class MapperTest extends TestCase
         $post->text = 'Comment Changed';
         $mapper->postsFromAuthorsWithComments->persist($post);
         $mapper->flush();
-        $result = $this->conn->query('select title from post where id=5')
+        $result = $this->query('select title from post where id=5')
             ->fetch(PDO::FETCH_OBJ);
         $this->assertEquals('Title Changed', $result->title);
-        $result = $this->conn->query('select text from comment where id=7')
+        $result = $this->query('select text from comment where id=7')
             ->fetch(PDO::FETCH_OBJ);
         $this->assertEquals('Comment Changed', $result->text);
     }
@@ -1024,7 +1023,7 @@ class MapperTest extends TestCase
         $issues[0]->title = 'Title Changed';
         $mapper->typedIssues->persist($issues[0]);
         $mapper->flush();
-        $result = $this->conn->query('select title from issues where id=1')
+        $result = $this->query('select title from issues where id=1')
             ->fetch(PDO::FETCH_OBJ);
         $this->assertEquals('Title Changed', $result->title);
     }
@@ -1040,7 +1039,7 @@ class MapperTest extends TestCase
         $issue->title = 'Title Changed';
         $mapper->typedIssues->persist($issue);
         $mapper->flush();
-        $result = $this->conn->query('select title from issues where id=1')
+        $result = $this->query('select title from issues where id=1')
             ->fetch(PDO::FETCH_OBJ);
         $this->assertEquals('Title Changed', $result->title);
     }
@@ -1052,7 +1051,7 @@ class MapperTest extends TestCase
         $entity = (object) $arrayEntity;
         $mapper->category->persist($entity);
         $mapper->flush();
-        $result = $this->conn->query('select * from category where id=10')
+        $result = $this->query('select * from category where id=10')
             ->fetch(PDO::FETCH_OBJ);
         $this->assertEquals('array_object_category', $result->name);
     }
@@ -1095,7 +1094,7 @@ class MapperTest extends TestCase
 
         $mapper->post->persist($post);
         $mapper->flush();
-        $result = $this->conn->query('select text from post where id=5')
+        $result = $this->query('select text from post where id=5')
             ->fetchColumn(0);
         $this->assertEquals('HeyHey', $result);
     }
@@ -1115,7 +1114,7 @@ class MapperTest extends TestCase
         $post->setText('My new Post Text');
         $mapper->post->persist($post);
         $mapper->flush();
-        $result = $this->conn->query('select text from post where id=6')
+        $result = $this->query('select text from post where id=6')
             ->fetchColumn(0);
         $this->assertEquals('My new Post Text', $result);
     }
@@ -1143,5 +1142,13 @@ class MapperTest extends TestCase
             'Respect\\Relational\\OtherEntity\\Comment',
             $mapper->comment->fetch(),
         );
+    }
+
+    private function query(string $sql): PDOStatement
+    {
+        $stmt = $this->conn->query($sql);
+        self::assertInstanceOf(PDOStatement::class, $stmt);
+
+        return $stmt;
     }
 }

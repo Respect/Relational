@@ -55,6 +55,7 @@ final class Db
         return $this->currentSql;
     }
 
+    /** @param array<int, mixed>|null $extra */
     public function prepare(string $queryString, mixed $object = '\stdClass', array|null $extra = null): PDOStatement
     {
         $statement = $this->connection->prepare($queryString);
@@ -72,6 +73,7 @@ final class Db
         return $statement;
     }
 
+    /** @param array<int, mixed>|null $params */
     public function query(string $rawSql, array|null $params = null): static
     {
         $this->currentSql->setQuery($rawSql, $params);
