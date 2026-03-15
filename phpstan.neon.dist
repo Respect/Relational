@@ -11,8 +11,5 @@ parameters:
     - message: '/Cannot unset property .+ because it might have hooks in a subclass\./'
     - message: '/Array has \d+ duplicate keys/'
     -
-      message: '/(unknown class|does not accept)/'
-      path: tests/Styles/
-    -
       message: '/Parameter #1 .+ of class Respect\\Relational\\Mapper constructor expects .+, string given\./'
       path: tests/MapperTest.php

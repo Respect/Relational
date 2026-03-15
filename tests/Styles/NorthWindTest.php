@@ -4,156 +4,154 @@ declare(strict_types=1);
 
 namespace Respect\Data\Styles\NorthWind;
 
-use PDO,
-    Respect\Relational\Db,
-    Respect\Relational\Sql,
-    Respect\Data\Styles\NorthWind,
-    Respect\Relational\Mapper;
+use PDO;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use Respect\Data\Styles\NorthWind;
+use Respect\Relational\Db;
+use Respect\Relational\Mapper;
+use Respect\Relational\Sql;
 
 #[CoversClass(NorthWind::class)]
 class NorthWindTest extends TestCase
 {
+    private NorthWind $style;
 
-    /**
-     * @var Respect\Data\Styles\NorthWind
-     */
-    private $style;
+    private Mapper $mapper;
 
-    /**
-     * @var Respect\Relational\Mapper
-     */
-    private $mapper;
-
-    /**
-     * @var PDO
-     */
-    private $conn;
+    private PDO $conn;
 
     private $posts;
+
     private $authors;
+
     private $comments;
+
     private $categories;
+
     private $postsCategories;
 
     protected function setUp(): void
     {
-
         $conn = new PDO('sqlite::memory:');
         $db = new Db($conn);
         $conn->exec(
             (string) Sql::createTable(
                 'Posts',
-                array(
+                [
                     'PostID INTEGER PRIMARY KEY',
                     'Title VARCHAR(255)',
                     'Text TEXT',
                     'AuthorID INTEGER',
-                )
-            )
+                ],
+            ),
         );
         $conn->exec(
             (string) Sql::createTable(
                 'Authors',
-                array(
+                [
                     'AuthorID INTEGER PRIMARY KEY',
-                    'Name VARCHAR(255)'
-                )
-            )
+                    'Name VARCHAR(255)',
+                ],
+            ),
         );
         $conn->exec(
             (string) Sql::createTable(
                 'Comments',
-                array(
+                [
                     'CommentID INTEGER PRIMARY KEY',
                     'PostID INTEGER',
                     'Text TEXT',
-                )
-            )
+                ],
+            ),
         );
 
         $conn->exec(
             (string) Sql::createTable(
                 'Categories',
-                array(
+                [
                     'CategoryID INTEGER PRIMARY KEY',
                     'Name VARCHAR(255)',
-                    'Description TEXT'
-                )
-            )
+                    'Description TEXT',
+                ],
+            ),
         );
         $conn->exec(
             (string) Sql::createTable(
                 'PostCategories',
-                array(
+                [
                     'PostCategoryID INTEGER PRIMARY KEY',
                     'PostID INTEGER',
-                    'CategoryID INTEGER'
-                )
-            )
+                    'CategoryID INTEGER',
+                ],
+            ),
         );
-        $this->posts = array(
-            (object) array(
+        $this->posts = [
+            (object) [
                 'PostID' => 5,
                 'Title' => 'Post Title',
                 'Text' => 'Post Text',
-                'AuthorID' => 1
-            )
-        );
-        $this->authors = array(
-            (object) array(
                 'AuthorID' => 1,
-                'Name' => 'Author 1'
-            )
-        );
-        $this->comments = array(
-            (object) array(
+            ],
+        ];
+        $this->authors = [
+            (object) [
+                'AuthorID' => 1,
+                'Name' => 'Author 1',
+            ],
+        ];
+        $this->comments = [
+            (object) [
                 'CommentID' => 7,
                 'PostID' => 5,
-                'Text' => 'Comment Text'
-            ),
-            (object) array(
+                'Text' => 'Comment Text',
+            ],
+            (object) [
                 'CommentID' => 8,
                 'PostID' => 4,
-                'Text' => 'Comment Text 2'
-            )
-        );
-        $this->categories = array(
-            (object) array(
+                'Text' => 'Comment Text 2',
+            ],
+        ];
+        $this->categories = [
+            (object) [
                 'CategoryID' => 2,
                 'Name' => 'Sample Category',
-                'Description' => 'Category description'
-            ),
-            (object) array(
+                'Description' => 'Category description',
+            ],
+            (object) [
                 'CategoryID' => 3,
                 'Name' => 'NONON',
-                'CategoryID' => null
-            )
-        );
-        $this->postsCategories = array(
-            (object) array(
+                'CategoryID' => null,
+            ],
+        ];
+        $this->postsCategories = [
+            (object) [
                 'PostCategoryID' => 66,
                 'PostID' => 5,
-                'CategoryID' => 2
-            )
-        );
+                'CategoryID' => 2,
+            ],
+        ];
 
-        foreach ($this->authors as $author)
+        foreach ($this->authors as $author) {
             $db->insertInto('Authors', (array) $author)->values((array) $author)->exec();
+        }
 
-        foreach ($this->posts as $post)
+        foreach ($this->posts as $post) {
             $db->insertInto('Posts', (array) $post)->values((array) $post)->exec();
+        }
 
-        foreach ($this->comments as $comment)
+        foreach ($this->comments as $comment) {
             $db->insertInto('Comments', (array) $comment)->values((array) $comment)->exec();
+        }
 
-        foreach ($this->categories as $category)
+        foreach ($this->categories as $category) {
             $db->insertInto('Categories', (array) $category)->values((array) $category)->exec();
+        }
 
-        foreach ($this->postsCategories as $postCategory)
+        foreach ($this->postsCategories as $postCategory) {
             $db->insertInto('PostCategories', (array) $postCategory)->values((array) $postCategory)->exec();
+        }
 
         $this->conn     = $conn;
         $this->style    = new NorthWind();
@@ -164,43 +162,43 @@ class NorthWindTest extends TestCase
 
     public static function tableEntityProvider(): array
     {
-        return array(
-            array('Posts',              'Posts'),
-            array('Comments',           'Comments'),
-            array('Categories',         'Categories'),
-            array('PostCategories',     'PostCategories'),
-            array('PostTags',           'PostTags'),
-        );
+        return [
+            ['Posts',              'Posts'],
+            ['Comments',           'Comments'],
+            ['Categories',         'Categories'],
+            ['PostCategories',     'PostCategories'],
+            ['PostTags',           'PostTags'],
+        ];
     }
 
     public static function manyToMantTableProvider(): array
     {
-        return array(
-            array('Posts',  'Categories',   'PostCategories'),
-            array('Users',  'Groups',       'UserGroups'),
-            array('Groups', 'Profiles',     'GroupProfiles'),
-        );
+        return [
+            ['Posts',  'Categories',   'PostCategories'],
+            ['Users',  'Groups',       'UserGroups'],
+            ['Groups', 'Profiles',     'GroupProfiles'],
+        ];
     }
 
     public static function columnsPropertyProvider(): array
     {
-        return array(
-            array('Text'),
-            array('Name'),
-            array('Content'),
-            array('Created'),
-            array('Udated'),
-        );
+        return [
+            ['Text'],
+            ['Name'],
+            ['Content'],
+            ['Created'],
+            ['Udated'],
+        ];
     }
 
     public static function keyProvider(): array
     {
-        return array(
-            array('Posts',      'PostID'),
-            array('Authors',    'AuthorID'),
-            array('Tags',       'TagID'),
-            array('Users',      'UserID'),
-        );
+        return [
+            ['Posts',      'PostID'],
+            ['Authors',    'AuthorID'],
+            ['Tags',       'TagID'],
+            ['Users',      'UserID'],
+        ];
     }
 
     #[DataProvider('tableEntityProvider')]
@@ -257,8 +255,8 @@ class NorthWindTest extends TestCase
         $mapper = $this->mapper;
         $comment = $mapper->Comments->Posts->Authors->fetchAll();
         $this->assertInstanceOf(__NAMESPACE__ . '\Comments', $comment[0]);
-        $this->assertInstanceOf(__NAMESPACE__ . '\Posts',    $comment[0]->PostID);
-        $this->assertInstanceOf(__NAMESPACE__ . '\Authors',  $comment[0]->PostID->AuthorID);
+        $this->assertInstanceOf(__NAMESPACE__ . '\Posts', $comment[0]->PostID);
+        $this->assertInstanceOf(__NAMESPACE__ . '\Authors', $comment[0]->PostID->AuthorID);
     }
 
     public function test_persisting_entity_typed(): void
@@ -283,7 +281,6 @@ class NorthWindTest extends TestCase
         $result = $this->conn->query('select Text from Comments where CommentID=9')->fetchColumn(0);
         $this->assertEquals('HeyHey', $result);
     }
-
 }
 
 

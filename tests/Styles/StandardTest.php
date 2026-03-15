@@ -11,63 +11,52 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(Standard::class)]
 class StandardTest extends TestCase
 {
-
-    /**
-     * @var Respect\Data\Styles\Standard
-     */
-    private $style;
-
-
-    public static function tableEntityProvider(): array
-    {
-        return array(
-            array('post',           'Post'),
-            array('comment',        'Comment'),
-            array('category',       'Category'),
-            array('post_category',  'PostCategory'),
-            array('post_tag',       'PostTag'),
-        );
-    }
-
-    public static function manyToMantTableProvider(): array
-    {
-        return array(
-            array('post',   'category', 'post_category'),
-            array('user',   'group',    'user_group'),
-            array('group',  'profile',  'group_profile'),
-        );
-    }
-
-    public static function columnsPropertyProvider(): array
-    {
-        return array(
-            array('id'),
-            array('text'),
-            array('name'),
-            array('content'),
-            array('created'),
-        );
-    }
-
-    public static function foreignProvider(): array
-    {
-        return array(
-            array('post',       'post_id'),
-            array('author',     'author_id'),
-            array('tag',        'tag_id'),
-            array('user',       'user_id'),
-        );
-    }
-
+    private Standard $style;
 
     protected function setUp(): void
     {
         $this->style = new Standard();
     }
 
-    protected function tearDown(): void
+    public static function tableEntityProvider(): array
     {
-        $this->style = null;
+        return [
+            ['post',           'Post'],
+            ['comment',        'Comment'],
+            ['category',       'Category'],
+            ['post_category',  'PostCategory'],
+            ['post_tag',       'PostTag'],
+        ];
+    }
+
+    public static function manyToMantTableProvider(): array
+    {
+        return [
+            ['post',   'category', 'post_category'],
+            ['user',   'group',    'user_group'],
+            ['group',  'profile',  'group_profile'],
+        ];
+    }
+
+    public static function columnsPropertyProvider(): array
+    {
+        return [
+            ['id'],
+            ['text'],
+            ['name'],
+            ['content'],
+            ['created'],
+        ];
+    }
+
+    public static function foreignProvider(): array
+    {
+        return [
+            ['post',       'post_id'],
+            ['author',     'author_id'],
+            ['tag',        'tag_id'],
+            ['user',       'user_id'],
+        ];
     }
 
     #[DataProvider('tableEntityProvider')]
@@ -100,5 +89,4 @@ class StandardTest extends TestCase
         $this->assertEquals($table, $this->style->remoteFromIdentifier($foreign));
         $this->assertEquals($foreign, $this->style->remoteIdentifier($table));
     }
-
 }

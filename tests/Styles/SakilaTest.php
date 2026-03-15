@@ -4,157 +4,155 @@ declare(strict_types=1);
 
 namespace Respect\Data\Styles\Sakila;
 
-use PDO,
-    Respect\Relational\Db,
-    Respect\Relational\Sql,
-    Respect\Data\Styles\Sakila,
-    Respect\Relational\Mapper;
+use PDO;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use Respect\Data\Styles\Sakila;
+use Respect\Relational\Db;
+use Respect\Relational\Mapper;
+use Respect\Relational\Sql;
 
 #[CoversClass(Sakila::class)]
 class SakilaTest extends TestCase
 {
+    private Sakila $style;
 
-    /**
-     * @var Respect\Data\Styles\Sakila
-     */
-    private $style;
+    private Mapper $mapper;
 
-    /**
-     * @var Respect\Relational\Mapper
-     */
-    private $mapper;
-
-    /**
-     * @var PDO
-     */
-    private $conn;
+    private PDO $conn;
 
     private $posts;
+
     private $authors;
+
     private $comments;
+
     private $categories;
+
     private $postsCategories;
 
     protected function setUp(): void
     {
-
         $conn = new PDO('sqlite::memory:');
         $db = new Db($conn);
         $conn->exec(
             (string) Sql::createTable(
                 'post',
-                array(
+                [
                     'post_id INTEGER PRIMARY KEY',
                     'title VARCHAR(255)',
                     'text TEXT',
                     'author_id INTEGER',
-                )
-            )
+                ],
+            ),
         );
         $conn->exec(
             (string) Sql::createTable(
                 'author',
-                array(
+                [
                     'author_id INTEGER PRIMARY KEY',
-                    'name VARCHAR(255)'
-                )
-            )
+                    'name VARCHAR(255)',
+                ],
+            ),
         );
         $conn->exec(
             (string) Sql::createTable(
                 'comment',
-                array(
+                [
                     'comment_id INTEGER PRIMARY KEY',
                     'post_id INTEGER',
                     'text TEXT',
-                )
-            )
+                ],
+            ),
         );
 
         $conn->exec(
             (string) Sql::createTable(
                 'category',
-                array(
+                [
                     'category_id INTEGER PRIMARY KEY',
                     'name VARCHAR(255)',
                     'content VARCHAR(255)',
-                    'description TEXT'
-                )
-            )
+                    'description TEXT',
+                ],
+            ),
         );
         $conn->exec(
             (string) Sql::createTable(
                 'post_category',
-                array(
+                [
                     'post_category_id INTEGER PRIMARY KEY',
                     'post_id INTEGER',
-                    'category_id INTEGER'
-                )
-            )
+                    'category_id INTEGER',
+                ],
+            ),
         );
-        $this->posts = array(
-            (object) array(
+        $this->posts = [
+            (object) [
                 'post_id' => 5,
                 'title' => 'Post Title',
                 'text' => 'Post Text',
-                'author_id' => 1
-            )
-        );
-        $this->authors = array(
-            (object) array(
                 'author_id' => 1,
-                'name' => 'Author 1'
-            )
-        );
-        $this->comments = array(
-            (object) array(
+            ],
+        ];
+        $this->authors = [
+            (object) [
+                'author_id' => 1,
+                'name' => 'Author 1',
+            ],
+        ];
+        $this->comments = [
+            (object) [
                 'comment_id' => 7,
                 'post_id' => 5,
-                'text' => 'Comment Text'
-            ),
-            (object) array(
+                'text' => 'Comment Text',
+            ],
+            (object) [
                 'comment_id' => 8,
                 'post_id' => 4,
-                'text' => 'Comment Text 2'
-            )
-        );
-        $this->categories = array(
-            (object) array(
+                'text' => 'Comment Text 2',
+            ],
+        ];
+        $this->categories = [
+            (object) [
                 'category_id' => 2,
                 'name' => 'Sample Category',
-                'content' => null
-            ),
-            (object) array(
+                'content' => null,
+            ],
+            (object) [
                 'category_id' => 3,
                 'name' => 'NONON',
-                'content' => null
-            )
-        );
-        $this->postsCategories = array(
-            (object) array(
+                'content' => null,
+            ],
+        ];
+        $this->postsCategories = [
+            (object) [
                 'post_category_id' => 66,
                 'post_id' => 5,
-                'category_id' => 2
-            )
-        );
+                'category_id' => 2,
+            ],
+        ];
 
-        foreach ($this->authors as $author)
+        foreach ($this->authors as $author) {
             $db->insertInto('author', (array) $author)->values((array) $author)->exec();
+        }
 
-        foreach ($this->posts as $post)
+        foreach ($this->posts as $post) {
             $db->insertInto('post', (array) $post)->values((array) $post)->exec();
+        }
 
-        foreach ($this->comments as $comment)
+        foreach ($this->comments as $comment) {
             $db->insertInto('comment', (array) $comment)->values((array) $comment)->exec();
+        }
 
-        foreach ($this->categories as $category)
+        foreach ($this->categories as $category) {
             $db->insertInto('category', (array) $category)->values((array) $category)->exec();
+        }
 
-        foreach ($this->postsCategories as $postCategory)
+        foreach ($this->postsCategories as $postCategory) {
             $db->insertInto('post_category', (array) $postCategory)->values((array) $postCategory)->exec();
+        }
 
         $this->conn     = $conn;
         $this->style    = new Sakila();
@@ -165,43 +163,43 @@ class SakilaTest extends TestCase
 
     public static function tableEntityProvider(): array
     {
-        return array(
-            array('post',           'Post'),
-            array('comment',        'Comment'),
-            array('category',       'Category'),
-            array('post_category',  'PostCategory'),
-            array('post_tag',       'PostTag'),
-        );
+        return [
+            ['post',           'Post'],
+            ['comment',        'Comment'],
+            ['category',       'Category'],
+            ['post_category',  'PostCategory'],
+            ['post_tag',       'PostTag'],
+        ];
     }
 
     public static function manyToMantTableProvider(): array
     {
-        return array(
-            array('post',   'category', 'post_category'),
-            array('user',   'group',    'user_group'),
-            array('group',  'profile',  'group_profile'),
-        );
+        return [
+            ['post',   'category', 'post_category'],
+            ['user',   'group',    'user_group'],
+            ['group',  'profile',  'group_profile'],
+        ];
     }
 
     public static function columnsPropertyProvider(): array
     {
-        return array(
-            array('id'),
-            array('text'),
-            array('name'),
-            array('content'),
-            array('created'),
-        );
+        return [
+            ['id'],
+            ['text'],
+            ['name'],
+            ['content'],
+            ['created'],
+        ];
     }
 
     public static function keyProvider(): array
     {
-        return array(
-            array('post',       'post_id'),
-            array('author',     'author_id'),
-            array('tag',        'tag_id'),
-            array('user',       'user_id'),
-        );
+        return [
+            ['post',       'post_id'],
+            ['author',     'author_id'],
+            ['tag',        'tag_id'],
+            ['user',       'user_id'],
+        ];
     }
 
     #[DataProvider('tableEntityProvider')]
@@ -258,8 +256,8 @@ class SakilaTest extends TestCase
         $mapper = $this->mapper;
         $comment = $mapper->comment->post->author->fetchAll();
         $this->assertInstanceOf(__NAMESPACE__ . '\Comment', $comment[0]);
-        $this->assertInstanceOf(__NAMESPACE__ . '\Post',    $comment[0]->post_id);
-        $this->assertInstanceOf(__NAMESPACE__ . '\Author',  $comment[0]->post_id->author_id);
+        $this->assertInstanceOf(__NAMESPACE__ . '\Post', $comment[0]->post_id);
+        $this->assertInstanceOf(__NAMESPACE__ . '\Author', $comment[0]->post_id->author_id);
     }
 
     public function test_persisting_entity_typed(): void
@@ -284,7 +282,6 @@ class SakilaTest extends TestCase
         $result = $this->conn->query('select text from comment where comment_id=9')->fetchColumn(0);
         $this->assertEquals('HeyHey', $result);
     }
-
 }
 
 class Post
