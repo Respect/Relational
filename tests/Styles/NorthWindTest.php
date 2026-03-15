@@ -9,8 +9,12 @@ use PDO,
     Respect\Relational\Sql,
     Respect\Data\Styles\NorthWind,
     Respect\Relational\Mapper;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\TestCase;
 
-class NorthWindTest extends \PHPUnit\Framework\TestCase
+#[CoversClass(NorthWind::class)]
+class NorthWindTest extends TestCase
 {
 
     /**
@@ -22,7 +26,7 @@ class NorthWindTest extends \PHPUnit\Framework\TestCase
      * @var Respect\Relational\Mapper
      */
     private $mapper;
-    
+
     /**
      * @var PDO
      */
@@ -158,7 +162,7 @@ class NorthWindTest extends \PHPUnit\Framework\TestCase
         $this->mapper->entityNamespace = __NAMESPACE__ . '\\';
     }
 
-    public static function tableEntityProvider()
+    public static function tableEntityProvider(): array
     {
         return array(
             array('Posts',              'Posts'),
@@ -169,7 +173,7 @@ class NorthWindTest extends \PHPUnit\Framework\TestCase
         );
     }
 
-    public static function manyToMantTableProvider()
+    public static function manyToMantTableProvider(): array
     {
         return array(
             array('Posts',  'Categories',   'PostCategories'),
@@ -178,7 +182,7 @@ class NorthWindTest extends \PHPUnit\Framework\TestCase
         );
     }
 
-    public static function columnsPropertyProvider()
+    public static function columnsPropertyProvider(): array
     {
         return array(
             array('Text'),
@@ -188,8 +192,8 @@ class NorthWindTest extends \PHPUnit\Framework\TestCase
             array('Udated'),
         );
     }
-    
-    public static function keyProvider()
+
+    public static function keyProvider(): array
     {
         return array(
             array('Posts',      'PostID'),
@@ -199,19 +203,15 @@ class NorthWindTest extends \PHPUnit\Framework\TestCase
         );
     }
 
-    /**
-     * @dataProvider tableEntityProvider
-     */
-    public function test_table_and_entities_methods($table, $entity)
+    #[DataProvider('tableEntityProvider')]
+    public function test_table_and_entities_methods($table, $entity): void
     {
         $this->assertEquals($entity, $this->style->styledName($table));
         $this->assertEquals($table, $this->style->realName($entity));
     }
 
-    /**
-     * @dataProvider columnsPropertyProvider
-     */
-    public function test_columns_and_properties_methods($column)
+    #[DataProvider('columnsPropertyProvider')]
+    public function test_columns_and_properties_methods($column): void
     {
         $this->assertEquals($column, $this->style->styledProperty($column));
         $this->assertEquals($column, $this->style->realProperty($column));
@@ -219,18 +219,14 @@ class NorthWindTest extends \PHPUnit\Framework\TestCase
         $this->assertNull($this->style->remoteFromIdentifier($column));
     }
 
-    /**
-     * @dataProvider manyToMantTableProvider
-     */
-    public function test_table_from_left_right_table($left, $right, $table)
+    #[DataProvider('manyToMantTableProvider')]
+    public function test_table_from_left_right_table($left, $right, $table): void
     {
         $this->assertEquals($table, $this->style->composed($left, $right));
     }
-    
-    /**
-     * @dataProvider keyProvider
-     */
-    public function test_keys($table, $foreign)
+
+    #[DataProvider('keyProvider')]
+    public function test_keys($table, $foreign): void
     {
         $this->assertTrue($this->style->isRemoteIdentifier($foreign));
         $this->assertEquals($table, $this->style->remoteFromIdentifier($foreign));
@@ -238,25 +234,25 @@ class NorthWindTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals($foreign, $this->style->remoteIdentifier($table));
     }
 
-    public function test_fetching_entity_typed()
+    public function test_fetching_entity_typed(): void
     {
         $mapper = $this->mapper;
         $comment = $mapper->Comments[8]->fetch();
         $this->assertInstanceOf(__NAMESPACE__ . '\Comments', $comment);
     }
 
-    public function test_fetching_all_entity_typed()
+    public function test_fetching_all_entity_typed(): void
     {
         $mapper = $this->mapper;
         $comment = $mapper->Comments->fetchAll();
         $this->assertInstanceOf(__NAMESPACE__ . '\Comments', $comment[1]);
-        
+
         $categories = $mapper->PostCategories->Categories->fetch();
         $this->assertInstanceOf(__NAMESPACE__ . '\PostCategories', $categories);
         $this->assertInstanceOf(__NAMESPACE__ . '\Categories', $categories->CategoryID);
     }
 
-    public function test_fetching_all_entity_typed_nested()
+    public function test_fetching_all_entity_typed_nested(): void
     {
         $mapper = $this->mapper;
         $comment = $mapper->Comments->Posts->Authors->fetchAll();
@@ -265,7 +261,7 @@ class NorthWindTest extends \PHPUnit\Framework\TestCase
         $this->assertInstanceOf(__NAMESPACE__ . '\Authors',  $comment[0]->PostID->AuthorID);
     }
 
-    public function test_persisting_entity_typed()
+    public function test_persisting_entity_typed(): void
     {
         $mapper = $this->mapper;
         $comment = $mapper->Comments[8]->fetch();
@@ -277,7 +273,7 @@ class NorthWindTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals('HeyHey', $result);
     }
 
-    public function test_persisting_new_entity_typed()
+    public function test_persisting_new_entity_typed(): void
     {
         $mapper = $this->mapper;
         $comment = new Comments();
@@ -316,4 +312,3 @@ class PostCategories
 {
     public $PostCategoryID, $PostID, $CategoryID;
 }
-

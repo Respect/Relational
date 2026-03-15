@@ -9,8 +9,12 @@ use PDO,
     Respect\Relational\Sql,
     Respect\Data\Styles\Sakila,
     Respect\Relational\Mapper;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\TestCase;
 
-class SakilaTest extends \PHPUnit\Framework\TestCase
+#[CoversClass(Sakila::class)]
+class SakilaTest extends TestCase
 {
 
     /**
@@ -159,7 +163,7 @@ class SakilaTest extends \PHPUnit\Framework\TestCase
         $this->mapper->entityNamespace = __NAMESPACE__ . '\\';
     }
 
-    public static function tableEntityProvider()
+    public static function tableEntityProvider(): array
     {
         return array(
             array('post',           'Post'),
@@ -170,7 +174,7 @@ class SakilaTest extends \PHPUnit\Framework\TestCase
         );
     }
 
-    public static function manyToMantTableProvider()
+    public static function manyToMantTableProvider(): array
     {
         return array(
             array('post',   'category', 'post_category'),
@@ -179,7 +183,7 @@ class SakilaTest extends \PHPUnit\Framework\TestCase
         );
     }
 
-    public static function columnsPropertyProvider()
+    public static function columnsPropertyProvider(): array
     {
         return array(
             array('id'),
@@ -190,7 +194,7 @@ class SakilaTest extends \PHPUnit\Framework\TestCase
         );
     }
 
-    public static function keyProvider()
+    public static function keyProvider(): array
     {
         return array(
             array('post',       'post_id'),
@@ -200,19 +204,15 @@ class SakilaTest extends \PHPUnit\Framework\TestCase
         );
     }
 
-    /**
-     * @dataProvider tableEntityProvider
-     */
-    public function test_table_and_entities_methods($table, $entity)
+    #[DataProvider('tableEntityProvider')]
+    public function test_table_and_entities_methods($table, $entity): void
     {
         $this->assertEquals($entity, $this->style->styledName($table));
         $this->assertEquals($table, $this->style->realName($entity));
     }
 
-    /**
-     * @dataProvider columnsPropertyProvider
-     */
-    public function test_columns_and_properties_methods($column)
+    #[DataProvider('columnsPropertyProvider')]
+    public function test_columns_and_properties_methods($column): void
     {
         $this->assertEquals($column, $this->style->styledProperty($column));
         $this->assertEquals($column, $this->style->realProperty($column));
@@ -220,18 +220,14 @@ class SakilaTest extends \PHPUnit\Framework\TestCase
         $this->assertNull($this->style->remoteFromIdentifier($column));
     }
 
-    /**
-     * @dataProvider manyToMantTableProvider
-     */
-    public function test_table_from_left_right_table($left, $right, $table)
+    #[DataProvider('manyToMantTableProvider')]
+    public function test_table_from_left_right_table($left, $right, $table): void
     {
         $this->assertEquals($table, $this->style->composed($left, $right));
     }
 
-    /**
-     * @dataProvider keyProvider
-     */
-    public function test_foreign($table, $key)
+    #[DataProvider('keyProvider')]
+    public function test_foreign($table, $key): void
     {
         $this->assertTrue($this->style->isRemoteIdentifier($key));
         $this->assertEquals($table, $this->style->remoteFromIdentifier($key));
@@ -239,25 +235,25 @@ class SakilaTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals($key, $this->style->remoteIdentifier($table));
     }
 
-    public function test_fetching_entity_typed()
+    public function test_fetching_entity_typed(): void
     {
         $mapper = $this->mapper;
         $comment = $mapper->comment[8]->fetch();
         $this->assertInstanceOf(__NAMESPACE__ . '\Comment', $comment);
     }
 
-    public function test_fetching_all_entity_typed()
+    public function test_fetching_all_entity_typed(): void
     {
         $mapper = $this->mapper;
         $comment = $mapper->comment->fetchAll();
         $this->assertInstanceOf(__NAMESPACE__ . '\Comment', $comment[1]);
-        
+
         $categories = $mapper->post_category->category->fetch();
         $this->assertInstanceOf(__NAMESPACE__ . '\PostCategory', $categories);
         $this->assertInstanceOf(__NAMESPACE__ . '\Category', $categories->category_id);
     }
 
-    public function test_fetching_all_entity_typed_nested()
+    public function test_fetching_all_entity_typed_nested(): void
     {
         $mapper = $this->mapper;
         $comment = $mapper->comment->post->author->fetchAll();
@@ -266,7 +262,7 @@ class SakilaTest extends \PHPUnit\Framework\TestCase
         $this->assertInstanceOf(__NAMESPACE__ . '\Author',  $comment[0]->post_id->author_id);
     }
 
-    public function test_persisting_entity_typed()
+    public function test_persisting_entity_typed(): void
     {
         $mapper = $this->mapper;
         $comment = $mapper->comment[8]->fetch();
@@ -278,7 +274,7 @@ class SakilaTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals('HeyHey', $result);
     }
 
-    public function test_persisting_new_entity_typed()
+    public function test_persisting_new_entity_typed(): void
     {
         $mapper = $this->mapper;
         $comment = new Comment();

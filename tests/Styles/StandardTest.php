@@ -4,7 +4,12 @@ declare(strict_types=1);
 
 namespace Respect\Data\Styles;
 
-class StandardTest extends \PHPUnit\Framework\TestCase
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\TestCase;
+
+#[CoversClass(Standard::class)]
+class StandardTest extends TestCase
 {
 
     /**
@@ -13,7 +18,7 @@ class StandardTest extends \PHPUnit\Framework\TestCase
     private $style;
 
 
-    public static function tableEntityProvider()
+    public static function tableEntityProvider(): array
     {
         return array(
             array('post',           'Post'),
@@ -24,7 +29,7 @@ class StandardTest extends \PHPUnit\Framework\TestCase
         );
     }
 
-    public static function manyToMantTableProvider()
+    public static function manyToMantTableProvider(): array
     {
         return array(
             array('post',   'category', 'post_category'),
@@ -33,7 +38,7 @@ class StandardTest extends \PHPUnit\Framework\TestCase
         );
     }
 
-    public static function columnsPropertyProvider()
+    public static function columnsPropertyProvider(): array
     {
         return array(
             array('id'),
@@ -43,8 +48,8 @@ class StandardTest extends \PHPUnit\Framework\TestCase
             array('created'),
         );
     }
-    
-    public static function foreignProvider()
+
+    public static function foreignProvider(): array
     {
         return array(
             array('post',       'post_id'),
@@ -65,20 +70,16 @@ class StandardTest extends \PHPUnit\Framework\TestCase
         $this->style = null;
     }
 
-    /**
-     * @dataProvider tableEntityProvider
-     */
-    public function test_table_and_entities_methods($table, $entity)
+    #[DataProvider('tableEntityProvider')]
+    public function test_table_and_entities_methods($table, $entity): void
     {
         $this->assertEquals($entity, $this->style->styledName($table));
         $this->assertEquals($table, $this->style->realName($entity));
         $this->assertEquals('id', $this->style->identifier($table));
     }
 
-    /**
-     * @dataProvider columnsPropertyProvider
-     */
-    public function test_columns_and_properties_methods($name)
+    #[DataProvider('columnsPropertyProvider')]
+    public function test_columns_and_properties_methods($name): void
     {
         $this->assertEquals($name, $this->style->styledProperty($name));
         $this->assertEquals($name, $this->style->realProperty($name));
@@ -86,18 +87,14 @@ class StandardTest extends \PHPUnit\Framework\TestCase
         $this->assertNull($this->style->remoteFromIdentifier($name));
     }
 
-    /**
-     * @dataProvider manyToMantTableProvider
-     */
-    public function test_table_from_left_right_table($left, $right, $table)
+    #[DataProvider('manyToMantTableProvider')]
+    public function test_table_from_left_right_table($left, $right, $table): void
     {
         $this->assertEquals($table, $this->style->composed($left, $right));
     }
-    
-    /**
-     * @dataProvider foreignProvider
-     */
-    public function test_foreign($table, $foreign)
+
+    #[DataProvider('foreignProvider')]
+    public function test_foreign($table, $foreign): void
     {
         $this->assertTrue($this->style->isRemoteIdentifier($foreign));
         $this->assertEquals($table, $this->style->remoteFromIdentifier($foreign));
@@ -105,4 +102,3 @@ class StandardTest extends \PHPUnit\Framework\TestCase
     }
 
 }
-

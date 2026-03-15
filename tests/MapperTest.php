@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace Respect\Relational;
 
 use PDO;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\TestCase;
 use Respect\Data\Collections\Filtered;
 use Respect\Data\Collections\Mix;
 use Respect\Data\Collections\Typed;
 use Respect\Data\Styles;
 
-class MapperTest extends \PHPUnit\Framework\TestCase {
+#[CoversClass(Mapper::class)]
+class MapperTest extends TestCase {
 
     protected $conn, $mapper, $posts, $authors, $comments, $categories, $postsCategories, $issues;
 
@@ -131,14 +134,14 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         $this->conn = $conn;
     }
 
-    public function test_creating_with_db_instance()
+    public function test_creating_with_db_instance(): void
     {
         $db = new Db($this->conn);
         $mapper = new Mapper($db);
         $this->assertSame($db, $mapper->getDb());
     }
 
-    public function test_get_defined_db_instance()
+    public function test_get_defined_db_instance(): void
     {
         $db = new Db($this->conn);
         $mapper = new Mapper($db);
@@ -146,18 +149,15 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         $this->assertSame($db, $mapper->getDb());
     }
 
-    public function test_creating_with_invalid_args_should_throw_exception()
+    public function test_creating_with_invalid_args_should_throw_exception(): void
     {
         $this->expectException(\TypeError::class);
         $mapper = new Mapper('foo');
     }
 
-    public function test_rolling_back_transaction()
+    public function test_rolling_back_transaction(): void
     {
-        $conn = $this->getMockBuilder('PDO')
-            ->setConstructorArgs(array('sqlite::memory:'))
-            ->onlyMethods(array('beginTransaction', 'rollback', 'prepare'))
-            ->getMock();
+        $conn = $this->createMock(PDO::class);
         $conn->expects($this->any())
              ->method('prepare')
              ->will($this->throwException(new \Exception));
@@ -174,16 +174,22 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         }
     }
 
-    public function test_ignoring_last_insert_id_errors()
+    public function test_ignoring_last_insert_id_errors(): void
     {
-        $conn = $this->getMockBuilder('PDO')
-            ->setConstructorArgs(array('sqlite::memory:'))
-            ->onlyMethods(array('lastInsertId'))
-            ->getMock();
-        $conn->exec('CREATE TABLE foo(id INTEGER PRIMARY KEY, name VARCHAR(255))');
-        $conn->expects($this->any())
-             ->method('lastInsertId')
-             ->will($this->throwException(new \PDOException));
+        $conn = $this->createStub(PDO::class);
+        $conn->method('getAttribute')
+             ->willReturn('sqlite');
+        $stmt = $this->createStub(\PDOStatement::class);
+        $stmt->method('execute')
+             ->willReturn(true);
+        $conn->method('prepare')
+             ->willReturn($stmt);
+        $conn->method('lastInsertId')
+             ->willThrowException(new \PDOException());
+        $conn->method('beginTransaction')
+             ->willReturn(true);
+        $conn->method('commit')
+             ->willReturn(true);
         $mapper = new Mapper($conn);
         $obj = new \stdClass();
         $obj->id = null;
@@ -194,7 +200,7 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         $this->assertEquals('bar', $obj->name);
     }
 
-    public function test_removing_untracked_object()
+    public function test_removing_untracked_object(): void
     {
         $comment = new \stdClass();
         $comment->id = 7;
@@ -204,34 +210,34 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         $this->assertEmpty($this->mapper->comment[7]->fetch());
     }
 
-    public function test_fetching_single_entity_from_collection_should_return_first_record_from_table()
+    public function test_fetching_single_entity_from_collection_should_return_first_record_from_table(): void
     {
         $expectedFirstComment = reset($this->comments);
         $fetchedFirstComment = $this->mapper->comment->fetch();
         $this->assertEquals($expectedFirstComment, $fetchedFirstComment);
     }
 
-    public function test_fetching_all_entites_from_collection_should_return_all_records()
+    public function test_fetching_all_entites_from_collection_should_return_all_records(): void
     {
         $expectedCategories = $this->categories;
         $fetchedCategories = $this->mapper->category->fetchAll();
         $this->assertEquals($expectedCategories, $fetchedCategories);
     }
 
-    public function test_extra_sql_on_single_fetch_should_be_applied_on_mapper_sql()
+    public function test_extra_sql_on_single_fetch_should_be_applied_on_mapper_sql(): void
     {
         $expectedLast = end($this->comments);
         $fetchedLast = $this->mapper->comment->fetch(Sql::orderBy('id DESC'));
         $this->assertEquals($expectedLast, $fetchedLast);
     }
-    public function test_extra_sql_on_fetchAll_should_be_applied_on_mapper_sql()
+    public function test_extra_sql_on_fetchAll_should_be_applied_on_mapper_sql(): void
     {
         $expectedComments = array_reverse($this->comments);
         $fetchedComments = $this->mapper->comment->fetchAll(Sql::orderBy('id DESC'));
         $this->assertEquals($expectedComments, $fetchedComments);
     }
 
-    public function test_nested_collections_should_hydrate_results() {
+    public function test_nested_collections_should_hydrate_results(): void {
         $mapper = $this->mapper;
         $comment = $mapper->comment->post[5]->fetch();
         $this->assertEquals(7, $comment->id);
@@ -243,7 +249,7 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         $this->assertEquals(4, count(get_object_vars($comment->post_id)));
     }
 
-    public function testOneToN() {
+    public function testOneToN(): void {
         $mapper = $this->mapper;
         $comments = $mapper->comment->post($mapper->author)->fetchAll();
         $comment = current($comments);
@@ -260,7 +266,7 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         $this->assertEquals(2, count(get_object_vars($comment->post_id->author_id)));
     }
 
-    public function testNtoN() {
+    public function testNtoN(): void {
         $mapper = $this->mapper;
         $comments = $mapper->comment->post->post_category->category[2]->fetchAll();
         $comment = current($comments);
@@ -274,14 +280,14 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         $this->assertEquals(4, count(get_object_vars($comment->post_id)));
     }
 
-    public function testNtoNReverse() {
+    public function testNtoNReverse(): void {
         $mapper = $this->mapper;
         $cat = $mapper->category->post_category->post[5]->fetch();
         $this->assertEquals(2, $cat->id);
         $this->assertEquals('Sample Category', $cat->name);
     }
 
-    public function testSimplePersist() {
+    public function testSimplePersist(): void {
         $mapper = $this->mapper;
         $entity = (object) array('id' => 4, 'name' => 'inserted', 'category_id' => null);
         $mapper->category->persist($entity);
@@ -289,7 +295,7 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         $result = $this->conn->query('select * from category where id=4')->fetch(PDO::FETCH_OBJ);
         $this->assertEquals($entity, $result);
     }
-    public function testSimplePersistCollection() {
+    public function testSimplePersistCollection(): void {
         $mapper = $this->mapper;
         $entity = (object) array('id' => 4, 'name' => 'inserted', 'category_id' => null);
         $mapper->category->persist($entity);
@@ -298,7 +304,7 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         $this->assertEquals($entity, $result);
     }
 
-    public function testNestedPersistCollection() {
+    public function testNestedPersistCollection(): void {
         $postWithAuthor = (object) array(
             'id' => null,
             'title' => 'hi',
@@ -315,7 +321,7 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         $this->assertEquals('New', $author->name);
         $this->assertEquals('hi', $post->title);
     }
-    public function testNestedPersistCollectionShortcut() {
+    public function testNestedPersistCollectionShortcut(): void {
         $postWithAuthor = (object) array(
             'id' => null,
             'title' => 'hi',
@@ -334,7 +340,7 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         $this->assertEquals('hi', $post->title);
     }
 
-    public function testNestedPersistCollectionWithChildrenShortcut() {
+    public function testNestedPersistCollectionWithChildrenShortcut(): void {
         $postWithAuthor = (object) array(
             'id' => null,
             'title' => 'hi',
@@ -353,7 +359,7 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         $this->assertEquals('hi', $post->title);
     }
 
-    public function testSubCategory() {
+    public function testSubCategory(): void {
         $mapper = $this->mapper;
         $entity = (object) array('id' => 8, 'name' => 'inserted', 'category_id' => 2);
         $mapper->category->persist($entity);
@@ -364,7 +370,7 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         $this->assertEquals($result->name, $result2->name);
         $this->assertEquals($entity, $result);
     }
-    public function testSubCategoryCondition() {
+    public function testSubCategoryCondition(): void {
         $mapper = $this->mapper;
         $entity = (object) array('id' => 8, 'name' => 'inserted', 'category_id' => 2);
         $mapper->category->persist($entity);
@@ -376,7 +382,7 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         $this->assertEquals($entity, $result);
     }
 
-    public function testAutoIncrementPersist() {
+    public function testAutoIncrementPersist(): void {
         $mapper = $this->mapper;
         $entity = (object) array('id' => null, 'name' => 'inserted', 'category_id' => null);
         $mapper->category->persist($entity);
@@ -386,7 +392,7 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         $this->assertEquals(4, $result->id);
     }
 
-    public function testPassedIdentity() {
+    public function testPassedIdentity(): void {
         $mapper = $this->mapper;
 
         $post = new \stdClass();
@@ -413,7 +419,7 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         $this->assertEquals('abc', $comment->text);
     }
 
-    public function testJoinedPersist() {
+    public function testJoinedPersist(): void {
         $mapper = $this->mapper;
         $entity = $mapper->comment[8]->fetch();
         $entity->text = 'HeyHey';
@@ -424,7 +430,7 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
     }
 
 
-    public function testRemove() {
+    public function testRemove(): void {
         $mapper = $this->mapper;
         $c8 = $mapper->comment[8]->fetch();
         $pre = $this->conn->query('select count(*) from comment')->fetchColumn(0);
@@ -434,7 +440,7 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         $this->assertEquals($total, $pre - 1);
     }
 
-    public function test_fetching_entity_typed()
+    public function test_fetching_entity_typed(): void
     {
         $mapper = $this->mapper;
         $mapper->entityNamespace = '\Respect\Relational\\';
@@ -442,7 +448,7 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         $this->assertInstanceOf('\Respect\Relational\Comment', $comment);
     }
 
-    public function test_fetching_all_entity_typed()
+    public function test_fetching_all_entity_typed(): void
     {
         $mapper = $this->mapper;
         $mapper->entityNamespace = '\Respect\Relational\\';
@@ -450,7 +456,7 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         $this->assertInstanceOf('\Respect\Relational\Comment', $comment[1]);
     }
 
-    public function test_fetching_all_entity_typed_nested()
+    public function test_fetching_all_entity_typed_nested(): void
     {
         $mapper = $this->mapper;
         $mapper->entityNamespace = '\Respect\Relational\\';
@@ -459,7 +465,7 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         $this->assertInstanceOf('\Respect\Relational\Post', $comment[0]->post_id);
     }
 
-    public function test_persisting_entity_typed()
+    public function test_persisting_entity_typed(): void
     {
         $mapper = $this->mapper;
         $mapper->entityNamespace = '\Respect\Relational\\';
@@ -471,7 +477,7 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         $this->assertEquals('HeyHey', $result);
     }
 
-    public function test_persisting_new_entity_typed()
+    public function test_persisting_new_entity_typed(): void
     {
         $mapper = $this->mapper;
         $mapper->entityNamespace = '\Respect\Relational\\';
@@ -483,7 +489,7 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         $this->assertEquals('HeyHey', $result);
     }
 
-    public function test_setters_and_getters_datetime_as_object()
+    public function test_setters_and_getters_datetime_as_object(): void
     {
         $mapper = $this->mapper;
         $mapper->entityNamespace = '\Respect\Relational\\';
@@ -499,7 +505,7 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         $this->assertEquals(date('Y-m-d'), $result->getDatetime()->format('Y-m-d'));
     }
 
-    public function test_style()
+    public function test_style(): void
     {
         $this->assertInstanceOf('Respect\Data\Styles\Stylable', $this->mapper->getStyle());
         $this->assertInstanceOf('Respect\Data\Styles\Standard', $this->mapper->getStyle());
@@ -515,14 +521,14 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         }
     }
 
-    public function test_feching_a_single_filtered_collection_should_not_bring_filtered_children() {
+    public function test_feching_a_single_filtered_collection_should_not_bring_filtered_children(): void {
         $mapper = $this->mapper;
         $mapper->authorsWithPosts = Filtered::post()->author();
         $author = $mapper->authorsWithPosts->fetch();
         $this->assertEquals($this->authors[0], $author);
     }
 
-    public function test_persisting_a_previously_fetched_filtered_entity_back_into_its_collection() {
+    public function test_persisting_a_previously_fetched_filtered_entity_back_into_its_collection(): void {
         $mapper = $this->mapper;
         $mapper->authorsWithPosts = Filtered::post()->author();
         $author = $mapper->authorsWithPosts->fetch();
@@ -533,7 +539,7 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         $this->assertEquals('Author Changed', $result->name);
     }
 
-    public function test_persisting_a_previously_fetched_filtered_entity_back_into_a_foreign_compatible_collection() {
+    public function test_persisting_a_previously_fetched_filtered_entity_back_into_a_foreign_compatible_collection(): void {
         $mapper = $this->mapper;
         $mapper->authorsWithPosts = Filtered::post()->author();
         $author = $mapper->authorsWithPosts->fetch();
@@ -544,7 +550,7 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         $this->assertEquals('Author Changed', $result->name);
     }
 
-    public function test_persisting_a_newly_created_filtered_entity_into_its_collection() {
+    public function test_persisting_a_newly_created_filtered_entity_into_its_collection(): void {
         $mapper = $this->mapper;
         $mapper->authorsWithPosts = Filtered::post()->author();
         $author = new \stdClass;
@@ -556,7 +562,7 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         $this->assertEquals('Author Changed', $result->name);
     }
 
-    public function test_persisting_a_newly_created_filtered_entity_into_a_foreig_compatible_collection() {
+    public function test_persisting_a_newly_created_filtered_entity_into_a_foreig_compatible_collection(): void {
         $mapper = $this->mapper;
         $mapper->authorsWithPosts = Filtered::post()->author();
         $author = new \stdClass;
@@ -568,14 +574,14 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         $this->assertEquals('Author Changed', $result->name);
     }
 
-    public function test_feching_multiple_filtered_collections_should_not_bring_filtered_children() {
+    public function test_feching_multiple_filtered_collections_should_not_bring_filtered_children(): void {
         $mapper = $this->mapper;
         $mapper->authorsWithPosts = Filtered::post()->author();
         $authors = $mapper->authorsWithPosts->fetchAll();
         $this->assertEquals($this->authors, $authors);
     }
 
-    public function test_filtered_collections_should_hydrate_non_filtered_parts_as_usual() {
+    public function test_filtered_collections_should_hydrate_non_filtered_parts_as_usual(): void {
         $mapper = $this->mapper;
         $mapper->postsFromAuthorsWithComments = Filtered::comment()->post()->author();
         $post = $mapper->postsFromAuthorsWithComments->fetch();
@@ -583,7 +589,7 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         $this->assertEquals($this->authors[0], $post->author_id);
     }
 
-    public function test_filtered_collections_should_persist_hydrated_non_filtered_parts_as_usual() {
+    public function test_filtered_collections_should_persist_hydrated_non_filtered_parts_as_usual(): void {
         $mapper = $this->mapper;
         $mapper->postsFromAuthorsWithComments = Filtered::comment()->post()->author();
         $post = $mapper->postsFromAuthorsWithComments->fetch();
@@ -599,7 +605,7 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         $this->assertEquals('John', $result->name);
     }
 
-    public function test_multiple_filtered_collections_dont_persist() {
+    public function test_multiple_filtered_collections_dont_persist(): void {
         $mapper = $this->mapper;
         $mapper->authorsWithPosts = Filtered::comment()->post->stack(Filtered::author());
         $post = $mapper->authorsWithPosts->fetch();
@@ -614,7 +620,7 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         $result = $this->conn->query('select name from author where id=1')->fetch(PDO::FETCH_OBJ);
         $this->assertNotEquals('A', $result->name);
     }
-    public function test_multiple_filtered_collections_dont_persist_newly_create_objects() {
+    public function test_multiple_filtered_collections_dont_persist_newly_create_objects(): void {
         $mapper = $this->mapper;
         $mapper->authorsWithPosts = Filtered::comment()->post->stack(Filtered::author());
         $post = $mapper->authorsWithPosts->fetch();
@@ -631,7 +637,7 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         $this->assertNotEquals('A', $result->name);
     }
 
-    public function test_multiple_filtered_collections_fetch_at_once_dont_persist() {
+    public function test_multiple_filtered_collections_fetch_at_once_dont_persist(): void {
         $mapper = $this->mapper;
         $mapper->authorsWithPosts = Filtered::comment()->post->stack(Filtered::author());
         $post = $mapper->authorsWithPosts->fetchAll();
@@ -648,7 +654,7 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         $this->assertNotEquals('A', $result->name);
     }
 
-    public function test_reusing_registered_filtered_collections_keeps_their_filtering() {
+    public function test_reusing_registered_filtered_collections_keeps_their_filtering(): void {
         $mapper = $this->mapper;
         $mapper->commentFil = Filtered::comment();
         $mapper->author = Filtered::author();
@@ -660,7 +666,7 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         $result = $this->conn->query('select title from post where id=5')->fetch(PDO::FETCH_OBJ);
         $this->assertEquals('Title Changed', $result->title);
     }
-    public function test_reusing_registered_filtered_collections_keeps_their_filtering_on_fetchAll() {
+    public function test_reusing_registered_filtered_collections_keeps_their_filtering_on_fetchAll(): void {
         $mapper = $this->mapper;
         $mapper->commentFil = Filtered::comment();
         $mapper->author = Filtered::author();
@@ -673,7 +679,7 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         $result = $this->conn->query('select title from post where id=5')->fetch(PDO::FETCH_OBJ);
         $this->assertEquals('Title Changed', $result->title);
     }
-    public function test_registered_filtered_collections_by_column_keeps_their_filtering() {
+    public function test_registered_filtered_collections_by_column_keeps_their_filtering(): void {
         $mapper = $this->mapper;
         $mapper->post = Filtered::by('title')->post();
         $post = $mapper->post->fetch();
@@ -684,7 +690,7 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         $result = $this->conn->query('select title from post where id=5')->fetch(PDO::FETCH_OBJ);
         $this->assertEquals('Title Changed', $result->title);
     }
-    public function test_registered_filtered_collections_by_column_keeps_their_filtering_on_fetchAll() {
+    public function test_registered_filtered_collections_by_column_keeps_their_filtering_on_fetchAll(): void {
         $mapper = $this->mapper;
         $mapper->post = Filtered::by('title')->post();
         $post = $mapper->post->fetchAll();
@@ -696,7 +702,7 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         $result = $this->conn->query('select title from post where id=5')->fetch(PDO::FETCH_OBJ);
         $this->assertEquals('Title Changed', $result->title);
     }
-    public function test_registered_filtered_wildcard_collections_keeps_their_filtering() {
+    public function test_registered_filtered_wildcard_collections_keeps_their_filtering(): void {
         $mapper = $this->mapper;
         $mapper->post = Filtered::by('*')->post();
         $post = $mapper->post->fetch();
@@ -707,7 +713,7 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         $result = $this->conn->query('select title from post where id=5')->fetch(PDO::FETCH_OBJ);
         $this->assertEquals('Title Changed', $result->title);
     }
-    public function test_registered_filtered_wildcard_collections_keeps_their_filtering_on_fetchAll() {
+    public function test_registered_filtered_wildcard_collections_keeps_their_filtering_on_fetchAll(): void {
         $mapper = $this->mapper;
         $mapper->post = Filtered::by('*')->post();
         $post = $mapper->post->fetchAll();
@@ -719,7 +725,7 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         $result = $this->conn->query('select title from post where id=5')->fetch(PDO::FETCH_OBJ);
         $this->assertEquals('Title Changed', $result->title);
     }
-    public function test_fetching_registered_filtered_collections_alongside_normal() {
+    public function test_fetching_registered_filtered_collections_alongside_normal(): void {
         $mapper = $this->mapper;
         $mapper->post = Filtered::by('*')->post()->author();
         $post = $mapper->post->fetchAll();
@@ -732,7 +738,7 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         $result = $this->conn->query('select title from post where id=5')->fetch(PDO::FETCH_OBJ);
         $this->assertEquals('Title Changed', $result->title);
     }
-    public function test_mixins_bring_results_from_two_tables() {
+    public function test_mixins_bring_results_from_two_tables(): void {
         $mapper = $this->mapper;
         $mapper->postComment = Mix::with(array('comment' => array('text')))->post()->author();
         $post = $mapper->postComment->fetch();
@@ -740,7 +746,7 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         $this->assertEquals((object) array('id' => '5', 'author_id' => $post->author_id, 'text' => 'Comment Text', 'title' => 'Post Title', 'comment_id' => 7), $post);
 
     }
-    public function test_mixins_persists_results_on_two_tables() {
+    public function test_mixins_persists_results_on_two_tables(): void {
         $mapper = $this->mapper;
         $mapper->postComment = Mix::with(array('comment' => array('text')))->post()->author();
         $post = $mapper->postComment->fetch();
@@ -756,7 +762,7 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         $this->assertEquals('Comment Changed', $result->text);
 
     }
-    public function test_mixins_persists_newly_created_entities_on_two_tables() {
+    public function test_mixins_persists_newly_created_entities_on_two_tables(): void {
         $mapper = $this->mapper;
         $mapper->postComment = Mix::with(array('comment' => array('text')))->post()->author();
         $post = (object) array('text' => 'Comment X', 'title' => 'Post X', 'id' => null);
@@ -770,7 +776,7 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         $this->assertEquals('Comment X', $result->text);
 
     }
-    public function test_mixins_all() {
+    public function test_mixins_all(): void {
         $mapper = $this->mapper;
         $mapper->postComment = Mix::with(array('comment' => array('text')))->post()->author();
         $post = $mapper->postComment->fetchAll();
@@ -787,7 +793,7 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         $this->assertEquals('Comment Changed', $result->text);
 
     }
-    public function test_typed() {
+    public function test_typed(): void {
         $mapper = $this->mapper;
         $mapper->entityNamespace = '\Respect\Relational\\';
         $mapper->typedIssues = Typed::by('type')->issues();
@@ -802,7 +808,7 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         $result = $this->conn->query('select title from issues where id=1')->fetch(PDO::FETCH_OBJ);
         $this->assertEquals('Title Changed', $result->title);
     }
-    public function test_typed_single() {
+    public function test_typed_single(): void {
         $mapper = $this->mapper;
         $mapper->entityNamespace = '\Respect\Relational\\';
         $mapper->typedIssues = Typed::by('type')->issues();
@@ -816,7 +822,7 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         $this->assertEquals('Title Changed', $result->title);
     }
 
-    public function test_persist_new_with_arrayobject()
+    public function test_persist_new_with_arrayobject(): void
     {
         $mapper = $this->mapper;
         $arrayEntity = array('id' => 10, 'name' => 'array_object_category', 'category_id' => null);
@@ -828,7 +834,7 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
     }
 
     // --------------------------------------------------------------
-    public function testFetchingEntityWithoutPublicPropertiesTyped()
+    public function testFetchingEntityWithoutPublicPropertiesTyped(): void
     {
         $mapper = $this->mapper;
         $mapper->entityNamespace = '\Respect\Relational\OtherEntity\\';
@@ -836,7 +842,7 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         $this->assertInstanceOf('\Respect\Relational\OtherEntity\Post', $post);
     }
 
-    public function testFetchingAllEntityWithoutPublicPropertiesTyped()
+    public function testFetchingAllEntityWithoutPublicPropertiesTyped(): void
     {
         $mapper = $this->mapper;
         $mapper->entityNamespace = '\Respect\Relational\OtherEntity\\';
@@ -844,7 +850,7 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         $this->assertInstanceOf('\Respect\Relational\OtherEntity\Post', $posts[0]);
     }
 
-    public function testFetchingAllEntityWithoutPublicPropertiesTypedNested()
+    public function testFetchingAllEntityWithoutPublicPropertiesTypedNested(): void
     {
         $mapper = $this->mapper;
         $mapper->entityNamespace = '\Respect\Relational\OtherEntity\\';
@@ -853,7 +859,7 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         $this->assertInstanceOf('\Respect\Relational\OtherEntity\Author', $posts[0]->getAuthor());
     }
 
-    public function testPersistingEntityWithoutPublicPropertiesTyped()
+    public function testPersistingEntityWithoutPublicPropertiesTyped(): void
     {
         $mapper = $this->mapper;
         $mapper->entityNamespace = '\Respect\Relational\OtherEntity\\';
@@ -867,7 +873,7 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         $this->assertEquals('HeyHey', $result);
     }
 
-    public function testPersistingNewEntityWithoutPublicPropertiesTyped()
+    public function testPersistingNewEntityWithoutPublicPropertiesTyped(): void
     {
         $mapper = $this->mapper;
         $mapper->entityNamespace = '\Respect\Relational\OtherEntity\\';
@@ -886,7 +892,7 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         $this->assertEquals('My new Post Text', $result);
     }
 
-    public function testShouldExecuteEntityConstructorByDefault()
+    public function testShouldExecuteEntityConstructorByDefault(): void
     {
         $mapper = $this->mapper;
         $mapper->entityNamespace = 'Respect\\Relational\\OtherEntity\\';
@@ -899,7 +905,7 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
         }
     }
 
-    public function testShouldNotExecuteEntityConstructorWhenDisabled()
+    public function testShouldNotExecuteEntityConstructorWhenDisabled(): void
     {
         $mapper = $this->mapper;
         $mapper->entityNamespace = 'Respect\\Relational\\OtherEntity\\';
