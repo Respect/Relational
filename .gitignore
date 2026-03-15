@@ -3,3 +3,4 @@
 /vendor/
 Makefile
 .phpunit.result.cache
+.phpcs.cache

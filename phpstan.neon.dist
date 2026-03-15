@@ -1,0 +1,11 @@
+parameters:
+  level: 1
+  paths:
+    - library/
+    - tests/
+  ignoreErrors:
+    - message: '/Call to an undefined static method Respect\\Relational\\Sql::\w+\(\)\./'
+    - message: '/Call to an undefined static method Respect\\Data\\Collections\\(Collection|Filtered|Mix|Typed)::\w+\(\)\./'
+    - message: '/Unsafe usage of new static\(\)\./'
+    - message: '/Cannot unset property .+ because it might have hooks in a subclass\./'
+    - message: '/Array has \d+ duplicate keys/'
