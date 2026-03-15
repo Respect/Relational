@@ -37,7 +37,8 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Respect\\Relational\\": "tests/"
+            "Respect\\Relational\\": ["tests/", "tests/Stubs/"],
+            "Respect\\Relational\\OtherEntity\\": "tests/Stubs/OtherEntity/"
         }
     },
     "scripts": {

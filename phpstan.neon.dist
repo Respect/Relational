@@ -9,7 +9,6 @@ parameters:
     - message: '/Access to an undefined property Respect\\Relational\\Mapper::\$\w+\./'
     - message: '/Unsafe usage of new static\(\)\./'
     - message: '/Cannot unset property .+ because it might have hooks in a subclass\./'
-    - message: '/Array has \d+ duplicate keys/'
     -
       message: '/Parameter #1 .+ of class Respect\\Relational\\Mapper constructor expects .+, string given\./'
       path: tests/MapperTest.php
