@@ -1,15 +1,18 @@
 parameters:
-  level: 2
+  level: 5
   paths:
     - src/
     - tests/
   ignoreErrors:
     - message: '/Call to an undefined (static )?method Respect\\Relational\\(Sql|Db|Mapper)::\w+\(\)\./'
-    - message: '/Call to an undefined static method Respect\\Data\\Collections\\(Collection|Filtered|Mix|Typed)::\w+\(\)\./'
+    - message: '/Call to an undefined (static )?method Respect\\Data\\Collections\\(Collection|Filtered|Mix|Typed)::\w+\(\)\./'
     - message: '/Access to an undefined property Respect\\Relational\\Mapper::\$\w+\./'
     - message: '/Unsafe usage of new static\(\)\./'
     - message: '/Cannot unset property .+ because it might have hooks in a subclass\./'
     - message: '/Array has \d+ duplicate keys/'
     -
-      message: '/unknown class/'
+      message: '/(unknown class|does not accept)/'
       path: tests/Styles/
+    -
+      message: '/Parameter #1 .+ of class Respect\\Relational\\Mapper constructor expects .+, string given\./'
+      path: tests/MapperTest.php

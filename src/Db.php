@@ -5,14 +5,15 @@ declare(strict_types=1);
 namespace Respect\Relational;
 
 use PDO;
+use PDOStatement;
 
-class Db
+final class Db
 {
-    protected $connection;
-    protected $currentSql;
-    protected $protoSql;
+    protected PDO $connection;
+    protected Sql $currentSql;
+    protected Sql $protoSql;
 
-    public function __call($methodName, $arguments)
+    public function __call(string $methodName, array $arguments): static
     {
         $this->currentSql->__call($methodName, $arguments);
 
@@ -27,66 +28,60 @@ class Db
         $this->currentSql = clone $this->protoSql;
     }
 
-    public function exec()
+    public function exec(): bool
     {
         return (bool) $this->executeStatement();
     }
 
-    public function fetch($object = '\stdClass', $extra = null)
+    public function fetch(mixed $object = '\stdClass', mixed $extra = null): mixed
     {
         $result = $this->performFetch(__FUNCTION__, $object, $extra);
 
         return is_callable($object) ? $object($result) : $result;
     }
 
-    public function fetchAll($object = '\stdClass', $extra = null)
+    public function fetchAll(mixed $object = '\stdClass', mixed $extra = null): mixed
     {
         $result = $this->performFetch(__FUNCTION__, $object, $extra);
 
         return is_callable($object) ? array_map($object, $result) : $result;
     }
 
-    public function getConnection()
+    public function getConnection(): PDO
     {
         return $this->connection;
     }
 
-    public function getSql()
+    public function getSql(): Sql
     {
         return $this->currentSql;
     }
 
-    public function prepare($queryString, $object = '\stdClass', array|null $extra = null)
+    public function prepare(string $queryString, mixed $object = '\stdClass', array|null $extra = null): PDOStatement
     {
         $statement = $this->connection->prepare($queryString);
 
-        if (is_int($object)) {
-            $statement->setFetchMode($object);
-        } elseif ('\stdClass' === $object || 'stdClass' === $object) {
-            $statement->setFetchMode(PDO::FETCH_OBJ);
-        } elseif (is_callable($object)) {
-            $statement->setFetchMode(PDO::FETCH_OBJ);
-        } elseif (is_object($object)) {
-            $statement->setFetchMode(PDO::FETCH_INTO, $object);
-        } elseif (is_array($object)) {
-            $statement->setFetchMode(PDO::FETCH_ASSOC);
-        } elseif (is_null($extra)) {
-            $statement->setFetchMode(PDO::FETCH_CLASS, $object);
-        } else {
-            $statement->setFetchMode(PDO::FETCH_CLASS, $object, $extra);
-        }
+        match (true) {
+            is_int($object) => $statement->setFetchMode($object),
+            '\stdClass' === $object || 'stdClass' === $object => $statement->setFetchMode(PDO::FETCH_OBJ),
+            is_callable($object) => $statement->setFetchMode(PDO::FETCH_OBJ),
+            is_object($object) => $statement->setFetchMode(PDO::FETCH_INTO, $object),
+            is_array($object) => $statement->setFetchMode(PDO::FETCH_ASSOC),
+            is_null($extra) => $statement->setFetchMode(PDO::FETCH_CLASS, $object),
+            default => $statement->setFetchMode(PDO::FETCH_CLASS, $object, $extra),
+        };
 
         return $statement;
     }
 
-    public function query($rawSql, array|null $params = null)
+    public function query(string $rawSql, array|null $params = null): static
     {
         $this->currentSql->setQuery($rawSql, $params);
 
         return $this;
     }
 
-    protected function executeStatement($object = '\stdClass', $extra = null)
+    protected function executeStatement(mixed $object = '\stdClass', mixed $extra = null): PDOStatement
     {
         $statement = $this->prepare((string) $this->currentSql, $object, $extra);
         $statement->execute($this->currentSql->getParams());
@@ -95,7 +90,7 @@ class Db
         return $statement;
     }
 
-    protected function performFetch($method, $object = '\stdClass', $extra = null)
+    protected function performFetch(string $method, mixed $object = '\stdClass', mixed $extra = null): mixed
     {
         $statement = $this->executeStatement($object, $extra);
         $result = $statement->{$method}();

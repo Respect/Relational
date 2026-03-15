@@ -9,17 +9,17 @@ class Sql
     const SQL_OPERATORS = '/\s?(NOT)?\s?(=|==|<>|!=|>|>=|<|<=|LIKE)\s?$/';
     const PLACEHOLDER   = '?';
 
-    protected $query = '';
-    protected $params = array();
+    protected string $query = '';
+    protected array $params = [];
 
-    public static function __callStatic($operation, $parts)
+    public static function __callStatic(string $operation, array $parts): static
     {
         $sql = new static();
 
-        return call_user_func_array(array($sql, $operation), $parts);
+        return $sql->$operation(...$parts);
     }
 
-    public static function enclose($sql)
+    public static function enclose(mixed $sql): mixed
     {
         if ($sql instanceof self) {
             $sql->query = '('.trim($sql->query).') ';
@@ -30,27 +30,27 @@ class Sql
         return $sql;
     }
 
-    public function __call($operation, $parts)
+    public function __call(string $operation, array $parts): static
     {
         return $this->preBuild($operation, $parts);
     }
 
-    public function __construct($rawSql = '', array|null $params = null)
+    public function __construct(string $rawSql = '', array|null $params = null)
     {
         $this->setQuery($rawSql, $params);
     }
 
-    public function __toString()
+    public function __toString(): string
     {
         return rtrim($this->query);
     }
 
-    public function getParams()
+    public function getParams(): array
     {
         return $this->params;
     }
 
-    public function setQuery($rawSql, array|null $params = null)
+    public function setQuery(string $rawSql, array|null $params = null): static
     {
         $this->query = $rawSql;
         if ($params !== null) {
@@ -60,7 +60,7 @@ class Sql
         return $this;
     }
 
-    public function appendQuery($sql, array|null $params = null)
+    public function appendQuery(mixed $sql, array|null $params = null): static
     {
         $this->query = trim($this->query)." $sql";
         if ($sql instanceof self) {
@@ -73,19 +73,12 @@ class Sql
         return $this;
     }
 
-    protected function preBuild($operation, $parts)
+    protected function preBuild(string $operation, array $parts): static
     {
         $raw   = ($operation == 'select' || $operation == 'on');
         $parts = $this->normalizeParts($parts, $raw);
-        if (empty($parts)) {
-            switch ($operation) {
-                case 'asc':
-                case 'desc':
-                case '_':
-                    break;
-                default:
-                    return $this;
-            }
+        if (empty($parts) && !in_array($operation, ['asc', 'desc', '_'], true)) {
+            return $this;
         }
         if ($operation == 'cond') {
             // condition list
@@ -98,42 +91,37 @@ class Sql
         return $this->build($operation, $parts);
     }
 
-    protected function build($operation, $parts)
+    protected function build(string $operation, array $parts): static
     {
-        switch ($operation) { //just special cases
-            case 'select':
-                return $this->buildAliases($parts);
-            case 'and':
-            case 'having':
-            case 'where':
-            case 'between':
-                return $this->buildKeyValues($parts, '%s ', ' AND ');
-            case 'or':
-                return $this->buildKeyValues($parts, '%s ', ' OR ');
-            case 'set':
-                return $this->buildKeyValues($parts);
-            case 'on':
-                return $this->buildComparators($parts, '%s ', ' AND ');
-            case 'alterTable':
-                $this->buildFirstPart($parts);
-
-                return $this->buildParts($parts, '%s ');
-            case 'in':
-            case 'values':
-                return $this->buildValuesList($parts);
-            case 'createTable':
-            case 'insertInto':
-            case 'replaceInto':
-                $this->params = array();
-                $this->buildFirstPart($parts);
-
-                return $this->buildParts($parts, '(%s) ');
-            default: //defaults to any other SQL instruction
-                return $this->buildParts($parts);
-        }
+        return match ($operation) {
+            'select' => $this->buildAliases($parts),
+            'and', 'having', 'where', 'between' => $this->buildKeyValues($parts, '%s ', ' AND '),
+            'or' => $this->buildKeyValues($parts, '%s ', ' OR '),
+            'set' => $this->buildKeyValues($parts),
+            'on' => $this->buildComparators($parts, '%s ', ' AND '),
+            'in', 'values' => $this->buildValuesList($parts),
+            'alterTable' => $this->buildAlterTable($parts),
+            'createTable', 'insertInto', 'replaceInto' => $this->buildCreate($parts),
+            default => $this->buildParts($parts),
+        };
     }
 
-    protected function buildKeyValues($parts, $format = '%s ', $partSeparator = ', ')
+    private function buildAlterTable(array $parts): static
+    {
+        $this->buildFirstPart($parts);
+
+        return $this->buildParts($parts, '%s ');
+    }
+
+    private function buildCreate(array $parts): static
+    {
+        $this->params = [];
+        $this->buildFirstPart($parts);
+
+        return $this->buildParts($parts, '(%s) ');
+    }
+
+    protected function buildKeyValues(array $parts, string $format = '%s ', string $partSeparator = ', '): static
     {
         foreach ($parts as $key => $part) {
             if (is_numeric($key)) {
@@ -151,7 +139,7 @@ class Sql
         return $this->buildParts($parts, $format, $partSeparator);
     }
 
-    protected function buildComparators($parts, $format = '%s ', $partSeparator = ', ')
+    protected function buildComparators(array $parts, string $format = '%s ', string $partSeparator = ', '): static
     {
         foreach ($parts as $key => $part) {
             if (is_numeric($key)) {
@@ -164,7 +152,7 @@ class Sql
         return $this->buildParts($parts, $format, $partSeparator);
     }
 
-    protected function buildAliases($parts, $format = '%s ', $partSeparator = ', ')
+    protected function buildAliases(array $parts, string $format = '%s ', string $partSeparator = ', '): static
     {
         foreach ($parts as $key => $part) {
             if (is_numeric($key)) {
@@ -177,7 +165,7 @@ class Sql
         return $this->buildParts($parts, $format, $partSeparator);
     }
 
-    protected function buildValuesList($parts)
+    protected function buildValuesList(array $parts): static
     {
         foreach ($parts as $key => $part) {
             if (is_numeric($key) || $part instanceof self) {
@@ -190,7 +178,7 @@ class Sql
         return $this->buildParts($parts, '(%s) ', ', ');
     }
 
-    protected function buildOperation($operation)
+    protected function buildOperation(string $operation): void
     {
         $command = strtoupper(preg_replace('/[A-Z0-9]+/', ' $0', $operation));
         if ($command == '_') {
@@ -204,12 +192,12 @@ class Sql
         }
     }
 
-    protected function buildFirstPart(&$parts)
+    protected function buildFirstPart(array &$parts): void
     {
         $this->query .= array_shift($parts).' ';
     }
 
-    protected function buildParts($parts, $format = '%s ', $partSeparator = ', ')
+    protected function buildParts(array $parts, string $format = '%s ', string $partSeparator = ', '): static
     {
         if (!empty($parts)) {
             $this->query .= sprintf($format, implode($partSeparator, $parts));
@@ -218,10 +206,10 @@ class Sql
         return $this;
     }
 
-    protected function normalizeParts($parts, $raw = false)
+    protected function normalizeParts(array $parts, bool $raw = false): array
     {
         $params = & $this->params;
-        $newParts = array();
+        $newParts = [];
 
         array_walk_recursive($parts, function ($value, $key) use (&$newParts, &$params, &$raw) {
                 if ($value instanceof Sql) {
