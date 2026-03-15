@@ -123,28 +123,3 @@ class DbTest extends TestCase
         unset($this->object);
     }
 }
-
-class TestFetchingClass
-{
-    public int|null $testa = null;
-
-    public string|null $testb = null;
-
-    public int|null $testez = null;
-}
-
-class TestFetchingInto
-{
-    public int|null $testa = null;
-
-    public string|null $testb = null;
-
-    public int|null $testez = null;
-}
-
-class TestFetchingClassArgs
-{
-    public function __construct(public string|null $testd = null)
-    {
-    }
-}

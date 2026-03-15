@@ -61,6 +61,30 @@ final class Mapper extends AbstractMapper implements
         return $this->db;
     }
 
+    public function fetch(Collection $collection, mixed $extra = null): mixed
+    {
+        $statement = $this->createStatement($collection, $extra);
+        $hydrated = $this->fetchHydrated($collection, $statement);
+        if (!$hydrated) {
+            return false;
+        }
+
+        return $this->parseHydrated($hydrated);
+    }
+
+    /** @return array<int, mixed> */
+    public function fetchAll(Collection $collection, mixed $extra = null): array
+    {
+        $statement = $this->createStatement($collection, $extra);
+        $entities = [];
+
+        while ($hydrated = $this->fetchHydrated($collection, $statement)) {
+            $entities[] = $this->parseHydrated($hydrated);
+        }
+
+        return $entities;
+    }
+
     public function persist(object $object, Collection $onCollection): bool
     {
         $next = $onCollection->getNext();
@@ -266,22 +290,6 @@ final class Mapper extends AbstractMapper implements
         $this->inferSet($entity, $primaryName, $identity);
 
         return true;
-    }
-
-    protected function createStatement(
-        Collection $collection,
-        mixed $withExtra = null,
-    ): PDOStatement {
-        $query = $this->generateQuery($collection);
-
-        if ($withExtra instanceof Sql) {
-            $query->appendQuery($withExtra);
-        }
-
-        $statement = $this->db->prepare((string) $query, PDO::FETCH_NUM);
-        $statement->execute($query->getParams());
-
-        return $statement;
     }
 
     protected function generateQuery(Collection $collection): Sql
@@ -499,28 +507,6 @@ final class Mapper extends AbstractMapper implements
             || $entity === $s->composed($next, $parent);
     }
 
-    protected function fetchSingle(
-        Collection $collection,
-        PDOStatement $statement,
-    ): SplObjectStorage|false {
-        $name        = $collection->getName();
-        $entityName  = $name;
-        $row         = $statement->fetch(PDO::FETCH_OBJ);
-
-        if (!$row) {
-            return false;
-        }
-
-        if ($this->typable($collection)) {
-            $entityName = $this->inferGet($row, $this->getType($collection));
-        }
-
-        $entities = new SplObjectStorage();
-        $entities[$this->transformSingleRow($row, $entityName)] = $collection;
-
-        return $entities;
-    }
-
     protected function getNewEntityByName(string $entityName): object
     {
         $entityName = $this->getStyle()->styledName($entityName);
@@ -569,24 +555,6 @@ final class Mapper extends AbstractMapper implements
         } catch (ReflectionException) {
             return null;
         }
-    }
-
-    protected function fetchMulti(
-        Collection $collection,
-        PDOStatement $statement,
-    ): SplObjectStorage|false {
-        $entities       = [];
-        $row            = $statement->fetch(PDO::FETCH_NUM);
-
-        if (!$row) {
-            return false;
-        }
-
-        $this->postHydrate(
-            $entities = $this->createEntities($row, $statement, $collection),
-        );
-
-        return $entities;
     }
 
     /** @param array<int, mixed> $row */
@@ -708,5 +676,78 @@ final class Mapper extends AbstractMapper implements
         }
 
         return $cols;
+    }
+
+    private function parseHydrated(SplObjectStorage $hydrated): mixed
+    {
+        $this->tracked->addAll($hydrated);
+        $hydrated->rewind();
+
+        return $hydrated->current();
+    }
+
+    private function fetchHydrated(Collection $collection, PDOStatement $statement): SplObjectStorage|false
+    {
+        if (!$collection->hasMore()) {
+            return $this->fetchSingle($collection, $statement);
+        }
+
+        return $this->fetchMulti($collection, $statement);
+    }
+
+    private function createStatement(
+        Collection $collection,
+        mixed $withExtra = null,
+    ): PDOStatement {
+        $query = $this->generateQuery($collection);
+
+        if ($withExtra instanceof Sql) {
+            $query->appendQuery($withExtra);
+        }
+
+        $statement = $this->db->prepare((string) $query, PDO::FETCH_NUM);
+        $statement->execute($query->getParams());
+
+        return $statement;
+    }
+
+    private function fetchSingle(
+        Collection $collection,
+        PDOStatement $statement,
+    ): SplObjectStorage|false {
+        $name        = $collection->getName();
+        $entityName  = $name;
+        $row         = $statement->fetch(PDO::FETCH_OBJ);
+
+        if (!$row) {
+            return false;
+        }
+
+        if ($this->typable($collection)) {
+            $entityName = $this->inferGet($row, $this->getType($collection));
+        }
+
+        $entities = new SplObjectStorage();
+        $entities[$this->transformSingleRow($row, $entityName)] = $collection;
+
+        return $entities;
+    }
+
+    private function fetchMulti(
+        Collection $collection,
+        PDOStatement $statement,
+    ): SplObjectStorage|false {
+        $entities       = [];
+        $row            = $statement->fetch(PDO::FETCH_NUM);
+
+        if (!$row) {
+            return false;
+        }
+
+        $this->postHydrate(
+            $entities = $this->createEntities($row, $statement, $collection),
+        );
+
+        return $entities;
     }
 }
