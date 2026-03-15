@@ -1,17 +1,20 @@
 <?php
 
-namespace Respect\Data\Styles\Plural;
+declare(strict_types=1);
+
+namespace Respect\Data\Styles\CakePHP;
 
 use PDO,
     Respect\Relational\Db,
     Respect\Relational\Sql,
-    Respect\Data\Styles\Plural,
+    Respect\Data\Styles\CakePHP,
     Respect\Relational\Mapper;
 
-class PluralTest extends \PHPUnit\Framework\TestCase
+class CakePHPTest extends \PHPUnit\Framework\TestCase
 {
+
     /**
-     * @var Respect\Data\Styles\Plural
+     * @var Respect\Data\Styles\CakePHP
      */
     private $style;
 
@@ -19,7 +22,7 @@ class PluralTest extends \PHPUnit\Framework\TestCase
      * @var Respect\Relational\Mapper
      */
     private $mapper;
-
+    
     /**
      * @var PDO
      */
@@ -66,18 +69,21 @@ class PluralTest extends \PHPUnit\Framework\TestCase
                 )
             )
         );
+
         $conn->exec(
             (string) Sql::createTable(
+                    //$id, $name, $category_id
                 'categories',
                 array(
                     'id INTEGER PRIMARY KEY',
                     'name VARCHAR(255)',
+                    'category_id INTEGER'
                 )
             )
         );
         $conn->exec(
             (string) Sql::createTable(
-                'posts_categories',
+                'post_categories',
                 array(
                     'id INTEGER PRIMARY KEY',
                     'post_id INTEGER',
@@ -114,11 +120,13 @@ class PluralTest extends \PHPUnit\Framework\TestCase
         $this->categories = array(
             (object) array(
                 'id' => 2,
-                'name' => 'Sample Category'
+                'name' => 'Sample Category',
+                'category_id' => null
             ),
             (object) array(
                 'id' => 3,
-                'name' => 'NONON'
+                'name' => 'NONON',
+                'category_id' => null
             )
         );
         $this->postsCategories = array(
@@ -142,10 +150,10 @@ class PluralTest extends \PHPUnit\Framework\TestCase
             $db->insertInto('categories', (array) $category)->values((array) $category)->exec();
 
         foreach ($this->postsCategories as $postCategory)
-            $db->insertInto('posts_categories', (array) $postCategory)->values((array) $postCategory)->exec();
+            $db->insertInto('post_categories', (array) $postCategory)->values((array) $postCategory)->exec();
 
         $this->conn     = $conn;
-        $this->style    = new Plural();
+        $this->style    = new CakePHP();
         $this->mapper   = new Mapper($conn);
         $this->mapper->setStyle($this->style);
         $this->mapper->entityNamespace = __NAMESPACE__ . '\\';
@@ -207,8 +215,8 @@ class PluralTest extends \PHPUnit\Framework\TestCase
         $mapper = $this->mapper;
         $comment = $mapper->comments->fetchAll();
         $this->assertInstanceOf(__NAMESPACE__ . '\Comment', $comment[1]);
-
-        $categories = $mapper->posts_categories->categories->fetch();
+        
+        $categories = $mapper->post_categories->categories->fetch();
         $this->assertInstanceOf(__NAMESPACE__ . '\PostCategory', $categories);
         $this->assertInstanceOf(__NAMESPACE__ . '\Category', $categories->category_id);
     }
@@ -251,17 +259,17 @@ class PluralTest extends \PHPUnit\Framework\TestCase
             array('posts',              'Post'),
             array('comments',           'Comment'),
             array('categories',         'Category'),
-            array('posts_categories',   'PostCategory'),
-            array('posts_tags',         'PostTag'),
+            array('post_categories',    'PostCategory'),
+            array('post_tags',          'PostTag'),
         );
     }
 
     public static function manyToMantTableProvider()
     {
         return array(
-            array('post',   'category', 'posts_categories'),
-            array('user',   'group',    'users_groups'),
-            array('group',  'profile',  'groups_profiles'),
+            array('post',   'category', 'post_categories'),
+            array('user',   'group',    'user_groups'),
+            array('group',  'profile',  'group_profiles'),
         );
     }
 
@@ -302,7 +310,7 @@ class Comment
 }
 class Category
 {
-    public $id, $name;
+    public $id, $name, $category_id;
 }
 class PostCategory
 {

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Respect\Relational;
 
 use Exception;
@@ -452,6 +454,10 @@ class Mapper extends AbstractMapper implements
 
     protected function hasComposition($entity, $next, $parent)
     {
+        if ($next === null || $parent === null) {
+            return false;
+        }
+
         $s = $this->getStyle();
 
         return $entity === $s->composed($parent, $next)
@@ -647,7 +653,8 @@ class Mapper extends AbstractMapper implements
         $cols = get_object_vars($object);
         $ref = new \ReflectionClass($object);
         foreach ($ref->getProperties() as $prop) {
-            if (preg_match('/@Relational\\\isNotColumn/', $prop->getDocComment())) {
+            $docComment = $prop->getDocComment();
+            if ($docComment !== false && preg_match('/@Relational\\\isNotColumn/', $docComment)) {
                 continue;
             }
             $cols[$prop->name] = $prop->getValue($object);
