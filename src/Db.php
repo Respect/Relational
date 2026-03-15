@@ -19,7 +19,7 @@ final class Db
 
     protected Sql $protoSql;
 
-    public function __construct(protected PDO $connection, Sql|null $sqlPrototype = null)
+    public function __construct(protected readonly PDO $connection, Sql|null $sqlPrototype = null)
     {
         $connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $this->protoSql = $sqlPrototype ?: new Sql();

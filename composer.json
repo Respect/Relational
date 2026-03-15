@@ -45,6 +45,7 @@
         "phpcs": "vendor/bin/phpcs",
         "phpstan": "vendor/bin/phpstan analyze",
         "phpunit": "vendor/bin/phpunit",
+        "coverage": "vendor/bin/phpunit --coverage-text",
         "qa": [
             "@phpcs",
             "@phpstan",

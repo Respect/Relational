@@ -118,6 +118,33 @@ class DbTest extends TestCase
         $this->assertEquals(10, $line->testa);
     }
 
+    public function testExecReturnsTrueOnSuccess(): void
+    {
+        $result = $this->object->insertInto('unit', ['testa' => 40, 'testb' => 'jkl'])
+            ->values(['testa' => 40, 'testb' => 'jkl'])
+            ->exec();
+        $this->assertTrue($result);
+    }
+
+    public function testGetConnectionReturnsPdoInstance(): void
+    {
+        $connection = $this->object->getConnection();
+        $this->assertInstanceOf(PDO::class, $connection);
+    }
+
+    public function testFetchAllWithCallback(): void
+    {
+        $all = $this->object->select('*')->from('unit')->fetchAll(
+            static function ($row) {
+                $row->extra = 'callback';
+
+                return $row;
+            },
+        );
+        $this->assertCount(3, $all);
+        $this->assertEquals('callback', $all[0]->extra);
+    }
+
     protected function tearDown(): void
     {
         unset($this->object);
