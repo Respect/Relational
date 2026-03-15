@@ -148,7 +148,7 @@ class MapperTest extends \PHPUnit\Framework\TestCase {
 
     public function test_creating_with_invalid_args_should_throw_exception()
     {
-        $this->expectException('InvalidArgumentException');
+        $this->expectException(\TypeError::class);
         $mapper = new Mapper('foo');
     }
 
