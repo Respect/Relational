@@ -43,7 +43,7 @@ final class Mapper extends AbstractMapper implements
     c\Mixable,
     c\Typable
 {
-    protected Db $db;
+    protected readonly Db $db;
 
     public string $entityNamespace = '\\';
 

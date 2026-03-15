@@ -17,6 +17,23 @@ jobs:
       - uses: ramsey/composer-install@v3
       - run: composer phpunit
 
+  code-coverage:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          coverage: pcov
+      - uses: ramsey/composer-install@v3
+      - name: Generate coverage report
+        run: vendor/bin/phpunit --coverage-clover=coverage.xml
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+
   static-analysis:
     name: Static Analysis
     runs-on: ubuntu-latest
@@ -26,4 +43,5 @@ jobs:
         with:
           php-version: '8.5'
       - uses: ramsey/composer-install@v3
+      - run: composer phpcs
       - run: composer phpstan

@@ -1144,6 +1144,45 @@ class MapperTest extends TestCase
         );
     }
 
+    public function testFetchWithStringConditionUsingColumnExpression(): void
+    {
+        $mapper = $this->mapper;
+        $comments = $mapper->comment(['comment.id > 0'])->fetchAll();
+        $this->assertCount(2, $comments);
+    }
+
+    public function testPersistNewEntityWithNoAutoIncrementId(): void
+    {
+        $conn = $this->createStub(PDO::class);
+        $conn->method('getAttribute')
+            ->willReturn('sqlite');
+        $stmt = $this->createStub(PDOStatement::class);
+        $stmt->method('execute')
+            ->willReturn(true);
+        $conn->method('prepare')
+            ->willReturn($stmt);
+        $conn->method('lastInsertId')
+            ->willReturn('0');
+        $conn->method('beginTransaction')
+            ->willReturn(true);
+        $conn->method('commit')
+            ->willReturn(true);
+        $mapper = new Mapper($conn);
+        $obj = new stdClass();
+        $obj->id = null;
+        $obj->name = 'test';
+        $mapper->foo->persist($obj);
+        $mapper->flush();
+        $this->assertNull($obj->id);
+    }
+
+    public function testFetchReturnsDbInstance(): void
+    {
+        $db = new Db($this->conn);
+        $mapper = new Mapper($db);
+        $this->assertInstanceOf(Db::class, $mapper->getDb());
+    }
+
     private function query(string $sql): PDOStatement
     {
         $stmt = $this->conn->query($sql);

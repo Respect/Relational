@@ -507,4 +507,34 @@ class SqlTest extends TestCase
         );
         $this->assertEquals(array_values($data), $this->object->getParams());
     }
+
+    public function testEncloseWithStringWrapsInParentheses(): void
+    {
+        $result = Sql::enclose('SELECT 1');
+        $this->assertEquals('(SELECT 1) ', $result);
+    }
+
+    public function testEncloseWithEmptyStringReturnsEmpty(): void
+    {
+        $result = Sql::enclose('');
+        $this->assertEquals('', $result);
+    }
+
+    public function testEncloseWithSqlObjectWrapsQuery(): void
+    {
+        $sql = new Sql('SELECT 1');
+        $result = Sql::enclose($sql);
+        $this->assertInstanceOf(Sql::class, $result);
+        $this->assertEquals('(SELECT 1)', (string) $result);
+    }
+
+    public function testBuildOperationWithLeadingUnderscore(): void
+    {
+        $sql = (string) $this->object->select('*')->from('table')
+            ->where('column > 1')->_innerSelect('f1')->from('t2')->_();
+        $this->assertEquals(
+            'SELECT * FROM table WHERE column > 1 (INNER SELECT f1 FROM t2)',
+            $sql,
+        );
+    }
 }
