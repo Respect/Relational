@@ -30,6 +30,7 @@ class Sql
     /** @var array<int, mixed> */
     protected array $params = [];
 
+    /** @param array<int, mixed>|null $params */
     public function __construct(string $rawSql = '', array|null $params = null)
     {
         $this->setQuery($rawSql, $params);
@@ -52,6 +53,7 @@ class Sql
         return $this->params;
     }
 
+    /** @param array<int, mixed>|null $params */
     public function setQuery(string $rawSql, array|null $params = null): static
     {
         $this->query = $rawSql;
@@ -62,6 +64,7 @@ class Sql
         return $this;
     }
 
+    /** @param array<int, mixed>|null $params */
     public function appendQuery(mixed $sql, array|null $params = null): static
     {
         $this->query = trim($this->query) . ' ' . $sql;
