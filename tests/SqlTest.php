@@ -4,7 +4,12 @@ declare(strict_types=1);
 
 namespace Respect\Relational;
 
-class SqlTest extends \PHPUnit\Framework\TestCase
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\TestCase;
+
+#[CoversClass(Sql::class)]
+class SqlTest extends TestCase
 {
 
     protected $object;
@@ -14,7 +19,7 @@ class SqlTest extends \PHPUnit\Framework\TestCase
         $this->object = new Sql;
     }
 
-    public function testCastingObjectToStringReturnsQuery()
+    public function testCastingObjectToStringReturnsQuery(): void
     {
         $sql   = $this->object->select('*')->from('table');
         $query = "SELECT * FROM table";
@@ -23,55 +28,55 @@ class SqlTest extends \PHPUnit\Framework\TestCase
         $this->assertSame($query, "$sql");
     }
 
-    public function testSimpleSelect()
+    public function testSimpleSelect(): void
     {
         $sql = (string) $this->object->select('*')->from('table');
         $this->assertEquals("SELECT * FROM table", $sql);
     }
 
-    public function testSelectMagicGetDistinctFromHell()
+    public function testSelectMagicGetDistinctFromHell(): void
     {
         $sql = (string) $this->object->selectDistinct('*')->from('table');
         $this->assertEquals("SELECT DISTINCT * FROM table", $sql);
     }
 
-    public function testSelectColumns()
+    public function testSelectColumns(): void
     {
         $sql = (string) $this->object->select('column', 'other_column')->from('table');
         $this->assertEquals("SELECT column, other_column FROM table", $sql);
     }
 
-    public function testSelectTables()
+    public function testSelectTables(): void
     {
         $sql = (string) $this->object->select('*')->from('table', 'other_table');
         $this->assertEquals("SELECT * FROM table, other_table", $sql);
     }
 
-    public function testSelectInnerJoin()
+    public function testSelectInnerJoin(): void
     {
         $sql = (string) $this->object->select('*')->from('table')->innerJoin('other_table')->on('table.column = other_table.other_column');
         $this->assertEquals("SELECT * FROM table INNER JOIN other_table ON table.column = other_table.other_column", $sql);
     }
 
-    public function testSelectInnerJoinArr()
+    public function testSelectInnerJoinArr(): void
     {
         $sql = (string) $this->object->select('*')->from('table')->innerJoin('other_table')->on(array('table.column' => 'other_table.other_column'));
         $this->assertEquals("SELECT * FROM table INNER JOIN other_table ON table.column = other_table.other_column", $sql);
     }
 
-    public function testSelectWhere()
+    public function testSelectWhere(): void
     {
         $sql = (string) $this->object->select('*')->from('table')->where('column=123');
         $this->assertEquals("SELECT * FROM table WHERE column=123", $sql);
     }
 
-    public function testSelectWhereBetween()
+    public function testSelectWhereBetween(): void
     {
         $sql = (string) $this->object->select('*')->from('table')->where('column')->between(1, 2);
         $this->assertEquals("SELECT * FROM table WHERE column BETWEEN 1 AND 2", $sql);
     }
 
-    public function testSelectWhereIn()
+    public function testSelectWhereIn(): void
     {
         $data = array('key' => '123', 'other_key' => '456');
         $sql = (string) $this->object->select('*')->from('table')->where('column')->in($data);
@@ -79,7 +84,7 @@ class SqlTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals(array_values($data), $this->object->getParams());
     }
 
-    public function testSelectWhereArray()
+    public function testSelectWhereArray(): void
     {
         $data = array('column' => '123', 'other_column' => '456');
         $sql = (string) $this->object->select('*')->from('table')->where($data);
@@ -87,7 +92,7 @@ class SqlTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals(array_values($data), $this->object->getParams());
     }
 
-    public function testSelectWhereArrayEmptyAnd()
+    public function testSelectWhereArrayEmptyAnd(): void
     {
         $data = array('column' => '123', 'other_column' => '456');
         $sql = (string) $this->object->select('*')->from('table')->where($data)->and();
@@ -95,7 +100,7 @@ class SqlTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals(array_values($data), $this->object->getParams());
     }
 
-    public function testSelectWhereOr()
+    public function testSelectWhereOr(): void
     {
         $data = array('column' => '123');
         $data2 = array('other_column' => '456');
@@ -104,7 +109,7 @@ class SqlTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals(array_values(array_merge($data, $data2)), $this->object->getParams());
     }
 
-    public function testSelectWhereArrayQualifiedNames()
+    public function testSelectWhereArrayQualifiedNames(): void
     {
         $data = array('a.column' => '123', 'b.other_column' => '456');
         $sql = (string) $this->object->select('*')->from('table a', 'other_table b')->where($data);
@@ -112,13 +117,13 @@ class SqlTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals(array_values($data), $this->object->getParams());
     }
 
-    public function testSelectGroupBy()
+    public function testSelectGroupBy(): void
     {
         $sql = (string) $this->object->select('*')->from('table')->groupBy('column', 'other_column');
         $this->assertEquals("SELECT * FROM table GROUP BY column, other_column", $sql);
     }
 
-    public function testSelectGroupByHaving()
+    public function testSelectGroupByHaving(): void
     {
         $condition = array('other_column' => 456, 'yet_another_column' => 567);
         $sql = (string) $this->object->select('*')->from('table')->groupBy('column', 'other_column')->having($condition);
@@ -126,7 +131,7 @@ class SqlTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals(array_values($condition), $this->object->getParams());
     }
 
-    public function testSimpleUpdate()
+    public function testSimpleUpdate(): void
     {
         $data = array('column' => 123, 'column_2' => 234);
         $condition = array('other_column' => 456, 'yet_another_column' => 567);
@@ -135,7 +140,7 @@ class SqlTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals(array_values(array_merge($data, $condition)), $this->object->getParams());
     }
 
-    public function testSimpleInsert()
+    public function testSimpleInsert(): void
     {
         $data = array('column' => 123, 'column_2' => 234);
         $sql = (string) $this->object->insertInto('table', $data)->values($data);
@@ -143,7 +148,7 @@ class SqlTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals(array_values($data), $this->object->getParams());
     }
 
-    public function testSimpleDelete()
+    public function testSimpleDelete(): void
     {
         $condition = array('other_column' => 456, 'yet_another_column' => 567);
         $sql = (string) $this->object->deleteFrom('table')->where($condition);
@@ -151,7 +156,7 @@ class SqlTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals(array_values($condition), $this->object->getParams());
     }
 
-    public function testCreateTable()
+    public function testCreateTable(): void
     {
         $columns = array(
             'column INT',
@@ -162,7 +167,7 @@ class SqlTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals("CREATE TABLE table (column INT, other_column VARCHAR(255), yet_another_column TEXT)", $sql);
     }
 
-    public function testAlterTable()
+    public function testAlterTable(): void
     {
         $columns = array(
             'ADD column INT',
@@ -173,19 +178,19 @@ class SqlTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals("ALTER TABLE table ADD column INT, ADD other_column VARCHAR(255), ADD yet_another_column TEXT", $sql);
     }
 
-    public function testGrant()
+    public function testGrant(): void
     {
         $sql = (string) $this->object->grant('SELECT', 'UPDATE')->on('table')->to('user', 'other_user');
         $this->assertEquals("GRANT SELECT, UPDATE ON table TO user, other_user", $sql);
     }
 
-    public function testRevoke()
+    public function testRevoke(): void
     {
         $sql = (string) $this->object->revoke('SELECT', 'UPDATE')->on('table')->to('user', 'other_user');
         $this->assertEquals("REVOKE SELECT, UPDATE ON table TO user, other_user", $sql);
     }
 
-    public function testComplexFunctions()
+    public function testComplexFunctions(): void
     {
         $condition = array("AES_DECRYPT('pass', 'salt')" => 123);
         $sql = (string) $this->object->select('column', 'COUNT(column)', 'other_column')->from('table')->where($condition);
@@ -196,7 +201,7 @@ class SqlTest extends \PHPUnit\Framework\TestCase
     /**
      * @ticket 13
      */
-    public function testAggregateFunctions()
+    public function testAggregateFunctions(): void
     {
         $where = array('abc' => 10);
         $having = array('SUM(abc) >=' => '10', 'AVG(def) =' => 15);
@@ -205,14 +210,14 @@ class SqlTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals(array_values(array_merge($where, $having)), $this->object->getParams());
     }
 
-    public function testStaticBuilderCall()
+    public function testStaticBuilderCall(): void
     {
         $this->assertEquals(
             'ORDER BY updated_at DESC',
             (string) Sql::orderBy('updated_at')->desc()
         );
     }
-    public function testLastParameterWithoutParts()
+    public function testLastParameterWithoutParts(): void
     {
         $this->assertEquals(
             'ORDER BY updated_at DESC',
@@ -220,7 +225,7 @@ class SqlTest extends \PHPUnit\Framework\TestCase
         );
     }
 
-    public static function provider_sql_operators()
+    public static function provider_sql_operators(): array
     {
         // $operator, $expectedWhere
         return array(
@@ -238,9 +243,9 @@ class SqlTest extends \PHPUnit\Framework\TestCase
 
     /**
      * @ticket 13
-     * @dataProvider provider_sql_operators
      */
-    public function test_sql_operators($operator, $expected=null)
+    #[DataProvider('provider_sql_operators')]
+    public function test_sql_operators($operator, $expected=null): void
     {
         $expected = $expected ?: ' ?';
         $where    = array('id '.$operator => 10);
@@ -248,7 +253,7 @@ class SqlTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals('SELECT * FROM table WHERE id '.$operator.$expected, $sql);
     }
 
-    public function testSetQueryWithParams()
+    public function testSetQueryWithParams(): void
     {
         $query = 'SELECT * FROM table WHERE a > ? AND b = ?';
         $params = array(1, 'foo');
@@ -262,7 +267,7 @@ class SqlTest extends \PHPUnit\Framework\TestCase
         $this->assertEmpty($this->object->getParams());
     }
 
-    public function testSetQueryWithParamsViaConstructor()
+    public function testSetQueryWithParamsViaConstructor(): void
     {
         $query = 'SELECT * FROM table WHERE a > ? AND b = ?';
         $params = array(1, 'foo');
@@ -272,7 +277,7 @@ class SqlTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals($params, $sql->getParams());
     }
 
-    public function testAppendQueryWithParams()
+    public function testAppendQueryWithParams(): void
     {
         $query = 'SELECT * FROM table WHERE a > ? AND b = ?';
         $this->object->setQuery('SELECT * FROM table WHERE a > ? AND b = ?', array(1, 'foo'));
@@ -282,7 +287,7 @@ class SqlTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals(array(1, 'foo', 2), $this->object->getParams());
     }
 
-    public function testSelectWhereWithRepeatedReferences()
+    public function testSelectWhereWithRepeatedReferences(): void
     {
         $data1 = array('a >' => 1, 'b' => 'foo');
         $data2 = array('a >' => 4);
@@ -293,7 +298,7 @@ class SqlTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals(array(1, 'foo', 4, 'bar'), $this->object->getParams());
     }
 
-    public function testSelectWhereWithConditionsGroupedByUnderscores()
+    public function testSelectWhereWithConditionsGroupedByUnderscores(): void
     {
         $data = array(array('a' => 1), array('b' => 2), array('c' => 3), array('d' => 4));
 
@@ -312,7 +317,7 @@ class SqlTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals(array(1, 2, 3, 4), $this->object->getParams());
     }
 
-    public function testSelectWhereWithConditionsGroupedBySubqueries()
+    public function testSelectWhereWithConditionsGroupedBySubqueries(): void
     {
         $data = array(array('a' => 1), array('b' => 2), array('c' => 3), array('d' => 4));
 
@@ -331,7 +336,7 @@ class SqlTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals(array(1, 2, 3, 4), $this->object->getParams());
     }
 
-    public function testSelectWhereWithSubquery()
+    public function testSelectWhereWithSubquery(): void
     {
         $subquery = Sql::select('column1')->from('t2')->where(array('column2' => 2));
         $sql = (string) $this->object->select('column1')->from('t1')->where(array('column1' => $subquery, 'column2' => 'foo'));
@@ -340,7 +345,7 @@ class SqlTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals(array(2, 'foo'), $this->object->getParams());
     }
 
-    public function testSelectWhereWithNestedSubqueries()
+    public function testSelectWhereWithNestedSubqueries(): void
     {
         $subquery1 = Sql::select('column1')->from('t3')->where(array('column3' => 3));
         $subquery2 = Sql::select('column1')->from('t2')->where(array('column2' => $subquery1, 'column3' => 'foo'));
@@ -350,14 +355,14 @@ class SqlTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals(array(3, 'foo'), $this->object->getParams());
     }
 
-    public function testSelectUsingAliasedColumns()
+    public function testSelectUsingAliasedColumns(): void
     {
         $sql = (string) $this->object->select('f1', array('alias' => 'f2'), 'f3', array('another_alias' => 'f4'))->from('table');
         $this->assertEquals("SELECT f1, f2 AS alias, f3, f4 AS another_alias FROM table", $sql);
         $this->assertEmpty($this->object->getParams());
     }
 
-    public function testSelectWithColumnAsSubquery()
+    public function testSelectWithColumnAsSubquery(): void
     {
         $subquery = Sql::select('f1')->from('t2')->where(array('f2' => 2));
         $sql = (string) $this->object->select('f1', array('subalias' => $subquery))->from('t1')->where(array('f2' => 'foo'));
@@ -366,7 +371,7 @@ class SqlTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals(array(2, 'foo'), $this->object->getParams());
     }
 
-    public function testInsertWithValueFunctions()
+    public function testInsertWithValueFunctions(): void
     {
         $data = array('column' => 123, 'column_2' => 234);
         $sql = (string) $this->object->insertInto('table', $data, 'date')->values($data, 'NOW()');
@@ -374,7 +379,7 @@ class SqlTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals(array_values($data), $this->object->getParams());
     }
 
-    public function testInsertWithSelectSubquery()
+    public function testInsertWithSelectSubquery(): void
     {
         $data = array('f3' => 3, 'f4' => 4);
         $subquery = Sql::select('f1', 'f2')->from('t2')->where($data);

@@ -9,8 +9,12 @@ use PDO,
     Respect\Relational\Sql,
     Respect\Data\Styles\Plural,
     Respect\Relational\Mapper;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\TestCase;
 
-class PluralTest extends \PHPUnit\Framework\TestCase
+#[CoversClass(Plural::class)]
+class PluralTest extends TestCase
 {
     /**
      * @var Respect\Data\Styles\Plural
@@ -158,20 +162,16 @@ class PluralTest extends \PHPUnit\Framework\TestCase
         $this->style = null;
     }
 
-    /**
-     * @dataProvider tableEntityProvider
-     */
-    public function test_table_and_entities_methods($table, $entity)
+    #[DataProvider('tableEntityProvider')]
+    public function test_table_and_entities_methods($table, $entity): void
     {
         $this->assertEquals($entity, $this->style->styledName($table));
         $this->assertEquals($table, $this->style->realName($entity));
         $this->assertEquals('id', $this->style->identifier($table));
     }
 
-    /**
-     * @dataProvider columnsPropertyProvider
-     */
-    public function test_columns_and_properties_methods($column)
+    #[DataProvider('columnsPropertyProvider')]
+    public function test_columns_and_properties_methods($column): void
     {
         $this->assertEquals($column, $this->style->styledProperty($column));
         $this->assertEquals($column, $this->style->realProperty($column));
@@ -179,32 +179,28 @@ class PluralTest extends \PHPUnit\Framework\TestCase
         $this->assertNull($this->style->remoteFromIdentifier($column));
     }
 
-    /**
-     * @dataProvider manyToMantTableProvider
-     */
-    public function test_table_from_left_right_table($left, $right, $table)
+    #[DataProvider('manyToMantTableProvider')]
+    public function test_table_from_left_right_table($left, $right, $table): void
     {
         $this->assertEquals($table, $this->style->composed($left, $right));
     }
 
-    /**
-     * @dataProvider foreignProvider
-     */
-    public function test_foreign($table, $foreign)
+    #[DataProvider('foreignProvider')]
+    public function test_foreign($table, $foreign): void
     {
         $this->assertTrue($this->style->isRemoteIdentifier($foreign));
         $this->assertEquals($table, $this->style->remoteFromIdentifier($foreign));
         $this->assertEquals($foreign, $this->style->remoteIdentifier($table));
     }
 
-    public function test_fetching_entity_typed()
+    public function test_fetching_entity_typed(): void
     {
         $mapper = $this->mapper;
         $comment = $mapper->comments[8]->fetch();
         $this->assertInstanceOf(__NAMESPACE__ . '\Comment', $comment);
     }
 
-    public function test_fetching_all_entity_typed()
+    public function test_fetching_all_entity_typed(): void
     {
         $mapper = $this->mapper;
         $comment = $mapper->comments->fetchAll();
@@ -215,7 +211,7 @@ class PluralTest extends \PHPUnit\Framework\TestCase
         $this->assertInstanceOf(__NAMESPACE__ . '\Category', $categories->category_id);
     }
 
-    public function test_fetching_all_entity_typed_nested()
+    public function test_fetching_all_entity_typed_nested(): void
     {
         $mapper = $this->mapper;
         $comment = $mapper->comments->posts->authors->fetchAll();
@@ -224,7 +220,7 @@ class PluralTest extends \PHPUnit\Framework\TestCase
         $this->assertInstanceOf(__NAMESPACE__ . '\Author',  $comment[0]->post_id->author_id);
     }
 
-    public function test_persisting_entity_typed()
+    public function test_persisting_entity_typed(): void
     {
         $mapper = $this->mapper;
         $comment = $mapper->comments[8]->fetch();
@@ -236,7 +232,7 @@ class PluralTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals('HeyHey', $result);
     }
 
-    public function test_persisting_new_entity_typed()
+    public function test_persisting_new_entity_typed(): void
     {
         $mapper = $this->mapper;
         $comment = new Comment();
@@ -247,7 +243,7 @@ class PluralTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals('HeyHey', $result);
     }
 
-    public static function tableEntityProvider()
+    public static function tableEntityProvider(): array
     {
         return array(
             array('posts',              'Post'),
@@ -258,7 +254,7 @@ class PluralTest extends \PHPUnit\Framework\TestCase
         );
     }
 
-    public static function manyToMantTableProvider()
+    public static function manyToMantTableProvider(): array
     {
         return array(
             array('post',   'category', 'posts_categories'),
@@ -267,7 +263,7 @@ class PluralTest extends \PHPUnit\Framework\TestCase
         );
     }
 
-    public static function columnsPropertyProvider()
+    public static function columnsPropertyProvider(): array
     {
         return array(
             array('id'),
@@ -278,7 +274,7 @@ class PluralTest extends \PHPUnit\Framework\TestCase
         );
     }
 
-    public static function foreignProvider()
+    public static function foreignProvider(): array
     {
         return array(
             array('posts',      'post_id'),
