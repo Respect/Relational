@@ -4,162 +4,156 @@ declare(strict_types=1);
 
 namespace Respect\Data\Styles\Plural;
 
-use PDO,
-    Respect\Relational\Db,
-    Respect\Relational\Sql,
-    Respect\Data\Styles\Plural,
-    Respect\Relational\Mapper;
+use PDO;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use Respect\Data\Styles\Plural;
+use Respect\Relational\Db;
+use Respect\Relational\Mapper;
+use Respect\Relational\Sql;
 
 #[CoversClass(Plural::class)]
 class PluralTest extends TestCase
 {
-    /**
-     * @var Respect\Data\Styles\Plural
-     */
-    private $style;
+    private Plural $style;
 
-    /**
-     * @var Respect\Relational\Mapper
-     */
-    private $mapper;
+    private Mapper $mapper;
 
-    /**
-     * @var PDO
-     */
-    private $conn;
+    private PDO $conn;
 
     private $posts;
+
     private $authors;
+
     private $comments;
+
     private $categories;
+
     private $postsCategories;
 
     protected function setUp(): void
     {
-
         $conn = new PDO('sqlite::memory:');
         $db = new Db($conn);
         $conn->exec(
             (string) Sql::createTable(
                 'posts',
-                array(
+                [
                     'id INTEGER PRIMARY KEY',
                     'title VARCHAR(255)',
                     'text TEXT',
                     'author_id INTEGER',
-                )
-            )
+                ],
+            ),
         );
         $conn->exec(
             (string) Sql::createTable(
                 'authors',
-                array(
+                [
                     'id INTEGER PRIMARY KEY',
-                    'name VARCHAR(255)'
-                )
-            )
+                    'name VARCHAR(255)',
+                ],
+            ),
         );
         $conn->exec(
             (string) Sql::createTable(
                 'comments',
-                array(
+                [
                     'id INTEGER PRIMARY KEY',
                     'post_id INTEGER',
                     'text TEXT',
-                )
-            )
+                ],
+            ),
         );
         $conn->exec(
             (string) Sql::createTable(
                 'categories',
-                array(
+                [
                     'id INTEGER PRIMARY KEY',
                     'name VARCHAR(255)',
-                )
-            )
+                ],
+            ),
         );
         $conn->exec(
             (string) Sql::createTable(
                 'posts_categories',
-                array(
+                [
                     'id INTEGER PRIMARY KEY',
                     'post_id INTEGER',
-                    'category_id INTEGER'
-                )
-            )
+                    'category_id INTEGER',
+                ],
+            ),
         );
-        $this->posts = array(
-            (object) array(
+        $this->posts = [
+            (object) [
                 'id' => 5,
                 'title' => 'Post Title',
                 'text' => 'Post Text',
-                'author_id' => 1
-            )
-        );
-        $this->authors = array(
-            (object) array(
+                'author_id' => 1,
+            ],
+        ];
+        $this->authors = [
+            (object) [
                 'id' => 1,
-                'name' => 'Author 1'
-            )
-        );
-        $this->comments = array(
-            (object) array(
+                'name' => 'Author 1',
+            ],
+        ];
+        $this->comments = [
+            (object) [
                 'id' => 7,
                 'post_id' => 5,
-                'text' => 'Comment Text'
-            ),
-            (object) array(
+                'text' => 'Comment Text',
+            ],
+            (object) [
                 'id' => 8,
                 'post_id' => 4,
-                'text' => 'Comment Text 2'
-            )
-        );
-        $this->categories = array(
-            (object) array(
+                'text' => 'Comment Text 2',
+            ],
+        ];
+        $this->categories = [
+            (object) [
                 'id' => 2,
-                'name' => 'Sample Category'
-            ),
-            (object) array(
+                'name' => 'Sample Category',
+            ],
+            (object) [
                 'id' => 3,
-                'name' => 'NONON'
-            )
-        );
-        $this->postsCategories = array(
-            (object) array(
+                'name' => 'NONON',
+            ],
+        ];
+        $this->postsCategories = [
+            (object) [
                 'id' => 66,
                 'post_id' => 5,
-                'category_id' => 2
-            )
-        );
+                'category_id' => 2,
+            ],
+        ];
 
-        foreach ($this->authors as $author)
+        foreach ($this->authors as $author) {
             $db->insertInto('authors', (array) $author)->values((array) $author)->exec();
+        }
 
-        foreach ($this->posts as $post)
+        foreach ($this->posts as $post) {
             $db->insertInto('posts', (array) $post)->values((array) $post)->exec();
+        }
 
-        foreach ($this->comments as $comment)
+        foreach ($this->comments as $comment) {
             $db->insertInto('comments', (array) $comment)->values((array) $comment)->exec();
+        }
 
-        foreach ($this->categories as $category)
+        foreach ($this->categories as $category) {
             $db->insertInto('categories', (array) $category)->values((array) $category)->exec();
+        }
 
-        foreach ($this->postsCategories as $postCategory)
+        foreach ($this->postsCategories as $postCategory) {
             $db->insertInto('posts_categories', (array) $postCategory)->values((array) $postCategory)->exec();
+        }
 
         $this->conn     = $conn;
         $this->style    = new Plural();
         $this->mapper   = new Mapper($conn);
         $this->mapper->setStyle($this->style);
         $this->mapper->entityNamespace = __NAMESPACE__ . '\\';
-    }
-
-    protected function tearDown(): void
-    {
-        $this->style = null;
     }
 
     #[DataProvider('tableEntityProvider')]
@@ -216,8 +210,8 @@ class PluralTest extends TestCase
         $mapper = $this->mapper;
         $comment = $mapper->comments->posts->authors->fetchAll();
         $this->assertInstanceOf(__NAMESPACE__ . '\Comment', $comment[0]);
-        $this->assertInstanceOf(__NAMESPACE__ . '\Post',    $comment[0]->post_id);
-        $this->assertInstanceOf(__NAMESPACE__ . '\Author',  $comment[0]->post_id->author_id);
+        $this->assertInstanceOf(__NAMESPACE__ . '\Post', $comment[0]->post_id);
+        $this->assertInstanceOf(__NAMESPACE__ . '\Author', $comment[0]->post_id->author_id);
     }
 
     public function test_persisting_entity_typed(): void
@@ -245,45 +239,44 @@ class PluralTest extends TestCase
 
     public static function tableEntityProvider(): array
     {
-        return array(
-            array('posts',              'Post'),
-            array('comments',           'Comment'),
-            array('categories',         'Category'),
-            array('posts_categories',   'PostCategory'),
-            array('posts_tags',         'PostTag'),
-        );
+        return [
+            ['posts',              'Post'],
+            ['comments',           'Comment'],
+            ['categories',         'Category'],
+            ['posts_categories',   'PostCategory'],
+            ['posts_tags',         'PostTag'],
+        ];
     }
 
     public static function manyToMantTableProvider(): array
     {
-        return array(
-            array('post',   'category', 'posts_categories'),
-            array('user',   'group',    'users_groups'),
-            array('group',  'profile',  'groups_profiles'),
-        );
+        return [
+            ['post',   'category', 'posts_categories'],
+            ['user',   'group',    'users_groups'],
+            ['group',  'profile',  'groups_profiles'],
+        ];
     }
 
     public static function columnsPropertyProvider(): array
     {
-        return array(
-            array('id'),
-            array('text'),
-            array('name'),
-            array('content'),
-            array('created'),
-        );
+        return [
+            ['id'],
+            ['text'],
+            ['name'],
+            ['content'],
+            ['created'],
+        ];
     }
 
     public static function foreignProvider(): array
     {
-        return array(
-            array('posts',      'post_id'),
-            array('authors',    'author_id'),
-            array('tags',       'tag_id'),
-            array('users',      'user_id'),
-        );
+        return [
+            ['posts',      'post_id'],
+            ['authors',    'author_id'],
+            ['tags',       'tag_id'],
+            ['users',      'user_id'],
+        ];
     }
-
 }
 
 class Post
