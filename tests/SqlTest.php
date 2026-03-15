@@ -14,7 +14,7 @@ use function array_values;
 #[CoversClass(Sql::class)]
 class SqlTest extends TestCase
 {
-    protected $object;
+    protected Sql $object;
 
     protected function setUp(): void
     {
@@ -56,14 +56,24 @@ class SqlTest extends TestCase
 
     public function testSelectInnerJoin(): void
     {
-        $sql = (string) $this->object->select('*')->from('table')->innerJoin('other_table')->on('table.column = other_table.other_column');
-        $this->assertEquals('SELECT * FROM table INNER JOIN other_table ON table.column = other_table.other_column', $sql);
+        $sql = (string) $this->object->select('*')->from('table')
+            ->innerJoin('other_table')
+            ->on('table.column = other_table.other_column');
+        $this->assertEquals(
+            'SELECT * FROM table INNER JOIN other_table ON table.column = other_table.other_column',
+            $sql,
+        );
     }
 
     public function testSelectInnerJoinArr(): void
     {
-        $sql = (string) $this->object->select('*')->from('table')->innerJoin('other_table')->on(['table.column' => 'other_table.other_column']);
-        $this->assertEquals('SELECT * FROM table INNER JOIN other_table ON table.column = other_table.other_column', $sql);
+        $sql = (string) $this->object->select('*')->from('table')
+            ->innerJoin('other_table')
+            ->on(['table.column' => 'other_table.other_column']);
+        $this->assertEquals(
+            'SELECT * FROM table INNER JOIN other_table ON table.column = other_table.other_column',
+            $sql,
+        );
     }
 
     public function testSelectWhere(): void
@@ -90,7 +100,10 @@ class SqlTest extends TestCase
     {
         $data = ['column' => '123', 'other_column' => '456'];
         $sql = (string) $this->object->select('*')->from('table')->where($data);
-        $this->assertEquals('SELECT * FROM table WHERE column = ? AND other_column = ?', $sql);
+        $this->assertEquals(
+            'SELECT * FROM table WHERE column = ? AND other_column = ?',
+            $sql,
+        );
         $this->assertEquals(array_values($data), $this->object->getParams());
     }
 
@@ -98,7 +111,10 @@ class SqlTest extends TestCase
     {
         $data = ['column' => '123', 'other_column' => '456'];
         $sql = (string) $this->object->select('*')->from('table')->where($data)->and();
-        $this->assertEquals('SELECT * FROM table WHERE column = ? AND other_column = ?', $sql);
+        $this->assertEquals(
+            'SELECT * FROM table WHERE column = ? AND other_column = ?',
+            $sql,
+        );
         $this->assertEquals(array_values($data), $this->object->getParams());
     }
 
@@ -107,15 +123,24 @@ class SqlTest extends TestCase
         $data = ['column' => '123'];
         $data2 = ['other_column' => '456'];
         $sql = (string) $this->object->select('*')->from('table')->where($data)->or($data2);
-        $this->assertEquals('SELECT * FROM table WHERE column = ? OR other_column = ?', $sql);
-        $this->assertEquals(array_values(array_merge($data, $data2)), $this->object->getParams());
+        $this->assertEquals(
+            'SELECT * FROM table WHERE column = ? OR other_column = ?',
+            $sql,
+        );
+        $this->assertEquals(
+            array_values(array_merge($data, $data2)),
+            $this->object->getParams(),
+        );
     }
 
     public function testSelectWhereArrayQualifiedNames(): void
     {
         $data = ['a.column' => '123', 'b.other_column' => '456'];
         $sql = (string) $this->object->select('*')->from('table a', 'other_table b')->where($data);
-        $this->assertEquals('SELECT * FROM table a, other_table b WHERE a.column = ? AND b.other_column = ?', $sql);
+        $this->assertEquals(
+            'SELECT * FROM table a, other_table b WHERE a.column = ? AND b.other_column = ?',
+            $sql,
+        );
         $this->assertEquals(array_values($data), $this->object->getParams());
     }
 
@@ -128,8 +153,13 @@ class SqlTest extends TestCase
     public function testSelectGroupByHaving(): void
     {
         $condition = ['other_column' => 456, 'yet_another_column' => 567];
-        $sql = (string) $this->object->select('*')->from('table')->groupBy('column', 'other_column')->having($condition);
-        $this->assertEquals('SELECT * FROM table GROUP BY column, other_column HAVING other_column = ? AND yet_another_column = ?', $sql);
+        $sql = (string) $this->object->select('*')->from('table')
+            ->groupBy('column', 'other_column')->having($condition);
+        $this->assertEquals(
+            'SELECT * FROM table GROUP BY column, other_column'
+            . ' HAVING other_column = ? AND yet_another_column = ?',
+            $sql,
+        );
         $this->assertEquals(array_values($condition), $this->object->getParams());
     }
 
@@ -138,8 +168,15 @@ class SqlTest extends TestCase
         $data = ['column' => 123, 'column_2' => 234];
         $condition = ['other_column' => 456, 'yet_another_column' => 567];
         $sql = (string) $this->object->update('table')->set($data)->where($condition);
-        $this->assertEquals('UPDATE table SET column = ?, column_2 = ? WHERE other_column = ? AND yet_another_column = ?', $sql);
-        $this->assertEquals(array_values(array_merge($data, $condition)), $this->object->getParams());
+        $this->assertEquals(
+            'UPDATE table SET column = ?, column_2 = ?'
+            . ' WHERE other_column = ? AND yet_another_column = ?',
+            $sql,
+        );
+        $this->assertEquals(
+            array_values(array_merge($data, $condition)),
+            $this->object->getParams(),
+        );
     }
 
     public function testSimpleInsert(): void
@@ -154,7 +191,10 @@ class SqlTest extends TestCase
     {
         $condition = ['other_column' => 456, 'yet_another_column' => 567];
         $sql = (string) $this->object->deleteFrom('table')->where($condition);
-        $this->assertEquals('DELETE FROM table WHERE other_column = ? AND yet_another_column = ?', $sql);
+        $this->assertEquals(
+            'DELETE FROM table WHERE other_column = ? AND yet_another_column = ?',
+            $sql,
+        );
         $this->assertEquals(array_values($condition), $this->object->getParams());
     }
 
@@ -166,7 +206,10 @@ class SqlTest extends TestCase
             'yet_another_column TEXT',
         ];
         $sql = (string) $this->object->createTable('table', $columns);
-        $this->assertEquals('CREATE TABLE table (column INT, other_column VARCHAR(255), yet_another_column TEXT)', $sql);
+        $this->assertEquals(
+            'CREATE TABLE table (column INT, other_column VARCHAR(255), yet_another_column TEXT)',
+            $sql,
+        );
     }
 
     public function testAlterTable(): void
@@ -177,7 +220,10 @@ class SqlTest extends TestCase
             'ADD yet_another_column TEXT',
         ];
         $sql = (string) $this->object->alterTable('table', $columns);
-        $this->assertEquals('ALTER TABLE table ADD column INT, ADD other_column VARCHAR(255), ADD yet_another_column TEXT', $sql);
+        $this->assertEquals(
+            'ALTER TABLE table ADD column INT, ADD other_column VARCHAR(255), ADD yet_another_column TEXT',
+            $sql,
+        );
     }
 
     public function testGrant(): void
@@ -195,8 +241,12 @@ class SqlTest extends TestCase
     public function testComplexFunctions(): void
     {
         $condition = ["AES_DECRYPT('pass', 'salt')" => 123];
-        $sql = (string) $this->object->select('column', 'COUNT(column)', 'other_column')->from('table')->where($condition);
-        $this->assertEquals("SELECT column, COUNT(column), other_column FROM table WHERE AES_DECRYPT('pass', 'salt') = ?", $sql);
+        $sql = (string) $this->object->select('column', 'COUNT(column)', 'other_column')
+            ->from('table')->where($condition);
+        $this->assertEquals(
+            "SELECT column, COUNT(column), other_column FROM table WHERE AES_DECRYPT('pass', 'salt') = ?",
+            $sql,
+        );
         $this->assertEquals(array_values($condition), $this->object->getParams());
     }
 
@@ -205,9 +255,17 @@ class SqlTest extends TestCase
     {
         $where = ['abc' => 10];
         $having = ['SUM(abc) >=' => '10', 'AVG(def) =' => 15];
-        $sql = (string) $this->object->select('column', 'MAX(def)')->from('table')->where($where)->groupBy('abc', 'def')->having($having);
-        $this->assertEquals('SELECT column, MAX(def) FROM table WHERE abc = ? GROUP BY abc, def HAVING SUM(abc) >= ? AND AVG(def) = ?', $sql);
-        $this->assertEquals(array_values(array_merge($where, $having)), $this->object->getParams());
+        $sql = (string) $this->object->select('column', 'MAX(def)')->from('table')
+            ->where($where)->groupBy('abc', 'def')->having($having);
+        $this->assertEquals(
+            'SELECT column, MAX(def) FROM table WHERE abc = ?'
+            . ' GROUP BY abc, def HAVING SUM(abc) >= ? AND AVG(def) = ?',
+            $sql,
+        );
+        $this->assertEquals(
+            array_values(array_merge($where, $having)),
+            $this->object->getParams(),
+        );
     }
 
     public function testStaticBuilderCall(): void
@@ -226,7 +284,8 @@ class SqlTest extends TestCase
         );
     }
 
-    public static function provider_sql_operators(): array
+    /** @return array<int, array<int, string>> */
+    public static function providerSqlOperators(): array
     {
         // operator, expectedWhere
         return [
@@ -243,8 +302,8 @@ class SqlTest extends TestCase
     }
 
     /** @ticket 13 */
-    #[DataProvider('provider_sql_operators')]
-    public function test_sql_operators($operator, $expected = null): void
+    #[DataProvider('providerSqlOperators')]
+    public function testSqlOperators(string $operator, string|null $expected = null): void
     {
         $expected = $expected ?: ' ?';
         $where    = ['id ' . $operator => 10];
@@ -279,7 +338,10 @@ class SqlTest extends TestCase
     public function testAppendQueryWithParams(): void
     {
         $query = 'SELECT * FROM table WHERE a > ? AND b = ?';
-        $this->object->setQuery('SELECT * FROM table WHERE a > ? AND b = ?', [1, 'foo']);
+        $this->object->setQuery(
+            'SELECT * FROM table WHERE a > ? AND b = ?',
+            [1, 'foo'],
+        );
         $sql = (string) $this->object->appendQuery('AND c = ?', [2]);
 
         $this->assertEquals($query . ' AND c = ?', $sql);
@@ -292,8 +354,12 @@ class SqlTest extends TestCase
         $data2 = ['a >' => 4];
         $data3 = ['b' => 'bar'];
 
-        $sql = (string) $this->object->select('*')->from('table')->where($data1)->or($data2)->and($data3);
-        $this->assertEquals('SELECT * FROM table WHERE a > ? AND b = ? OR a > ? AND b = ?', $sql);
+        $sql = (string) $this->object->select('*')->from('table')
+            ->where($data1)->or($data2)->and($data3);
+        $this->assertEquals(
+            'SELECT * FROM table WHERE a > ? AND b = ? OR a > ? AND b = ?',
+            $sql,
+        );
         $this->assertEquals([1, 'foo', 4, 'bar'], $this->object->getParams());
     }
 
@@ -301,18 +367,31 @@ class SqlTest extends TestCase
     {
         $data = [['a' => 1], ['b' => 2], ['c' => 3], ['d' => 4]];
 
-        $sql = (string) $this->object->select('*')->from('table')->where($data[0])->and_($data[1])->or($data[2])->_();
-        $this->assertEquals('SELECT * FROM table WHERE a = ? AND (b = ? OR c = ?)', $sql);
+        $sql = (string) $this->object->select('*')->from('table')
+            ->where($data[0])->and_($data[1])->or($data[2])->_();
+        $this->assertEquals(
+            'SELECT * FROM table WHERE a = ? AND (b = ? OR c = ?)',
+            $sql,
+        );
         $this->assertEquals([1, 2, 3], $this->object->getParams());
         $this->object->setQuery('', []);
 
-        $sql = (string) $this->object->select('*')->from('table')->where_($data[0])->or($data[1])->_()->and_($data[2])->or($data[3])->_();
-        $this->assertEquals('SELECT * FROM table WHERE (a = ? OR b = ?) AND (c = ? OR d = ?)', $sql);
+        $sql = (string) $this->object->select('*')->from('table')
+            ->where_($data[0])->or($data[1])->_()
+            ->and_($data[2])->or($data[3])->_();
+        $this->assertEquals(
+            'SELECT * FROM table WHERE (a = ? OR b = ?) AND (c = ? OR d = ?)',
+            $sql,
+        );
         $this->assertEquals([1, 2, 3, 4], $this->object->getParams());
         $this->object->setQuery('', []);
 
-        $sql = (string) $this->object->select('*')->from('table')->where($data[0])->and_($data[1])->or_($data[2])->and($data[3])->_()->_();
-        $this->assertEquals('SELECT * FROM table WHERE a = ? AND (b = ? OR (c = ? AND d = ?))', $sql);
+        $sql = (string) $this->object->select('*')->from('table')
+            ->where($data[0])->and_($data[1])->or_($data[2])->and($data[3])->_()->_();
+        $this->assertEquals(
+            'SELECT * FROM table WHERE a = ? AND (b = ? OR (c = ? AND d = ?))',
+            $sql,
+        );
         $this->assertEquals([1, 2, 3, 4], $this->object->getParams());
     }
 
@@ -320,53 +399,88 @@ class SqlTest extends TestCase
     {
         $data = [['a' => 1], ['b' => 2], ['c' => 3], ['d' => 4]];
 
-        $sql = (string) $this->object->select('*')->from('table')->where($data[0], Sql::cond($data[1])->or($data[2]));
-        $this->assertEquals('SELECT * FROM table WHERE a = ? AND (b = ? OR c = ?)', $sql);
+        $sql = (string) $this->object->select('*')->from('table')
+            ->where($data[0], Sql::cond($data[1])->or($data[2]));
+        $this->assertEquals(
+            'SELECT * FROM table WHERE a = ? AND (b = ? OR c = ?)',
+            $sql,
+        );
         $this->assertEquals([1, 2, 3], $this->object->getParams());
         $this->object->setQuery('', []);
 
-        $sql = (string) $this->object->select('*')->from('table')->where(Sql::cond($data[0])->or($data[1]), Sql::cond($data[2])->or($data[3]));
-        $this->assertEquals('SELECT * FROM table WHERE (a = ? OR b = ?) AND (c = ? OR d = ?)', $sql);
+        $sql = (string) $this->object->select('*')->from('table')
+            ->where(Sql::cond($data[0])->or($data[1]), Sql::cond($data[2])->or($data[3]));
+        $this->assertEquals(
+            'SELECT * FROM table WHERE (a = ? OR b = ?) AND (c = ? OR d = ?)',
+            $sql,
+        );
         $this->assertEquals([1, 2, 3, 4], $this->object->getParams());
         $this->object->setQuery('', []);
 
-        $sql = (string) $this->object->select('*')->from('table')->where($data[0], Sql::cond($data[1])->or(Sql::cond($data[2], $data[3])));
-        $this->assertEquals('SELECT * FROM table WHERE a = ? AND (b = ? OR (c = ? AND d = ?))', $sql);
+        $sql = (string) $this->object->select('*')->from('table')
+            ->where($data[0], Sql::cond($data[1])->or(Sql::cond($data[2], $data[3])));
+        $this->assertEquals(
+            'SELECT * FROM table WHERE a = ? AND (b = ? OR (c = ? AND d = ?))',
+            $sql,
+        );
         $this->assertEquals([1, 2, 3, 4], $this->object->getParams());
     }
 
     public function testSelectWhereWithSubquery(): void
     {
         $subquery = Sql::select('column1')->from('t2')->where(['column2' => 2]);
-        $sql = (string) $this->object->select('column1')->from('t1')->where(['column1' => $subquery, 'column2' => 'foo']);
+        $sql = (string) $this->object->select('column1')->from('t1')
+            ->where(['column1' => $subquery, 'column2' => 'foo']);
 
-        $this->assertEquals('SELECT column1 FROM t1 WHERE column1 = (SELECT column1 FROM t2 WHERE column2 = ?) AND column2 = ?', $sql);
+        $this->assertEquals(
+            'SELECT column1 FROM t1 WHERE column1 = (SELECT column1 FROM t2 WHERE column2 = ?)'
+            . ' AND column2 = ?',
+            $sql,
+        );
         $this->assertEquals([2, 'foo'], $this->object->getParams());
     }
 
     public function testSelectWhereWithNestedSubqueries(): void
     {
         $subquery1 = Sql::select('column1')->from('t3')->where(['column3' => 3]);
-        $subquery2 = Sql::select('column1')->from('t2')->where(['column2' => $subquery1, 'column3' => 'foo']);
-        $sql = (string) $this->object->select('column1')->from('t1')->where(['column1' => $subquery2]);
+        $subquery2 = Sql::select('column1')->from('t2')
+            ->where(['column2' => $subquery1, 'column3' => 'foo']);
+        $sql = (string) $this->object->select('column1')->from('t1')
+            ->where(['column1' => $subquery2]);
 
-        $this->assertEquals('SELECT column1 FROM t1 WHERE column1 = (SELECT column1 FROM t2 WHERE column2 = (SELECT column1 FROM t3 WHERE column3 = ?) AND column3 = ?)', $sql);
+        $this->assertEquals(
+            'SELECT column1 FROM t1 WHERE column1 = (SELECT column1 FROM t2'
+            . ' WHERE column2 = (SELECT column1 FROM t3 WHERE column3 = ?) AND column3 = ?)',
+            $sql,
+        );
         $this->assertEquals([3, 'foo'], $this->object->getParams());
     }
 
     public function testSelectUsingAliasedColumns(): void
     {
-        $sql = (string) $this->object->select('f1', ['alias' => 'f2'], 'f3', ['another_alias' => 'f4'])->from('table');
-        $this->assertEquals('SELECT f1, f2 AS alias, f3, f4 AS another_alias FROM table', $sql);
+        $sql = (string) $this->object->select(
+            'f1',
+            ['alias' => 'f2'],
+            'f3',
+            ['another_alias' => 'f4'],
+        )->from('table');
+        $this->assertEquals(
+            'SELECT f1, f2 AS alias, f3, f4 AS another_alias FROM table',
+            $sql,
+        );
         $this->assertEmpty($this->object->getParams());
     }
 
     public function testSelectWithColumnAsSubquery(): void
     {
         $subquery = Sql::select('f1')->from('t2')->where(['f2' => 2]);
-        $sql = (string) $this->object->select('f1', ['subalias' => $subquery])->from('t1')->where(['f2' => 'foo']);
+        $sql = (string) $this->object->select('f1', ['subalias' => $subquery])
+            ->from('t1')->where(['f2' => 'foo']);
 
-        $this->assertEquals('SELECT f1, (SELECT f1 FROM t2 WHERE f2 = ?) AS subalias FROM t1 WHERE f2 = ?', $sql);
+        $this->assertEquals(
+            'SELECT f1, (SELECT f1 FROM t2 WHERE f2 = ?) AS subalias FROM t1 WHERE f2 = ?',
+            $sql,
+        );
         $this->assertEquals([2, 'foo'], $this->object->getParams());
     }
 
@@ -374,7 +488,10 @@ class SqlTest extends TestCase
     {
         $data = ['column' => 123, 'column_2' => 234];
         $sql = (string) $this->object->insertInto('table', $data, 'date')->values($data, 'NOW()');
-        $this->assertEquals('INSERT INTO table (column, column_2, date) VALUES (?, ?, NOW())', $sql);
+        $this->assertEquals(
+            'INSERT INTO table (column, column_2, date) VALUES (?, ?, NOW())',
+            $sql,
+        );
         $this->assertEquals(array_values($data), $this->object->getParams());
     }
 
@@ -384,7 +501,10 @@ class SqlTest extends TestCase
         $subquery = Sql::select('f1', 'f2')->from('t2')->where($data);
         $sql = (string) $this->object->insertInto('t1', ['f1', 'f2'])->appendQuery($subquery);
 
-        $this->assertEquals('INSERT INTO t1 (f1, f2) SELECT f1, f2 FROM t2 WHERE f3 = ? AND f4 = ?', $sql);
+        $this->assertEquals(
+            'INSERT INTO t1 (f1, f2) SELECT f1, f2 FROM t2 WHERE f3 = ? AND f4 = ?',
+            $sql,
+        );
         $this->assertEquals(array_values($data), $this->object->getParams());
     }
 }
