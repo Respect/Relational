@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Respect\Relational;
 
 class Sql
@@ -224,7 +226,7 @@ class Sql
         array_walk_recursive($parts, function ($value, $key) use (&$newParts, &$params, &$raw) {
                 if ($value instanceof Sql) {
                     $params = array_merge($params, $value->getParams());
-                    if (0 !== stripos($value, '(')) {
+                    if (0 !== stripos((string) $value, '(')) {
                         $value = Sql::enclose($value);
                     }
                     $newParts[$key] = $value;

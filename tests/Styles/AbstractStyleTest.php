@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Respect\Data\Styles;
 
 class AbstractStyleTest extends \PHPUnit\Framework\TestCase
