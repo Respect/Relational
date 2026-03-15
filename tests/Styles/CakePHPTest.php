@@ -22,15 +22,20 @@ class CakePHPTest extends TestCase
 
     private PDO $conn;
 
-    private $posts;
+    /** @var list<object> */
+    private array $posts;
 
-    private $authors;
+    /** @var list<object> */
+    private array $authors;
 
-    private $comments;
+    /** @var list<object> */
+    private array $comments;
 
-    private $categories;
+    /** @var list<object> */
+    private array $categories;
 
-    private $postsCategories;
+    /** @var list<object> */
+    private array $postsCategories;
 
     protected function setUp(): void
     {
@@ -162,7 +167,7 @@ class CakePHPTest extends TestCase
     }
 
     #[DataProvider('tableEntityProvider')]
-    public function test_table_and_entities_methods($table, $entity): void
+    public function testTableAndEntitiesMethods(string $table, string $entity): void
     {
         $this->assertEquals($entity, $this->style->styledName($table));
         $this->assertEquals($table, $this->style->realName($entity));
@@ -170,7 +175,7 @@ class CakePHPTest extends TestCase
     }
 
     #[DataProvider('columnsPropertyProvider')]
-    public function test_columns_and_properties_methods($column): void
+    public function testColumnsAndPropertiesMethods(string $column): void
     {
         $this->assertEquals($column, $this->style->styledProperty($column));
         $this->assertEquals($column, $this->style->realProperty($column));
@@ -179,27 +184,27 @@ class CakePHPTest extends TestCase
     }
 
     #[DataProvider('manyToMantTableProvider')]
-    public function test_table_from_left_right_table($left, $right, $table): void
+    public function testTableFromLeftRightTable(string $left, string $right, string $table): void
     {
         $this->assertEquals($table, $this->style->composed($left, $right));
     }
 
     #[DataProvider('foreignProvider')]
-    public function test_foreign($table, $foreign): void
+    public function testForeign(string $table, string $foreign): void
     {
         $this->assertTrue($this->style->isRemoteIdentifier($foreign));
         $this->assertEquals($table, $this->style->remoteFromIdentifier($foreign));
         $this->assertEquals($foreign, $this->style->remoteIdentifier($table));
     }
 
-    public function test_fetching_entity_typed(): void
+    public function testFetchingEntityTyped(): void
     {
         $mapper = $this->mapper;
         $comment = $mapper->comments[8]->fetch();
         $this->assertInstanceOf(__NAMESPACE__ . '\Comment', $comment);
     }
 
-    public function test_fetching_all_entity_typed(): void
+    public function testFetchingAllEntityTyped(): void
     {
         $mapper = $this->mapper;
         $comment = $mapper->comments->fetchAll();
@@ -210,16 +215,19 @@ class CakePHPTest extends TestCase
         $this->assertInstanceOf(__NAMESPACE__ . '\Category', $categories->category_id);
     }
 
-    public function test_fetching_all_entity_typed_nested(): void
+    public function testFetchingAllEntityTypedNested(): void
     {
         $mapper = $this->mapper;
         $comment = $mapper->comments->posts->authors->fetchAll();
         $this->assertInstanceOf(__NAMESPACE__ . '\Comment', $comment[0]);
         $this->assertInstanceOf(__NAMESPACE__ . '\Post', $comment[0]->post_id);
-        $this->assertInstanceOf(__NAMESPACE__ . '\Author', $comment[0]->post_id->author_id);
+        $this->assertInstanceOf(
+            __NAMESPACE__ . '\Author',
+            $comment[0]->post_id->author_id,
+        );
     }
 
-    public function test_persisting_entity_typed(): void
+    public function testPersistingEntityTyped(): void
     {
         $mapper = $this->mapper;
         $comment = $mapper->comments[8]->fetch();
@@ -227,21 +235,26 @@ class CakePHPTest extends TestCase
         $comment->text = 'HeyHey';
         $mapper->comments->persist($comment);
         $mapper->flush();
-        $result = $this->conn->query('select text from comments where id=8')->fetchColumn(0);
+        $result = $this->conn->query(
+            'select text from comments where id=8',
+        )->fetchColumn(0);
         $this->assertEquals('HeyHey', $result);
     }
 
-    public function test_persisting_new_entity_typed(): void
+    public function testPersistingNewEntityTyped(): void
     {
         $mapper = $this->mapper;
         $comment = new Comment();
         $comment->text = 'HeyHey';
         $mapper->comments->persist($comment);
         $mapper->flush();
-        $result = $this->conn->query('select text from comments where id=9')->fetchColumn(0);
+        $result = $this->conn->query(
+            'select text from comments where id=9',
+        )->fetchColumn(0);
         $this->assertEquals('HeyHey', $result);
     }
 
+    /** @return array<int, array<int, string>> */
     public static function tableEntityProvider(): array
     {
         return [
@@ -253,6 +266,7 @@ class CakePHPTest extends TestCase
         ];
     }
 
+    /** @return array<int, array<int, string>> */
     public static function manyToMantTableProvider(): array
     {
         return [
@@ -262,6 +276,7 @@ class CakePHPTest extends TestCase
         ];
     }
 
+    /** @return array<int, array<int, string>> */
     public static function columnsPropertyProvider(): array
     {
         return [
@@ -273,6 +288,7 @@ class CakePHPTest extends TestCase
         ];
     }
 
+    /** @return array<int, array<int, string>> */
     public static function foreignProvider(): array
     {
         return [
@@ -286,21 +302,45 @@ class CakePHPTest extends TestCase
 
 class Post
 {
-    public $id, $title, $text, $author_id;
+    public mixed $id = null;
+
+    public string|null $title = null;
+
+    public string|null $text = null;
+
+    public mixed $author_id = null;
 }
+
 class Author
 {
-    public $id, $name;
+    public mixed $id = null;
+
+    public string|null $name = null;
 }
+
 class Comment
 {
-    public $id, $post_id, $text;
+    public mixed $id = null;
+
+    public mixed $post_id = null;
+
+    public string|null $text = null;
 }
+
 class Category
 {
-    public $id, $name, $category_id;
+    public mixed $id = null;
+
+    public string|null $name = null;
+
+    public mixed $category_id = null;
 }
+
 class PostCategory
 {
-    public $id, $post_id, $category_id;
+    public mixed $id = null;
+
+    public mixed $post_id = null;
+
+    public mixed $category_id = null;
 }

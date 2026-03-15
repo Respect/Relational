@@ -87,7 +87,7 @@ class AbstractStyleTest extends TestCase
     }
 
     #[DataProvider('singularPluralProvider')]
-    public function test_plural_to_singular_and_vice_versa(string $singular, string $plural): void
+    public function testPluralToSingularAndViceVersa(string $singular, string $plural): void
     {
         $pluralToSingular = new ReflectionMethod($this->style, 'pluralToSingular');
         $this->assertEquals($singular, $pluralToSingular->invoke($this->style, $plural));
@@ -97,12 +97,21 @@ class AbstractStyleTest extends TestCase
     }
 
     #[DataProvider('camelCaseToSeparatorProvider')]
-    public function test_camel_case_to_separator_and_vice_versa(string $separator, string $camelCase, string $separated): void
-    {
+    public function testCamelCaseToSeparatorAndViceVersa(
+        string $separator,
+        string $camelCase,
+        string $separated,
+    ): void {
         $camelCaseToSeparatorMethod = new ReflectionMethod($this->style, 'camelCaseToSeparator');
-        $this->assertEquals($separated, $camelCaseToSeparatorMethod->invoke($this->style, $camelCase, $separator));
+        $this->assertEquals(
+            $separated,
+            $camelCaseToSeparatorMethod->invoke($this->style, $camelCase, $separator),
+        );
 
         $separatorToCamelCaseMethod = new ReflectionMethod($this->style, 'separatorToCamelCase');
-        $this->assertEquals($camelCase, $separatorToCamelCaseMethod->invoke($this->style, $separated, $separator));
+        $this->assertEquals(
+            $camelCase,
+            $separatorToCamelCaseMethod->invoke($this->style, $separated, $separator),
+        );
     }
 }

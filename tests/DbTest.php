@@ -15,7 +15,7 @@ use function is_array;
 #[CoversClass(Db::class)]
 class DbTest extends TestCase
 {
-    protected $object;
+    protected Db $object;
 
     protected function setUp(): void
     {
@@ -53,17 +53,17 @@ class DbTest extends TestCase
 
     public function testFetchingClass(): void
     {
-        $line = $this->object->select('*')->from('unit')->fetch('Respect\Relational\testFetchingClass');
-        $this->assertInstanceOF('Respect\Relational\testFetchingClass', $line);
+        $line = $this->object->select('*')->from('unit')->fetch('Respect\Relational\TestFetchingClass');
+        $this->assertInstanceOF('Respect\Relational\TestFetchingClass', $line);
     }
 
     public function testFetchingClassArgs(): void
     {
         $line = $this->object->select('*')->from('unit')->fetch(
-            'Respect\Relational\testFetchingClassArgs',
+            'Respect\Relational\TestFetchingClassArgs',
             ['foo'],
         );
-        $this->assertInstanceOF('Respect\Relational\testFetchingClassArgs', $line);
+        $this->assertInstanceOF('Respect\Relational\TestFetchingClassArgs', $line);
         $this->assertEquals('foo', $line->testd);
     }
 
@@ -81,7 +81,7 @@ class DbTest extends TestCase
 
     public function testFetchingInto(): void
     {
-        $x = new testFetchingInto();
+        $x = new TestFetchingInto();
         $this->object->select('*')->from('unit')->where(['testb' => 'abc'])->fetch($x);
         $this->assertEquals('abc', $x->testb);
     }
@@ -94,7 +94,8 @@ class DbTest extends TestCase
 
     public function testFetchingArray(): void
     {
-        $line = $this->object->select('*')->from('unit')->where(['testb' => 'abc'])->fetch(PDO::FETCH_ASSOC);
+        $line = $this->object->select('*')->from('unit')
+            ->where(['testb' => 'abc'])->fetch(PDO::FETCH_ASSOC);
         $this->assertTrue(is_array($line));
     }
 
@@ -123,19 +124,27 @@ class DbTest extends TestCase
     }
 }
 
-class testFetchingClass
+class TestFetchingClass
 {
-    public $testa, $testb, $testez;
+    public int|null $testa = null;
+
+    public string|null $testb = null;
+
+    public int|null $testez = null;
 }
 
-class testFetchingInto
+class TestFetchingInto
 {
-    public $testa, $testb, $testez;
+    public int|null $testa = null;
+
+    public string|null $testb = null;
+
+    public int|null $testez = null;
 }
 
-class testFetchingClassArgs
+class TestFetchingClassArgs
 {
-    public function __construct(public $testd)
+    public function __construct(public string|null $testd = null)
     {
     }
 }

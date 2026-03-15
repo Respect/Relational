@@ -18,6 +18,7 @@ class StandardTest extends TestCase
         $this->style = new Standard();
     }
 
+    /** @return array<int, array<int, string>> */
     public static function tableEntityProvider(): array
     {
         return [
@@ -29,6 +30,7 @@ class StandardTest extends TestCase
         ];
     }
 
+    /** @return array<int, array<int, string>> */
     public static function manyToMantTableProvider(): array
     {
         return [
@@ -38,6 +40,7 @@ class StandardTest extends TestCase
         ];
     }
 
+    /** @return array<int, array<int, string>> */
     public static function columnsPropertyProvider(): array
     {
         return [
@@ -49,6 +52,7 @@ class StandardTest extends TestCase
         ];
     }
 
+    /** @return array<int, array<int, string>> */
     public static function foreignProvider(): array
     {
         return [
@@ -60,7 +64,7 @@ class StandardTest extends TestCase
     }
 
     #[DataProvider('tableEntityProvider')]
-    public function test_table_and_entities_methods($table, $entity): void
+    public function testTableAndEntitiesMethods(string $table, string $entity): void
     {
         $this->assertEquals($entity, $this->style->styledName($table));
         $this->assertEquals($table, $this->style->realName($entity));
@@ -68,7 +72,7 @@ class StandardTest extends TestCase
     }
 
     #[DataProvider('columnsPropertyProvider')]
-    public function test_columns_and_properties_methods($name): void
+    public function testColumnsAndPropertiesMethods(string $name): void
     {
         $this->assertEquals($name, $this->style->styledProperty($name));
         $this->assertEquals($name, $this->style->realProperty($name));
@@ -77,13 +81,13 @@ class StandardTest extends TestCase
     }
 
     #[DataProvider('manyToMantTableProvider')]
-    public function test_table_from_left_right_table($left, $right, $table): void
+    public function testTableFromLeftRightTable(string $left, string $right, string $table): void
     {
         $this->assertEquals($table, $this->style->composed($left, $right));
     }
 
     #[DataProvider('foreignProvider')]
-    public function test_foreign($table, $foreign): void
+    public function testForeign(string $table, string $foreign): void
     {
         $this->assertTrue($this->style->isRemoteIdentifier($foreign));
         $this->assertEquals($table, $this->style->remoteFromIdentifier($foreign));

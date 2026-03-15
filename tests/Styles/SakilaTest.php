@@ -22,15 +22,20 @@ class SakilaTest extends TestCase
 
     private PDO $conn;
 
-    private $posts;
+    /** @var list<object> */
+    private array $posts;
 
-    private $authors;
+    /** @var list<object> */
+    private array $authors;
 
-    private $comments;
+    /** @var list<object> */
+    private array $comments;
 
-    private $categories;
+    /** @var list<object> */
+    private array $categories;
 
-    private $postsCategories;
+    /** @var list<object> */
+    private array $postsCategories;
 
     protected function setUp(): void
     {
@@ -161,6 +166,7 @@ class SakilaTest extends TestCase
         $this->mapper->entityNamespace = __NAMESPACE__ . '\\';
     }
 
+    /** @return array<int, array<int, string>> */
     public static function tableEntityProvider(): array
     {
         return [
@@ -172,6 +178,7 @@ class SakilaTest extends TestCase
         ];
     }
 
+    /** @return array<int, array<int, string>> */
     public static function manyToMantTableProvider(): array
     {
         return [
@@ -181,6 +188,7 @@ class SakilaTest extends TestCase
         ];
     }
 
+    /** @return array<int, array<int, string>> */
     public static function columnsPropertyProvider(): array
     {
         return [
@@ -192,6 +200,7 @@ class SakilaTest extends TestCase
         ];
     }
 
+    /** @return array<int, array<int, string>> */
     public static function keyProvider(): array
     {
         return [
@@ -203,14 +212,14 @@ class SakilaTest extends TestCase
     }
 
     #[DataProvider('tableEntityProvider')]
-    public function test_table_and_entities_methods($table, $entity): void
+    public function testTableAndEntitiesMethods(string $table, string $entity): void
     {
         $this->assertEquals($entity, $this->style->styledName($table));
         $this->assertEquals($table, $this->style->realName($entity));
     }
 
     #[DataProvider('columnsPropertyProvider')]
-    public function test_columns_and_properties_methods($column): void
+    public function testColumnsAndPropertiesMethods(string $column): void
     {
         $this->assertEquals($column, $this->style->styledProperty($column));
         $this->assertEquals($column, $this->style->realProperty($column));
@@ -219,13 +228,13 @@ class SakilaTest extends TestCase
     }
 
     #[DataProvider('manyToMantTableProvider')]
-    public function test_table_from_left_right_table($left, $right, $table): void
+    public function testTableFromLeftRightTable(string $left, string $right, string $table): void
     {
         $this->assertEquals($table, $this->style->composed($left, $right));
     }
 
     #[DataProvider('keyProvider')]
-    public function test_foreign($table, $key): void
+    public function testForeign(string $table, string $key): void
     {
         $this->assertTrue($this->style->isRemoteIdentifier($key));
         $this->assertEquals($table, $this->style->remoteFromIdentifier($key));
@@ -233,14 +242,14 @@ class SakilaTest extends TestCase
         $this->assertEquals($key, $this->style->remoteIdentifier($table));
     }
 
-    public function test_fetching_entity_typed(): void
+    public function testFetchingEntityTyped(): void
     {
         $mapper = $this->mapper;
         $comment = $mapper->comment[8]->fetch();
         $this->assertInstanceOf(__NAMESPACE__ . '\Comment', $comment);
     }
 
-    public function test_fetching_all_entity_typed(): void
+    public function testFetchingAllEntityTyped(): void
     {
         $mapper = $this->mapper;
         $comment = $mapper->comment->fetchAll();
@@ -248,19 +257,25 @@ class SakilaTest extends TestCase
 
         $categories = $mapper->post_category->category->fetch();
         $this->assertInstanceOf(__NAMESPACE__ . '\PostCategory', $categories);
-        $this->assertInstanceOf(__NAMESPACE__ . '\Category', $categories->category_id);
+        $this->assertInstanceOf(
+            __NAMESPACE__ . '\Category',
+            $categories->category_id,
+        );
     }
 
-    public function test_fetching_all_entity_typed_nested(): void
+    public function testFetchingAllEntityTypedNested(): void
     {
         $mapper = $this->mapper;
         $comment = $mapper->comment->post->author->fetchAll();
         $this->assertInstanceOf(__NAMESPACE__ . '\Comment', $comment[0]);
         $this->assertInstanceOf(__NAMESPACE__ . '\Post', $comment[0]->post_id);
-        $this->assertInstanceOf(__NAMESPACE__ . '\Author', $comment[0]->post_id->author_id);
+        $this->assertInstanceOf(
+            __NAMESPACE__ . '\Author',
+            $comment[0]->post_id->author_id,
+        );
     }
 
-    public function test_persisting_entity_typed(): void
+    public function testPersistingEntityTyped(): void
     {
         $mapper = $this->mapper;
         $comment = $mapper->comment[8]->fetch();
@@ -268,39 +283,69 @@ class SakilaTest extends TestCase
         $comment->text = 'HeyHey';
         $mapper->comment->persist($comment);
         $mapper->flush();
-        $result = $this->conn->query('select text from comment where comment_id=8')->fetchColumn(0);
+        $result = $this->conn->query(
+            'select text from comment where comment_id=8',
+        )->fetchColumn(0);
         $this->assertEquals('HeyHey', $result);
     }
 
-    public function test_persisting_new_entity_typed(): void
+    public function testPersistingNewEntityTyped(): void
     {
         $mapper = $this->mapper;
         $comment = new Comment();
         $comment->text = 'HeyHey';
         $mapper->comment->persist($comment);
         $mapper->flush();
-        $result = $this->conn->query('select text from comment where comment_id=9')->fetchColumn(0);
+        $result = $this->conn->query(
+            'select text from comment where comment_id=9',
+        )->fetchColumn(0);
         $this->assertEquals('HeyHey', $result);
     }
 }
 
 class Post
 {
-    public $post_id, $title, $text, $author_id;
+    public mixed $post_id = null;
+
+    public string|null $title = null;
+
+    public string|null $text = null;
+
+    public mixed $author_id = null;
 }
+
 class Author
 {
-    public $author_id, $name;
+    public mixed $author_id = null;
+
+    public string|null $name = null;
 }
+
 class Comment
 {
-    public $comment_id, $post_id, $text;
+    public mixed $comment_id = null;
+
+    public mixed $post_id = null;
+
+    public string|null $text = null;
 }
+
 class Category
 {
-    public $category_id, $name, $content, $description;
+    public mixed $category_id = null;
+
+    public string|null $name = null;
+
+    public string|null $content = null;
+
+    public string|null $description = null;
 }
+
 class PostCategory
 {
-    public $post_category_id, $post_id, $category_id;
+    public mixed $post_category_id = null;
+
+    public mixed $post_id = null;
+
+    public mixed $category_id = null;
 }
