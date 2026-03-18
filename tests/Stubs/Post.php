@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Respect\Relational;
 
 use Datetime;
+use Respect\Data\NotPersistable;
 
 class Post
 {
@@ -16,7 +17,7 @@ class Post
 
     public string|null $title = null;
 
-    /** @Relational\isNotColumn -> annotation because generate a sql error case column not exists in db. */
+    #[NotPersistable]
     private string $datetime = '';
 
     public function setDatetime(Datetime $datetime): void
