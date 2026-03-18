@@ -20,7 +20,9 @@ use stdClass;
 use Throwable;
 use TypeError;
 
+use function array_keys;
 use function array_reverse;
+use function array_values;
 use function count;
 use function current;
 use function date;
@@ -149,27 +151,33 @@ class MapperTest extends TestCase
         ];
 
         foreach ($this->authors as $author) {
-            $db->insertInto('author', (array) $author)->values((array) $author)->exec();
+            $cols = (array) $author;
+            $db->insertInto('author', array_keys($cols))->values(array_values($cols))->exec();
         }
 
         foreach ($this->posts as $post) {
-            $db->insertInto('post', (array) $post)->values((array) $post)->exec();
+            $cols = (array) $post;
+            $db->insertInto('post', array_keys($cols))->values(array_values($cols))->exec();
         }
 
         foreach ($this->comments as $comment) {
-            $db->insertInto('comment', (array) $comment)->values((array) $comment)->exec();
+            $cols = (array) $comment;
+            $db->insertInto('comment', array_keys($cols))->values(array_values($cols))->exec();
         }
 
         foreach ($this->categories as $category) {
-            $db->insertInto('category', (array) $category)->values((array) $category)->exec();
+            $cols = (array) $category;
+            $db->insertInto('category', array_keys($cols))->values(array_values($cols))->exec();
         }
 
         foreach ($this->postsCategories as $postCategory) {
-            $db->insertInto('post_category', (array) $postCategory)->values((array) $postCategory)->exec();
+            $cols = (array) $postCategory;
+            $db->insertInto('post_category', array_keys($cols))->values(array_values($cols))->exec();
         }
 
         foreach ($this->issues as $issue) {
-            $db->insertInto('issues', (array) $issue)->values((array) $issue)->exec();
+            $cols = (array) $issue;
+            $db->insertInto('issues', array_keys($cols))->values(array_values($cols))->exec();
         }
 
         $mapper = new Mapper($conn);
@@ -1144,11 +1152,11 @@ class MapperTest extends TestCase
         );
     }
 
-    public function testFetchWithStringConditionUsingColumnExpression(): void
+    public function testFetchWithConditionUsingColumnValue(): void
     {
         $mapper = $this->mapper;
-        $comments = $mapper->comment(['comment.id > 0'])->fetchAll();
-        $this->assertCount(2, $comments);
+        $comments = $mapper->comment(['post_id' => 5])->fetchAll();
+        $this->assertCount(1, $comments);
     }
 
     public function testPersistNewEntityWithNoAutoIncrementId(): void

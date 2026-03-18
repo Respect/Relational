@@ -41,7 +41,8 @@ class DbTest extends TestCase
 
     public function testPassingValues(): void
     {
-        $line = $this->object->select('*')->from('unit')->where(['testb' => 'abc'])->fetch();
+        $line = $this->object->select('*')->from('unit')
+            ->where([['testb', '=', 'abc']])->fetch();
         $this->assertEquals(10, $line->testa);
     }
 
@@ -82,46 +83,50 @@ class DbTest extends TestCase
     public function testFetchingInto(): void
     {
         $x = new TestFetchingInto();
-        $this->object->select('*')->from('unit')->where(['testb' => 'abc'])->fetch($x);
+        $this->object->select('*')->from('unit')
+            ->where([['testb', '=', 'abc']])->fetch($x);
         $this->assertEquals('abc', $x->testb);
     }
 
-    public function testRawSql(): void
+    public function testFluentSelect(): void
     {
-        $all = $this->object->query('select * from unit')->fetchAll();
+        $all = $this->object->select('*')->from('unit')->fetchAll();
         $this->assertEquals(3, count($all));
     }
 
     public function testFetchingArray(): void
     {
         $line = $this->object->select('*')->from('unit')
-            ->where(['testb' => 'abc'])->fetch(PDO::FETCH_ASSOC);
+            ->where([['testb', '=', 'abc']])->fetch(PDO::FETCH_ASSOC);
         $this->assertTrue(is_array($line));
     }
 
     public function testFetchingArray2(): void
     {
-        $line = $this->object->select('*')->from('unit')->where(['testb' => 'abc'])->fetch([]);
+        $line = $this->object->select('*')->from('unit')
+            ->where([['testb', '=', 'abc']])->fetch([]);
         $this->assertTrue(is_array($line));
     }
 
     public function testGetSql(): void
     {
-        $sql = $this->object->select('*')->from('unit')->where(['testb' => 'abc'])->getSql();
+        $sql = $this->object->select('*')->from('unit')
+            ->where([['testb', '=', 'abc']])->getSql();
         $this->assertEquals('SELECT * FROM unit WHERE testb = ?', (string) $sql);
         $this->assertEquals(['abc'], $sql->getParams());
     }
 
-    public function testRawSqlWithParams(): void
+    public function testFluentSelectWithParams(): void
     {
-        $line = $this->object->query('SELECT * FROM unit WHERE testb = ?', ['abc'])->fetch();
+        $line = $this->object->select('*')->from('unit')
+            ->where([['testb', '=', 'abc']])->fetch();
         $this->assertEquals(10, $line->testa);
     }
 
     public function testExecReturnsTrueOnSuccess(): void
     {
-        $result = $this->object->insertInto('unit', ['testa' => 40, 'testb' => 'jkl'])
-            ->values(['testa' => 40, 'testb' => 'jkl'])
+        $result = $this->object->insertInto('unit', ['testa', 'testb'])
+            ->values([40, 'jkl'])
             ->exec();
         $this->assertTrue($result);
     }

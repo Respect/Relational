@@ -73,14 +73,6 @@ final class Db
         return $statement;
     }
 
-    /** @param array<int, mixed>|null $params */
-    public function query(string $rawSql, array|null $params = null): static
-    {
-        $this->currentSql->setQuery($rawSql, $params);
-
-        return $this;
-    }
-
     protected function executeStatement(mixed $object = '\stdClass', mixed $extra = null): PDOStatement
     {
         $statement = $this->prepare((string) $this->currentSql, $object, $extra);

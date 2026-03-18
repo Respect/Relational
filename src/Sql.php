@@ -4,272 +4,376 @@ declare(strict_types=1);
 
 namespace Respect\Relational;
 
+use function array_fill;
+use function array_filter;
+use function array_is_list;
+use function array_keys;
+use function array_map;
 use function array_merge;
-use function array_shift;
-use function array_walk_recursive;
+use function count;
+use function current;
 use function implode;
 use function in_array;
-use function is_int;
-use function is_numeric;
-use function preg_match;
+use function is_array;
+use function is_scalar;
+use function is_string;
+use function key;
 use function preg_replace;
-use function rtrim;
-use function sprintf;
-use function stripos;
 use function strtoupper;
-use function substr;
-use function trim;
 
+/** Fluent SQL builder with shape-based argument detection */
 class Sql
 {
-    public const string SQL_OPERATORS = '/\s?(NOT)?\s?(=|==|<>|!=|>|>=|<|<=|LIKE)\s?$/';
-    public const string PLACEHOLDER   = '?';
+    /** Instructions where assoc array values are raw identifiers, not parameterized */
+    private const array RAW = ['on', 'select'];
 
-    protected string $query = '';
+    /**
+     * Operators that expand an array value into multiple placeholders.
+     * Each entry: [prefix, separator, suffix, minValues, maxValues|null]
+     */
+    private const array EXPAND = [
+        'IN'     => ['(', ', ', ')', 1, null],
+        'NOT IN' => ['(', ', ', ')', 1, null],
+        'BETWEEN' => ['', ' AND ', '', 2, 2],
+    ];
 
-    /** @var array<int, mixed> */
-    protected array $params = [];
+    /** @phpstan-var list<string> */
+    private(set) array $query = [];
 
-    /** @param array<int, mixed>|null $params */
-    public function __construct(string $rawSql = '', array|null $params = null)
+    /** @phpstan-var list<scalar|null> */
+    private(set) array $params = [];
+
+    private bool $raw = false;
+
+    public function __construct()
     {
-        $this->setQuery($rawSql, $params);
     }
 
-    public static function enclose(mixed $sql): mixed
+    public static function raw(string $expression): static
     {
-        if ($sql instanceof self) {
-            $sql->query = '(' . trim($sql->query) . ') ';
-        } elseif ($sql != '') {
-            $sql = '(' . trim($sql) . ') ';
-        }
+        $sql = new static();
+        $sql->query[] = $expression;
+        $sql->raw = true;
 
         return $sql;
     }
 
-    /** @return array<int, mixed> */
+    public function concat(self $sql): static
+    {
+        $this->query[] = (string) $sql;
+        $this->params = array_merge($this->params, $sql->params);
+
+        return $this;
+    }
+
+    /** @return list<scalar|null> */
     public function getParams(): array
     {
         return $this->params;
     }
 
-    /** @param array<int, mixed>|null $params */
-    public function setQuery(string $rawSql, array|null $params = null): static
+    /**
+     * select('a', 'b'), from('t1', 't2'), orderBy('col')
+     *
+     * @param scalar|array<int|string, scalar|self|list<scalar>>|self ...$items
+     */
+    private function commaList(string|int|float|bool|array|self ...$items): static
     {
-        $this->query = $rawSql;
-        if ($params !== null) {
-            $this->params = $params;
-        }
-
-        return $this;
-    }
-
-    /** @param array<int, mixed>|null $params */
-    public function appendQuery(mixed $sql, array|null $params = null): static
-    {
-        $this->query = trim($this->query) . ' ' . $sql;
-        if ($sql instanceof self) {
-            $this->params = array_merge($this->params, $sql->getParams());
-        }
-
-        if ($params !== null) {
-            $this->params = array_merge($this->params, $params);
-        }
-
-        return $this;
-    }
-
-    /** @param array<mixed> $parts */
-    protected function preBuild(string $operation, array $parts): static
-    {
-        $raw   = ($operation == 'select' || $operation == 'on');
-        $parts = $this->normalizeParts($parts, $raw);
-        if (empty($parts) && !in_array($operation, ['asc', 'desc', '_'], true)) {
-            return $this;
-        }
-
-        if ($operation == 'cond') {
-            // condition list
-            return $this->build('and', $parts);
-        }
-
-        $this->buildOperation($operation);
-        $operation = trim($operation, '_');
-
-        return $this->build($operation, $parts);
-    }
-
-    /** @param array<mixed> $parts */
-    protected function build(string $operation, array $parts): static
-    {
-        return match ($operation) {
-            'select' => $this->buildAliases($parts),
-            'and', 'having', 'where', 'between' => $this->buildKeyValues($parts, '%s ', ' AND '),
-            'or' => $this->buildKeyValues($parts, '%s ', ' OR '),
-            'set' => $this->buildKeyValues($parts),
-            'on' => $this->buildComparators($parts, '%s ', ' AND '),
-            'in', 'values' => $this->buildValuesList($parts),
-            'alterTable' => $this->buildAlterTable($parts),
-            'createTable', 'insertInto', 'replaceInto' => $this->buildCreate($parts),
-            default => $this->buildParts($parts),
-        };
-    }
-
-    /** @param array<mixed> $parts */
-    protected function buildKeyValues(array $parts, string $format = '%s ', string $partSeparator = ', '): static
-    {
-        foreach ($parts as $key => $part) {
-            if (is_numeric($key)) {
-                $parts[$key] = (string) $part;
-            } else {
-                $value = $part instanceof self ? (string) $part : self::PLACEHOLDER;
-                if (preg_match(self::SQL_OPERATORS, $key) > 0) {
-                    $parts[$key] = $key . ' ' . $value;
-                } else {
-                    $parts[$key] = $key . ' = ' . $value;
-                }
-            }
-        }
-
-        return $this->buildParts($parts, $format, $partSeparator);
-    }
-
-    /** @param array<mixed> $parts */
-    protected function buildComparators(array $parts, string $format = '%s ', string $partSeparator = ', '): static
-    {
-        foreach ($parts as $key => $part) {
-            if (is_numeric($key)) {
-                $parts[$key] = (string) $part;
-            } else {
-                $parts[$key] = $key . ' = ' . $part;
-            }
-        }
-
-        return $this->buildParts($parts, $format, $partSeparator);
-    }
-
-    /** @param array<mixed> $parts */
-    protected function buildAliases(array $parts, string $format = '%s ', string $partSeparator = ', '): static
-    {
-        foreach ($parts as $key => $part) {
-            if (is_numeric($key)) {
-                $parts[$key] = (string) $part;
-            } else {
-                $parts[$key] = $part . ' AS ' . $key;
-            }
-        }
-
-        return $this->buildParts($parts, $format, $partSeparator);
-    }
-
-    /** @param array<mixed> $parts */
-    protected function buildValuesList(array $parts): static
-    {
-        foreach ($parts as $key => $part) {
-            if (is_numeric($key) || $part instanceof self) {
-                $parts[$key] = (string) $part;
-            } else {
-                $parts[$key] = self::PLACEHOLDER;
-            }
-        }
-
-        return $this->buildParts($parts, '(%s) ', ', ');
-    }
-
-    protected function buildOperation(string $operation): void
-    {
-        $command = strtoupper(preg_replace('/[A-Z0-9]+/', ' $0', $operation));
-        if ($command == '_') {
-            $this->query = rtrim($this->query) . ') ';
-        } elseif ($command[0] == '_') {
-            $this->query .= '(' . trim($command, '_ ') . ' ';
-        } elseif (substr($command, -1) == '_') {
-            $this->query .= trim($command, '_ ') . ' (';
-        } else {
-            $this->query .= trim($command) . ' ';
-        }
-    }
-
-    /** @param array<mixed> $parts */
-    protected function buildFirstPart(array &$parts): void
-    {
-        $this->query .= array_shift($parts) . ' ';
-    }
-
-    /** @param array<mixed> $parts */
-    protected function buildParts(array $parts, string $format = '%s ', string $partSeparator = ', '): static
-    {
-        if (!empty($parts)) {
-            $this->query .= sprintf($format, implode($partSeparator, $parts));
-        }
+        $this->query[] = $this->formatList(...$items);
 
         return $this;
     }
 
     /**
-     * @param array<mixed> $parts
+     * insertInto('table', ['col1', 'col2']), createTable('t', [['id', 'INT']])
      *
-     * @return array<mixed>
+     * @param list<scalar|self|list<scalar>> $columns
      */
-    protected function normalizeParts(array $parts, bool $raw = false): array
+    private function namedList(string $name, array $columns): static
     {
-        $params = & $this->params;
-        $newParts = [];
+        $this->query[] = $name;
+        $this->query[] = '(' . $this->formatList(...$columns) . ')';
 
-        array_walk_recursive($parts, static function ($value, $key) use (&$newParts, &$params, &$raw): void {
-            if ($value instanceof Sql) {
-                $params = array_merge($params, $value->getParams());
-                if (stripos((string) $value, '(') !== 0) {
-                    $value = Sql::enclose($value);
-                }
+        return $this;
+    }
 
-                $newParts[$key] = $value;
-            } elseif ($raw) {
-                $newParts[$key] = $value;
-            } elseif (is_int($key)) {
-                $newParts[] = $value;
-            } else {
-                $newParts[$key] = $key;
-                $params[] = $value;
+    /**
+     * on(['table.col' => 'other.col']) — raw identifier pairs, no params
+     *
+     * @param array<int|string, scalar|self|list<scalar>> $pairs
+     */
+    private function rawPairs(array $pairs): static
+    {
+        $parts = [];
+        foreach ($pairs as $k => $v) {
+            if (!is_scalar($v)) {
+                continue;
             }
-        });
 
-        return $newParts;
+            $parts[] = $k . ' = ' . $v;
+        }
+
+        $this->query[] = implode(' AND ', $parts);
+
+        return $this;
     }
 
-    /** @param array<mixed> $parts */
-    private function buildAlterTable(array $parts): static
+    /**
+     * set(['col' => 123, 'other' => Sql::raw('NOW()')]) — parameterized pairs
+     *
+     * @param array<int|string, scalar|self|list<scalar>> $pairs
+     */
+    private function paramPairs(array $pairs): static
     {
-        $this->buildFirstPart($parts);
+        $parts = [];
+        foreach ($pairs as $k => $v) {
+            if ($v instanceof self) {
+                $parts[] = $k . ' = ' . $this->absorb($v);
+            } else {
+                $parts[] = $k . ' = ?';
+                $this->params[] = is_scalar($v) ? $v : null;
+            }
+        }
 
-        return $this->buildParts($parts, '%s ');
+        $this->query[] = implode(', ', $parts);
+
+        return $this;
     }
 
-    /** @param array<mixed> $parts */
-    private function buildCreate(array $parts): static
+    /**
+     * values([1, 2, null, Sql::raw('NOW()')]) — parenthesized placeholder list
+     *
+     * @param list<scalar|self|list<scalar>> $values
+     */
+    private function valueList(array $values): static
     {
-        $this->params = [];
-        $this->buildFirstPart($parts);
+        $placeholders = [];
+        foreach ($values as $v) {
+            if ($v instanceof self) {
+                $placeholders[] = $this->absorb($v);
+            } else {
+                $placeholders[] = '?';
+                $this->params[] = is_scalar($v) ? $v : null;
+            }
+        }
 
-        return $this->buildParts($parts, '(%s) ');
+        $this->query[] = '(' . implode(', ', $placeholders) . ')';
+
+        return $this;
     }
 
-    /** @param array<mixed> $parts */
-    public static function __callStatic(string $operation, array $parts): static
+    /**
+     * where([['col','=','val'], 'AND', ['col2','IN',[1,2]]]) — triplet conditions
+     *
+     * Items are either operator strings ('AND', 'OR') or condition arrays:
+     *   - array{string, string, scalar|null}   scalar triplet
+     *   - array{string, string, self}          subquery triplet
+     *   - array{string, string, list<scalar>}  expand triplet (IN, NOT IN, BETWEEN)
+     *   - list<...>                            nested group (recursive)
+     *
+     * @param list<scalar|self|list<scalar>> $items
+     */
+    private function conditions(array $items): string
     {
-        $sql = new static();
+        $q = '';
+        foreach ($items as $item) {
+            if (is_string($item)) {
+                $q .= ' ' . strtoupper($item) . ' ';
+                continue;
+            }
 
-        return $sql->$operation(...$parts);
+            if (is_array($item) && count($item) === 3 && is_string($item[0]) && is_string($item[1])) {
+                $q .= $this->triplet($item[0], $item[1], $item[2]);
+                continue;
+            }
+
+            if (is_array($item)) {
+                $q .= '(' . $this->conditions($item) . ')';
+                continue;
+            }
+        }
+
+        return $q;
     }
 
-    /** @param array<mixed> $parts */
-    public function __call(string $operation, array $parts): static
+    /**
+     * ['col', '=', scalar|null|self|list<scalar>] — single condition triplet
+     *
+     * @param list<scalar>|scalar|self|null $value
+     */
+    private function triplet(
+        string $column,
+        string $operator,
+        string|int|float|bool|self|array|null $value,
+    ): string {
+        if ($value === null) {
+            return $this->nullTriplet($column, $operator);
+        }
+
+        if ($value instanceof self) {
+            return $this->subqueryTriplet($column, $operator, $value);
+        }
+
+        if (is_array($value)) {
+            return $this->expandTriplet($column, $operator, $value);
+        }
+
+        return $this->scalarTriplet($column, $operator, $value);
+    }
+
+    /** ['col', '=', null] → col IS NULL, ['col', '!=', null] → col IS NOT NULL */
+    private function nullTriplet(string $column, string $operator): string
     {
-        return $this->preBuild($operation, $parts);
+        return match ($operator) {
+            '=', '==' => $column . ' IS NULL',
+            '!=', '<>' => $column . ' IS NOT NULL',
+            default => throw new SqlException(
+                'Operator \'' . $operator . '\' does not support null values',
+            ),
+        };
+    }
+
+    /** ['col', '=', 'val'] — simple comparison with placeholder */
+    private function scalarTriplet(
+        string $column,
+        string $operator,
+        string|int|float|bool $value,
+    ): string {
+        $this->params[] = $value;
+
+        return $column . ' ' . $operator . ' ?';
+    }
+
+    /** ['col', '=', Sql::select(...)] — comparison against subquery */
+    private function subqueryTriplet(string $column, string $operator, self $value): string
+    {
+        return $column . ' ' . $operator . ' ' . $this->absorb($value);
+    }
+
+    /**
+     * ['col', 'IN', [1,2,3]], ['col', 'NOT IN', [4,5]], or ['col', 'BETWEEN', [1, 100]]
+     *
+     * @param list<scalar> $value
+     */
+    private function expandTriplet(string $column, string $operator, array $value): string
+    {
+        $op = strtoupper($operator);
+
+        if (!isset(self::EXPAND[$op])) {
+            throw new SqlException(
+                'Unsupported expand operator \'' . $op . '\', expected: '
+                . implode(', ', array_keys(self::EXPAND)),
+            );
+        }
+
+        [$pre, $sep, $suf, $min, $max] = self::EXPAND[$op];
+        $n = count($value);
+        if ($n < $min || ($max !== null && $n > $max)) {
+            $expected = $max === $min ? (string) $min : $min . '+';
+
+            throw new SqlException(
+                $op . ' requires ' . $expected . ' values, got ' . $n,
+            );
+        }
+
+        $placeholders = array_fill(0, count($value), '?');
+        $this->params = array_merge($this->params, $value);
+
+        return $column . ' ' . $op . ' ' . $pre . implode($sep, $placeholders) . $suf;
+    }
+
+    private function absorb(self $sql): string
+    {
+        $this->params = array_merge($this->params, $sql->params);
+
+        return $sql->raw ? (string) $sql : '(' . $sql . ')';
+    }
+
+    /** @param array<int|string, scalar|self|list<scalar>> $pair */
+    private function alias(array $pair): string
+    {
+        $value = current($pair);
+        if ($value instanceof self) {
+            return $this->absorb($value) . ' AS ' . key($pair);
+        }
+
+        return (is_scalar($value) ? $value : '') . ' AS ' . key($pair);
+    }
+
+    /** @param scalar|list<scalar>|array<int|string, scalar|self|list<scalar>>|self ...$names */
+    private function formatList(string|int|float|bool|array|self ...$names): string
+    {
+        return implode(', ', array_map(
+            fn($name) => match (true) {
+                $name instanceof self => $this->absorb($name),
+                is_array($name) && array_is_list($name) => implode(
+                    ' ',
+                    array_filter($name, is_scalar(...)),
+                ),
+                is_array($name) => $this->alias($name),
+                default => $name,
+            },
+            $names,
+        ));
     }
 
     public function __toString(): string
     {
-        return rtrim($this->query);
+        return implode(' ', $this->query);
+    }
+
+    /**
+     * @see self::__call()
+     *
+     * @param array<int, scalar|array<int|string, scalar|self|list<scalar>>|self> $args
+     */
+    public static function __callStatic(string $name, array $args): static
+    {
+        return (new static())->__call($name, $args);
+    }
+
+    /**
+     * Dispatches SQL clauses by detecting argument shapes:
+     *   - string, ...                         comma list (select, from, orderBy)
+     *   - string, list<string|list<string>>   name + columns (insertInto, createTable)
+     *   - array<string, string>               raw pairs (on)
+     *   - array<string, scalar|null|self>     parameterized pairs (set)
+     *   - list<scalar|null|self>              value list (values)
+     *   - list<array{string,string,scalar|null|self|list<scalar>}|string|list<...>>
+     *                                         conditions (where, having)
+     *
+     * @param array<int, scalar|array<int|string, scalar|self|list<scalar>>|self> $args
+     */
+    public function __call(string $name, array $args): static
+    {
+        $this->query[] = strtoupper(preg_replace('/[A-Z0-9]+/', ' $0', $name));
+
+        if (empty($args)) {
+            return $this;
+        }
+
+        if (!is_array($args[0])) {
+            if (count($args) > 1 && is_array($args[1]) && array_is_list($args[1])) {
+                return $this->namedList((string) $args[0], $args[1]);
+            }
+
+            return $this->commaList(...$args);
+        }
+
+        if (!array_is_list($args[0])) {
+            if (in_array($name, self::RAW)) {
+                return $this->rawPairs($args[0]);
+            }
+
+            return $this->paramPairs($args[0]);
+        }
+
+        if (count($args[0]) < 1 || !is_array($args[0][0])) {
+            return $this->valueList($args[0]);
+        }
+
+        $this->query[] = $this->conditions($args[0]);
+
+        return $this;
     }
 }

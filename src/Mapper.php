@@ -24,17 +24,17 @@ use function array_intersect_key;
 use function array_keys;
 use function array_merge;
 use function array_pop;
+use function array_push;
 use function array_reverse;
+use function array_values;
 use function class_exists;
 use function count;
 use function get_object_vars;
 use function is_array;
-use function is_numeric;
 use function is_object;
 use function is_scalar;
 use function iterator_to_array;
 use function preg_match;
-use function preg_replace;
 use function str_replace;
 
 /** Maps objects to database operations */
@@ -211,12 +211,12 @@ final class Mapper extends AbstractMapper implements
     /**
      * @param array<string, mixed> $columns
      *
-     * @return array<string, mixed>
+     * @return array<int, array<int, mixed>>
      */
     protected function guessCondition(array &$columns, Collection $collection): array
     {
-        $primaryName    = $this->getStyle()->identifier($collection->getName());
-        $condition      = [$primaryName => $columns[$primaryName]];
+        $primaryName = $this->getStyle()->identifier($collection->getName());
+        $condition   = [[$primaryName, '=', $columns[$primaryName]]];
         unset($columns[$primaryName]);
 
         return $condition;
@@ -261,8 +261,8 @@ final class Mapper extends AbstractMapper implements
         $columns    = $this->extractAndOperateMixins($collection, $columns);
         $name       = $collection->getName();
         $isInserted = $this->db
-            ->insertInto($name, $columns)
-            ->values($columns)
+            ->insertInto($name, array_keys($columns))
+            ->values(array_values($columns))
             ->exec();
 
         if ($entity !== null) {
@@ -372,7 +372,7 @@ final class Mapper extends AbstractMapper implements
             }
         }
 
-        return $sql->select($selectTable);
+        return $sql->select(...$selectTable);
     }
 
     /** @param array<string, Collection> $collections */
@@ -390,7 +390,7 @@ final class Mapper extends AbstractMapper implements
             );
         }
 
-        return $sql->where($conditions);
+        return empty($conditions) ? $sql : $sql->where($conditions);
     }
 
     /**
@@ -403,22 +403,17 @@ final class Mapper extends AbstractMapper implements
         $entity             = $collection->getName();
         $originalConditions = $collection->getCondition();
         $parsedConditions   = [];
-        $aliasedPk          = $this->getStyle()->identifier($entity);
-        $aliasedPk          = $alias . '.' . $aliasedPk;
+        $aliasedPk          = $alias . '.' . $this->getStyle()->identifier($entity);
 
         if (is_scalar($originalConditions)) {
-            $parsedConditions = [$aliasedPk => $originalConditions];
+            $parsedConditions[] = [$aliasedPk, '=', $originalConditions];
         } elseif (is_array($originalConditions)) {
             foreach ($originalConditions as $column => $value) {
-                if (is_numeric($column)) {
-                    $parsedConditions[$column] = preg_replace(
-                        '/' . $entity . '[.](\w+)/',
-                        $alias . '.$1',
-                        $value,
-                    );
-                } else {
-                    $parsedConditions[$alias . '.' . $column] = $value;
+                if (!empty($parsedConditions)) {
+                    $parsedConditions[] = 'AND';
                 }
+
+                $parsedConditions[] = [$alias . '.' . $column, '=', $value];
             }
         }
 
@@ -455,11 +450,18 @@ final class Mapper extends AbstractMapper implements
 
         $parentAlias = $parent ? $aliases[$parent] : null;
         $aliases[$entity] = $alias;
-        $conditions = $this->parseConditions(
+        $parsed = $this->parseConditions(
             $conditions,
             $collection,
             $alias,
-        ) ?: $conditions;
+        );
+        if (!empty($parsed)) {
+            if (!empty($conditions)) {
+                $conditions[] = 'AND';
+            }
+
+            array_push($conditions, ...$parsed);
+        }
 
         //No parent collection means it's the first table in the query
         if ($parentAlias === null) {
@@ -718,7 +720,7 @@ final class Mapper extends AbstractMapper implements
         $query = $this->generateQuery($collection);
 
         if ($withExtra instanceof Sql) {
-            $query->appendQuery($withExtra);
+            $query->concat($withExtra);
         }
 
         $statement = $this->db->prepare((string) $query, PDO::FETCH_NUM);
