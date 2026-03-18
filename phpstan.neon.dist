@@ -5,7 +5,7 @@ parameters:
     - tests/
   ignoreErrors:
     - message: '/Call to an undefined (static )?method Respect\\Relational\\(Sql|Db|Mapper)::\w+\(\)\./'
-    - message: '/Call to an undefined (static )?method Respect\\Data\\Collections\\(Collection|Filtered|Mix|Typed)::\w+\(\)\./'
+    - message: '/Call to an undefined (static )?method Respect\\Data\\Collections\\(Collection|Filtered|Composite|Typed)::\w+\(\)\./'
     - message: '/Access to an undefined property Respect\\Relational\\Mapper::\$\w+\./'
     - message: '/Unsafe usage of new static\(\)\./'
     - message: '/Cannot unset property .+ because it might have hooks in a subclass\./'
