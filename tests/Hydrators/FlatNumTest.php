@@ -91,7 +91,7 @@ class FlatNumTest extends TestCase
 
         $factory = new EntityFactory(entityNamespace: 'Respect\Relational\Hydrators\\');
         $hydrator = new FlatNum($stmt);
-        $collection = Typed::by('type')->issue();
+        $collection = Typed::issue('type');
         $result = $hydrator->hydrate($row, $collection, $factory);
 
         $this->assertNotFalse($result);

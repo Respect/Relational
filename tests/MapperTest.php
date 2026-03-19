@@ -836,7 +836,7 @@ class MapperTest extends TestCase
     public function testRegisteredFilteredCollectionsByColumnKeepsTheirFiltering(): void
     {
         $mapper = $this->mapper;
-        $mapper->post = Filtered::by('title')->post();
+        $mapper->post = Filtered::post('title');
         $post = $mapper->post->fetch();
         $this->assertEquals(
             (object) ['id' => '5', 'title' => 'Post Title'],
@@ -853,7 +853,7 @@ class MapperTest extends TestCase
     public function testRegisteredFilteredCollectionsByColumnKeepsTheirFilteringOnFetchAll(): void
     {
         $mapper = $this->mapper;
-        $mapper->post = Filtered::by('title')->post();
+        $mapper->post = Filtered::post('title');
         $post = $mapper->post->fetchAll();
         $post = $post[0];
         $this->assertEquals(
@@ -871,7 +871,7 @@ class MapperTest extends TestCase
     public function testRegisteredFilteredWildcardCollectionsKeepsTheirFiltering(): void
     {
         $mapper = $this->mapper;
-        $mapper->post = Filtered::by('*')->post();
+        $mapper->post = Filtered::post('*');
         $post = $mapper->post->fetch();
         $this->assertEquals((object) ['id' => '5'], $post);
         $post->title = 'Title Changed';
@@ -885,7 +885,7 @@ class MapperTest extends TestCase
     public function testRegisteredFilteredWildcardCollectionsKeepsTheirFilteringOnFetchAll(): void
     {
         $mapper = $this->mapper;
-        $mapper->post = Filtered::by('*')->post();
+        $mapper->post = Filtered::post('*');
         $post = $mapper->post->fetchAll();
         $post = $post[0];
         $this->assertEquals((object) ['id' => '5'], $post);
@@ -900,7 +900,7 @@ class MapperTest extends TestCase
     public function testFetchingRegisteredFilteredCollectionsAlongsideNormal(): void
     {
         $mapper = $this->mapper;
-        $mapper->post = Filtered::by('*')->post()->author();
+        $mapper->post = Filtered::post('*')->author();
         $post = $mapper->post->fetchAll();
         $post = $post[0];
         $this->assertEquals(
@@ -922,7 +922,7 @@ class MapperTest extends TestCase
     public function testCompositesBringResultsFromTwoTables(): void
     {
         $mapper = $this->mapper;
-        $mapper->postComment = Composite::with(['comment' => ['text']])->post()->author();
+        $mapper->postComment = Composite::post(['comment' => ['text']])->author();
         $post = $mapper->postComment->fetch();
         $this->assertEquals(
             (object) ['name' => 'Author 1', 'id' => 1],
@@ -943,7 +943,7 @@ class MapperTest extends TestCase
     public function testCompositesPersistsResultsOnTwoTables(): void
     {
         $mapper = $this->mapper;
-        $mapper->postComment = Composite::with(['comment' => ['text']])->post()->author();
+        $mapper->postComment = Composite::post(['comment' => ['text']])->author();
         $post = $mapper->postComment->fetch();
         $this->assertEquals(
             (object) ['name' => 'Author 1', 'id' => 1],
@@ -974,7 +974,7 @@ class MapperTest extends TestCase
     public function testCompositesPersistsNewlyCreatedEntitiesOnTwoTables(): void
     {
         $mapper = $this->mapper;
-        $mapper->postComment = Composite::with(['comment' => ['text']])->post()->author();
+        $mapper->postComment = Composite::post(['comment' => ['text']])->author();
         $post = (object) ['text' => 'Comment X', 'title' => 'Post X', 'id' => null];
         $post->author_id = (object) ['name' => 'Author X', 'id' => null];
         $mapper->postComment->persist($post);
@@ -993,7 +993,7 @@ class MapperTest extends TestCase
     public function testCompositesPersistDoesNotDropColumnsWithMatchingValues(): void
     {
         $mapper = $this->mapper;
-        $mapper->postComment = Composite::with(['comment' => ['text']])->post()->author();
+        $mapper->postComment = Composite::post(['comment' => ['text']])->author();
         $post = $mapper->postComment->fetch();
         $post->title = 'Same Value';
         $post->text = 'Same Value';
@@ -1010,7 +1010,7 @@ class MapperTest extends TestCase
     public function testCompositesAll(): void
     {
         $mapper = $this->mapper;
-        $mapper->postComment = Composite::with(['comment' => ['text']])->post()->author();
+        $mapper->postComment = Composite::post(['comment' => ['text']])->author();
         $post = $mapper->postComment->fetchAll();
         $post = $post[0];
         $this->assertEquals(
@@ -1042,7 +1042,7 @@ class MapperTest extends TestCase
     public function testTyped(): void
     {
         $mapper = new Mapper($this->conn, new EntityFactory(entityNamespace: '\Respect\Relational\\'));
-        $mapper->typedIssues = Typed::by('type')->issues();
+        $mapper->typedIssues = Typed::issues('type');
         $issues = $mapper->typedIssues->fetchAll();
         $this->assertInstanceOf('\\Respect\Relational\\Bug', $issues[0]);
         $this->assertInstanceOf('\\Respect\Relational\\Improvement', $issues[1]);
@@ -1059,7 +1059,7 @@ class MapperTest extends TestCase
     public function testTypedSingle(): void
     {
         $mapper = new Mapper($this->conn, new EntityFactory(entityNamespace: '\Respect\Relational\\'));
-        $mapper->typedIssues = Typed::by('type')->issues();
+        $mapper->typedIssues = Typed::issues('type');
         $issue = $mapper->typedIssues->fetch();
         $this->assertInstanceOf('\\Respect\Relational\\Bug', $issue);
         $this->assertEquals((array) $this->issues[0], (array) $issue);
