@@ -103,7 +103,7 @@ final class Mapper extends AbstractMapper
 
     protected function defaultHydrator(Collection $collection): Hydrator
     {
-        return new FlatNum($this->lastStatement, $this->style);
+        return new FlatNum($this->lastStatement);
     }
 
     private function flushSingle(object $entity): void
@@ -460,17 +460,8 @@ final class Mapper extends AbstractMapper
         $this->lastStatement = $statement;
         $hydrator = $this->resolveHydrator($collection);
         $row = $statement->fetch(PDO::FETCH_NUM);
-        $entities = $hydrator->hydrate($row, $collection, $this->entityFactory);
 
-        if ($entities === false) {
-            return false;
-        }
-
-        if ($entities->count() > 1) {
-            $this->postHydrate($entities);
-        }
-
-        return $entities;
+        return $hydrator->hydrate($row, $collection, $this->entityFactory);
     }
 
     private function createStatement(
