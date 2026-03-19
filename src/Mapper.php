@@ -261,7 +261,7 @@ final class Mapper extends AbstractMapper
             $c = $this->entityFactory->get($c, $primaryName);
         }
 
-        return $cols;
+        return $this->filterColumns($cols, $collection);
     }
 
     /** @param array<string, Collection> $collections */

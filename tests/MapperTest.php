@@ -1205,6 +1205,36 @@ class MapperTest extends TestCase
         $this->assertInstanceOf(Db::class, $mapper->db);
     }
 
+    public function testFilteredPersistUpdatesOnlyFilteredColumns(): void
+    {
+        $mapper = $this->mapper;
+        $mapper->postTitles = Filtered::post('title');
+        $post = $mapper->postTitles()->fetch();
+        $this->assertEquals('Post Title', $post->title);
+
+        $post->title = 'Changed Title';
+        $mapper->postTitles()->persist($post);
+        $mapper->flush();
+
+        $row = $this->query('select * from post where id=5')->fetch(PDO::FETCH_ASSOC);
+        $this->assertEquals('Changed Title', $row['title']);
+        $this->assertEquals('Post Text', $row['text'], 'Non-filtered columns should remain unchanged');
+        $this->assertEquals(1, $row['author_id'], 'Non-filtered columns should remain unchanged');
+    }
+
+    public function testFilteredPersistInsertsOnlyFilteredColumns(): void
+    {
+        $mapper = $this->mapper;
+        $mapper->postTitles = Filtered::post('title');
+        $post = (object) ['id' => 99, 'title' => 'Partial Post', 'text' => 'Should not appear'];
+        $mapper->postTitles()->persist($post);
+        $mapper->flush();
+
+        $row = $this->query('select * from post where id=99')->fetch(PDO::FETCH_ASSOC);
+        $this->assertEquals('Partial Post', $row['title']);
+        $this->assertNull($row['text'], 'Non-filtered columns should not be inserted');
+    }
+
     private function query(string $sql): PDOStatement
     {
         $stmt = $this->conn->query($sql);
