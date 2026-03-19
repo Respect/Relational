@@ -12,7 +12,6 @@ use Respect\Data\CollectionIterator;
 use Respect\Data\Collections\Collection;
 use Respect\Data\Collections\Composite;
 use Respect\Data\Collections\Filtered;
-use Respect\Data\Collections\Typed;
 use Respect\Data\EntityFactory;
 use SplObjectStorage;
 use Throwable;
@@ -23,7 +22,6 @@ use function array_pop;
 use function array_push;
 use function array_reverse;
 use function array_values;
-use function count;
 use function is_array;
 use function is_object;
 use function is_scalar;
@@ -72,25 +70,21 @@ final class Mapper extends AbstractMapper
 
     public function persist(object $object, Collection $onCollection): bool
     {
-        $factory = $this->entityFactory;
-        $next = $onCollection->getNext();
-
         if ($onCollection instanceof Filtered) {
-            $next->setMapper($this);
-            $next->persist($object);
-
-            return true;
+            return parent::persist($object, $onCollection);
         }
+
+        $next = $onCollection->getNext();
 
         if ($next) {
             $remote = $this->getStyle()->remoteIdentifier($next->getName());
             $next->setMapper($this);
-            $next->persist($factory->get($object, $remote));
+            $next->persist($this->entityFactory->get($object, $remote));
         }
 
         foreach ($onCollection->getChildren() as $child) {
             $remote = $this->getStyle()->remoteIdentifier($child->getName());
-            $child->persist($factory->get($object, $remote));
+            $child->persist($this->entityFactory->get($object, $remote));
         }
 
         return parent::persist($object, $onCollection);
@@ -265,16 +259,15 @@ final class Mapper extends AbstractMapper
     /** @return array<string, mixed> */
     protected function extractColumns(object $entity, Collection $collection): array
     {
-        $factory = $this->entityFactory;
         $primaryName = $this->getStyle()->identifier($collection->getName());
-        $cols = $factory->extractProperties($entity);
+        $cols = $this->entityFactory->extractProperties($entity);
 
         foreach ($cols as &$c) {
             if (!is_object($c)) {
                 continue;
             }
 
-            $c = $factory->get($c, $primaryName);
+            $c = $this->entityFactory->get($c, $primaryName);
         }
 
         return $cols;
@@ -475,7 +468,6 @@ final class Mapper extends AbstractMapper
         PDOStatement $statement,
         Collection $collection,
     ): SplObjectStorage {
-        $factory           = $this->entityFactory;
         $entities          = new SplObjectStorage();
         $entitiesInstances = $this->buildEntitiesInstances(
             $collection,
@@ -491,7 +483,7 @@ final class Mapper extends AbstractMapper
                 $entities[$entityInstance]->getName(),
             );
 
-            $factory->set($entityInstance, $columnName, $value);
+            $this->entityFactory->set($entityInstance, $columnName, $value);
 
             if ($primaryName != $columnName) {
                 continue;
@@ -501,77 +493,6 @@ final class Mapper extends AbstractMapper
         }
 
         return $entities;
-    }
-
-    /**
-     * @param SplObjectStorage<object, Collection> $entities
-     *
-     * @return array<int, object>
-     */
-    protected function buildEntitiesInstances(
-        Collection $collection,
-        SplObjectStorage $entities,
-    ): array {
-        $factory = $this->entityFactory;
-        $entitiesInstances = [];
-
-        foreach (CollectionIterator::recursive($collection) as $c) {
-            if ($c instanceof Filtered && !$c->getFilters()) {
-                continue;
-            }
-
-            $entityInstance = $factory->createByName($c->getName());
-
-            if ($c instanceof Composite) {
-                $compositionCount = count($c->getCompositions());
-                for ($i = 0; $i < $compositionCount; $i++) {
-                    $entitiesInstances[] = $entityInstance;
-                }
-            }
-
-            $entities[$entityInstance] = $c;
-            $entitiesInstances[] = $entityInstance;
-        }
-
-        return $entitiesInstances;
-    }
-
-    /** @param SplObjectStorage<object, Collection> $entities */
-    protected function postHydrate(SplObjectStorage $entities): void
-    {
-        $factory = $this->entityFactory;
-        $entitiesClone = clone $entities;
-
-        foreach ($entities as $instance) {
-            foreach ($factory->extractProperties($instance) as $field => $v) {
-                if (!$this->getStyle()->isRemoteIdentifier($field)) {
-                    continue;
-                }
-
-                foreach ($entitiesClone as $sub) {
-                    $this->tryHydration($entities, $sub, $field, $v);
-                }
-
-                $factory->set($instance, $field, $v);
-            }
-        }
-    }
-
-    /** @param SplObjectStorage<object, Collection> $entities */
-    protected function tryHydration(SplObjectStorage $entities, object $sub, string $field, mixed &$v): void
-    {
-        $factory = $this->entityFactory;
-        $tableName = $entities[$sub]->getName();
-        $primaryName = $this->getStyle()->identifier($tableName);
-
-        if (
-            $tableName !== $this->getStyle()->remoteFromIdentifier($field)
-                || $factory->get($sub, $primaryName) !== $v
-        ) {
-            return;
-        }
-
-        $v = $sub;
     }
 
     /** @param SplObjectStorage<object, Collection> $hydrated */
@@ -614,21 +535,15 @@ final class Mapper extends AbstractMapper
         Collection $collection,
         PDOStatement $statement,
     ): SplObjectStorage|false {
-        $factory     = $this->entityFactory;
-        $name        = $collection->getName();
-        $entityName  = $name;
-        $row         = $statement->fetch(PDO::FETCH_OBJ);
+        $row = $statement->fetch(PDO::FETCH_OBJ);
 
         if (!$row) {
             return false;
         }
 
-        if ($collection instanceof Typed) {
-            $entityName = $factory->get($row, $collection->getType());
-        }
-
+        $entityName = $collection->resolveEntityName($this->entityFactory, $row);
         $entities = new SplObjectStorage();
-        $entities[$factory->hydrate($row, $entityName)] = $collection;
+        $entities[$this->entityFactory->hydrate($row, $entityName)] = $collection;
 
         return $entities;
     }
@@ -638,16 +553,14 @@ final class Mapper extends AbstractMapper
         Collection $collection,
         PDOStatement $statement,
     ): SplObjectStorage|false {
-        $entities       = [];
-        $row            = $statement->fetch(PDO::FETCH_NUM);
+        $row = $statement->fetch(PDO::FETCH_NUM);
 
         if (!$row) {
             return false;
         }
 
-        $this->postHydrate(
-            $entities = $this->createEntities($row, $statement, $collection),
-        );
+        $entities = $this->createEntities($row, $statement, $collection);
+        $this->postHydrate($entities);
 
         return $entities;
     }
