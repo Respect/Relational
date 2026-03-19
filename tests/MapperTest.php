@@ -190,7 +190,7 @@ class MapperTest extends TestCase
     {
         $db = new Db($this->conn);
         $mapper = new Mapper($db);
-        $this->assertSame($db, $mapper->getDb());
+        $this->assertSame($db, $mapper->db);
     }
 
     public function testGetDefinedDbInstance(): void
@@ -198,7 +198,7 @@ class MapperTest extends TestCase
         $db = new Db($this->conn);
         $mapper = new Mapper($db);
 
-        $this->assertSame($db, $mapper->getDb());
+        $this->assertSame($db, $mapper->db);
     }
 
     public function testCreatingWithInvalidArgsShouldThrowException(): void
@@ -603,11 +603,11 @@ class MapperTest extends TestCase
     {
         $this->assertInstanceOf(
             'Respect\Data\Styles\Stylable',
-            $this->mapper->getStyle(),
+            $this->mapper->style,
         );
         $this->assertInstanceOf(
             'Respect\Data\Styles\Standard',
-            $this->mapper->getStyle(),
+            $this->mapper->style,
         );
         $styles = [
             new Styles\CakePHP(),
@@ -617,7 +617,7 @@ class MapperTest extends TestCase
         ];
         foreach ($styles as $style) {
             $mapper = new Mapper($this->conn, new EntityFactory(style: $style));
-            $this->assertEquals($style, $mapper->getStyle());
+            $this->assertEquals($style, $mapper->style);
         }
     }
 
@@ -1202,7 +1202,7 @@ class MapperTest extends TestCase
     {
         $db = new Db($this->conn);
         $mapper = new Mapper($db);
-        $this->assertInstanceOf(Db::class, $mapper->getDb());
+        $this->assertInstanceOf(Db::class, $mapper->db);
     }
 
     private function query(string $sql): PDOStatement

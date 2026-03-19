@@ -43,17 +43,14 @@ class Sql
     /** @phpstan-var list<scalar|null> */
     private(set) array $params = [];
 
-    private bool $raw = false;
-
-    public function __construct()
+    public function __construct(private readonly bool $raw = false)
     {
     }
 
     public static function raw(string $expression): static
     {
-        $sql = new static();
+        $sql = new static(raw: true);
         $sql->query[] = $expression;
-        $sql->raw = true;
 
         return $sql;
     }
@@ -64,12 +61,6 @@ class Sql
         $this->params = array_merge($this->params, $sql->params);
 
         return $this;
-    }
-
-    /** @return list<scalar|null> */
-    public function getParams(): array
-    {
-        return $this->params;
     }
 
     /**
