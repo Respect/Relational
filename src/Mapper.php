@@ -13,14 +13,14 @@ use Respect\Data\Collections\Collection;
 use Respect\Data\Collections\Composite;
 use Respect\Data\Collections\Filtered;
 use Respect\Data\EntityFactory;
+use Respect\Data\Hydrator;
+use Respect\Relational\Hydrators\FlatNum;
 use SplObjectStorage;
 use Throwable;
 
 use function array_keys;
 use function array_merge;
-use function array_pop;
 use function array_push;
-use function array_reverse;
 use function array_values;
 use function is_array;
 use function is_object;
@@ -31,6 +31,8 @@ use function iterator_to_array;
 final class Mapper extends AbstractMapper
 {
     public readonly Db $db;
+
+    private PDOStatement $lastStatement;
 
     public function __construct(PDO|Db $db, EntityFactory $entityFactory = new EntityFactory())
     {
@@ -97,6 +99,11 @@ final class Mapper extends AbstractMapper
 
         $this->reset();
         $conn->commit();
+    }
+
+    protected function defaultHydrator(Collection $collection): Hydrator
+    {
+        return new FlatNum($this->lastStatement, $this->style);
     }
 
     private function flushSingle(object $entity): void
@@ -438,43 +445,6 @@ final class Mapper extends AbstractMapper
             || $entity === $this->style->composed($next, $parent);
     }
 
-    /**
-     * @param array<int, mixed> $row
-     *
-     * @return SplObjectStorage<object, Collection>
-     */
-    private function createEntities(
-        array $row,
-        PDOStatement $statement,
-        Collection $collection,
-    ): SplObjectStorage {
-        $entities          = new SplObjectStorage();
-        $entitiesInstances = $this->buildEntitiesInstances(
-            $collection,
-            $entities,
-        );
-        $entityInstance    = array_pop($entitiesInstances);
-
-        //Reversely traverses the columns to avoid conflicting foreign key names
-        foreach (array_reverse($row, true) as $col => $value) {
-            /** @phpstan-ignore offsetAccess.nonOffsetAccessible */
-            $columnName    = $statement->getColumnMeta($col)['name'];
-            $primaryName   = $this->style->identifier(
-                $entities[$entityInstance]->name,
-            );
-
-            $this->entityFactory->set($entityInstance, $columnName, $value);
-
-            if ($primaryName != $columnName) {
-                continue;
-            }
-
-            $entityInstance = array_pop($entitiesInstances);
-        }
-
-        return $entities;
-    }
-
     /** @param SplObjectStorage<object, Collection> $hydrated */
     private function parseHydrated(SplObjectStorage $hydrated): object
     {
@@ -487,9 +457,20 @@ final class Mapper extends AbstractMapper
     /** @return SplObjectStorage<object, Collection>|false */
     private function fetchHydrated(Collection $collection, PDOStatement $statement): SplObjectStorage|false
     {
-        $method = $collection->more ? 'fetchMulti' : 'fetchSingle';
+        $this->lastStatement = $statement;
+        $hydrator = $this->resolveHydrator($collection);
+        $row = $statement->fetch(PDO::FETCH_NUM);
+        $entities = $hydrator->hydrate($row, $collection, $this->entityFactory);
 
-        return $this->$method($collection, $statement);
+        if ($entities === false) {
+            return false;
+        }
+
+        if ($entities->count() > 1) {
+            $this->postHydrate($entities);
+        }
+
+        return $entities;
     }
 
     private function createStatement(
@@ -506,40 +487,5 @@ final class Mapper extends AbstractMapper
         $statement->execute($query->params);
 
         return $statement;
-    }
-
-    /** @return SplObjectStorage<object, Collection>|false */
-    private function fetchSingle(
-        Collection $collection,
-        PDOStatement $statement,
-    ): SplObjectStorage|false {
-        $row = $statement->fetch(PDO::FETCH_OBJ);
-
-        if (!$row) {
-            return false;
-        }
-
-        $entity = $this->entityFactory->hydrate($row, $collection->resolveEntityName($this->entityFactory, $row));
-        $entities = new SplObjectStorage();
-        $entities[$entity] = $collection;
-
-        return $entities;
-    }
-
-    /** @return SplObjectStorage<object, Collection>|false */
-    private function fetchMulti(
-        Collection $collection,
-        PDOStatement $statement,
-    ): SplObjectStorage|false {
-        $row = $statement->fetch(PDO::FETCH_NUM);
-
-        if (!$row) {
-            return false;
-        }
-
-        $entities = $this->createEntities($row, $statement, $collection);
-        $this->postHydrate($entities);
-
-        return $entities;
     }
 }
