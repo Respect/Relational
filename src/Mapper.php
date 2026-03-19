@@ -30,7 +30,7 @@ use function iterator_to_array;
 /** Maps objects to database operations */
 final class Mapper extends AbstractMapper
 {
-    protected readonly Db $db;
+    public readonly Db $db;
 
     public function __construct(PDO|Db $db, EntityFactory $entityFactory = new EntityFactory())
     {
@@ -39,28 +39,19 @@ final class Mapper extends AbstractMapper
         $this->db = $db instanceof PDO ? new Db($db) : $db;
     }
 
-    public function getDb(): Db
-    {
-        return $this->db;
-    }
-
     public function fetch(Collection $collection, mixed $extra = null): mixed
     {
-        $statement = $this->createStatement($collection, $extra);
-        $hydrated = $this->fetchHydrated($collection, $statement);
-        if (!$hydrated) {
-            return false;
-        }
+        $hydrated = $this->fetchHydrated($collection, $this->createStatement($collection, $extra));
 
-        return $this->parseHydrated($hydrated);
+        return $hydrated ? $this->parseHydrated($hydrated) : false;
     }
 
     /** @return array<int, mixed> */
     public function fetchAll(Collection $collection, mixed $extra = null): array
     {
         $statement = $this->createStatement($collection, $extra);
-        $entities = [];
 
+        $entities = [];
         while ($hydrated = $this->fetchHydrated($collection, $statement)) {
             $entities[] = $this->parseHydrated($hydrated);
         }
@@ -74,17 +65,16 @@ final class Mapper extends AbstractMapper
             return parent::persist($object, $onCollection);
         }
 
-        $next = $onCollection->getNext();
+        $next = $onCollection->next;
 
         if ($next) {
-            $remote = $this->getStyle()->remoteIdentifier($next->getName());
-            $next->setMapper($this);
-            $next->persist($this->entityFactory->get($object, $remote));
+            $remote = $this->style->remoteIdentifier($next->name);
+            $this->persist($this->entityFactory->get($object, $remote), $next);
         }
 
-        foreach ($onCollection->getChildren() as $child) {
-            $remote = $this->getStyle()->remoteIdentifier($child->getName());
-            $child->persist($this->entityFactory->get($object, $remote));
+        foreach ($onCollection->children as $child) {
+            $remote = $this->style->remoteIdentifier($child->name);
+            $this->persist($this->entityFactory->get($object, $remote), $child);
         }
 
         return parent::persist($object, $onCollection);
@@ -92,7 +82,7 @@ final class Mapper extends AbstractMapper
 
     public function flush(): void
     {
-        $conn = $this->db->getConnection();
+        $conn = $this->db->connection;
         $conn->beginTransaction();
 
         try {
@@ -109,7 +99,7 @@ final class Mapper extends AbstractMapper
         $conn->commit();
     }
 
-    protected function flushSingle(object $entity): void
+    private function flushSingle(object $entity): void
     {
         $coll    = $this->tracked[$entity];
         $cols    = $this->extractColumns($entity, $coll);
@@ -128,13 +118,13 @@ final class Mapper extends AbstractMapper
      *
      * @return array<string, mixed>
      */
-    protected function extractAndOperateCompositions(Collection $collection, array $cols): array
+    private function extractAndOperateCompositions(Collection $collection, array $cols): array
     {
         if (!$collection instanceof Composite) {
             return $cols;
         }
 
-        foreach ($collection->getCompositions() as $comp => $spec) {
+        foreach ($collection->compositions as $comp => $spec) {
             $compCols = [];
             foreach ($spec as $key) {
                 if (!isset($cols[$key])) {
@@ -163,9 +153,9 @@ final class Mapper extends AbstractMapper
      *
      * @return array<int, array<int, mixed>>
      */
-    protected function guessCondition(array &$columns, Collection $collection): array
+    private function guessCondition(array &$columns, Collection $collection): array
     {
-        $primaryName = $this->getStyle()->identifier($collection->getName());
+        $primaryName = $this->style->identifier($collection->name);
         $condition   = [[$primaryName, '=', $columns[$primaryName]]];
         unset($columns[$primaryName]);
 
@@ -173,45 +163,42 @@ final class Mapper extends AbstractMapper
     }
 
     /** @param array<string, mixed> $condition */
-    protected function rawDelete(
+    private function rawDelete(
         array $condition,
         Collection $collection,
         object $entity,
     ): bool {
-        $name      = $collection->getName();
         $columns   = $this->extractColumns($entity, $collection);
         $condition = $this->guessCondition($columns, $collection);
 
         return $this->db
-            ->deleteFrom($name)
+            ->deleteFrom($collection->name)
             ->where($condition)
             ->exec();
     }
 
     /** @param array<string, mixed> $columns */
-    protected function rawUpdate(array $columns, Collection $collection): bool
+    private function rawUpdate(array $columns, Collection $collection): bool
     {
         $columns   = $this->extractAndOperateCompositions($collection, $columns);
-        $name      = $collection->getName();
         $condition = $this->guessCondition($columns, $collection);
 
         return $this->db
-            ->update($name)
+            ->update($collection->name)
             ->set($columns)
             ->where($condition)
             ->exec();
     }
 
     /** @param array<string, mixed> $columns */
-    protected function rawInsert(
+    private function rawInsert(
         array $columns,
         Collection $collection,
         object|null $entity = null,
     ): bool {
-        $columns    = $this->extractAndOperateCompositions($collection, $columns);
-        $name       = $collection->getName();
-        $isInserted = $this->db
-            ->insertInto($name, array_keys($columns))
+        $columns = $this->extractAndOperateCompositions($collection, $columns);
+        $result  = $this->db
+            ->insertInto($collection->name, array_keys($columns))
             ->values(array_values($columns))
             ->exec();
 
@@ -219,16 +206,14 @@ final class Mapper extends AbstractMapper
             $this->checkNewIdentity($entity, $collection);
         }
 
-        return $isInserted;
+        return $result;
     }
 
-    protected function checkNewIdentity(object $entity, Collection $collection): bool
+    private function checkNewIdentity(object $entity, Collection $collection): bool
     {
-        $identity = null;
         try {
-            $identity = $this->db->getConnection()->lastInsertId();
+            $identity = $this->db->connection->lastInsertId();
         } catch (PDOException) {
-            //some drivers may throw an exception here, it is just irrelevant
             return false;
         }
 
@@ -236,13 +221,12 @@ final class Mapper extends AbstractMapper
             return false;
         }
 
-        $primaryName = $this->getStyle()->identifier($collection->getName());
-        $this->entityFactory->set($entity, $primaryName, $identity);
+        $this->entityFactory->set($entity, $this->style->identifier($collection->name), $identity);
 
         return true;
     }
 
-    protected function generateQuery(Collection $collection): Sql
+    private function generateQuery(Collection $collection): Sql
     {
         $collections = iterator_to_array(
             CollectionIterator::recursive($collection),
@@ -257,9 +241,9 @@ final class Mapper extends AbstractMapper
     }
 
     /** @return array<string, mixed> */
-    protected function extractColumns(object $entity, Collection $collection): array
+    private function extractColumns(object $entity, Collection $collection): array
     {
-        $primaryName = $this->getStyle()->identifier($collection->getName());
+        $primaryName = $this->style->identifier($collection->name);
         $cols = $this->entityFactory->extractProperties($entity);
 
         foreach ($cols as &$c) {
@@ -274,44 +258,44 @@ final class Mapper extends AbstractMapper
     }
 
     /** @param array<string, Collection> $collections */
-    protected function buildSelectStatement(Sql $sql, array $collections): Sql
+    private function buildSelectStatement(Sql $sql, array $collections): Sql
     {
         $selectTable = [];
         foreach ($collections as $tableSpecifier => $c) {
             if ($c instanceof Composite) {
-                foreach ($c->getCompositions() as $composition => $columns) {
+                foreach ($c->compositions as $composition => $columns) {
                     foreach ($columns as $col) {
                         $selectTable[] = $tableSpecifier . '_comp' . $composition . '.' . $col;
                     }
 
                     $selectTable[] = $tableSpecifier . '_comp' . $composition . '.' .
-                    $this->getStyle()->identifier($composition) .
+                    $this->style->identifier($composition) .
                     ' as ' . $composition . '_id';
                 }
             }
 
             if ($c instanceof Filtered) {
-                $filters = $c->getFilters();
+                $filters = $c->filters;
                 if ($filters) {
                     $pkName = $tableSpecifier . '.' .
-                        $this->getStyle()->identifier($c->getName());
+                        $this->style->identifier($c->name);
 
-                    if ($c->isIdentifierOnly()) {
+                    if ($c->identifierOnly) {
                         $selectColumns = [$pkName];
                     } else {
                         $selectColumns = [
                             $tableSpecifier . '.' .
-                            $this->getStyle()->identifier($c->getName()),
+                            $this->style->identifier($c->name),
                         ];
                         foreach ($filters as $f) {
                             $selectColumns[] = $tableSpecifier . '.' . $f;
                         }
                     }
 
-                    $nextName = $c->getNext()?->getName();
+                    $nextName = $c->next?->name;
                     if ($nextName !== null) {
                         $selectColumns[] = $tableSpecifier . '.' .
-                            $this->getStyle()->remoteIdentifier($nextName);
+                            $this->style->remoteIdentifier($nextName);
                     }
 
                     $selectTable = array_merge($selectTable, $selectColumns);
@@ -325,7 +309,7 @@ final class Mapper extends AbstractMapper
     }
 
     /** @param array<string, Collection> $collections */
-    protected function buildTables(Sql $sql, array $collections): Sql
+    private function buildTables(Sql $sql, array $collections): Sql
     {
         $conditions = $aliases = [];
 
@@ -347,17 +331,15 @@ final class Mapper extends AbstractMapper
      *
      * @return array<mixed>
      */
-    protected function parseConditions(array &$conditions, Collection $collection, string $alias): array
+    private function parseConditions(array &$conditions, Collection $collection, string $alias): array
     {
-        $entity             = $collection->getName();
-        $originalConditions = $collection->getCondition();
-        $parsedConditions   = [];
-        $aliasedPk          = $alias . '.' . $this->getStyle()->identifier($entity);
+        $parsedConditions = [];
+        $aliasedPk = $alias . '.' . $this->style->identifier($collection->name);
 
-        if (is_scalar($originalConditions)) {
-            $parsedConditions[] = [$aliasedPk, '=', $originalConditions];
-        } elseif (is_array($originalConditions)) {
-            foreach ($originalConditions as $column => $value) {
+        if (is_scalar($collection->condition)) {
+            $parsedConditions[] = [$aliasedPk, '=', $collection->condition];
+        } elseif (is_array($collection->condition)) {
+            foreach ($collection->condition as $column => $value) {
                 if (!empty($parsedConditions)) {
                     $parsedConditions[] = 'AND';
                 }
@@ -369,13 +351,13 @@ final class Mapper extends AbstractMapper
         return $parsedConditions;
     }
 
-    protected function parseCompositions(Sql $sql, Collection $collection, string $entity): void
+    private function parseCompositions(Sql $sql, Collection $collection, string $entity): void
     {
         if (!$collection instanceof Composite) {
             return;
         }
 
-        foreach (array_keys($collection->getCompositions()) as $comp) {
+        foreach (array_keys($collection->compositions) as $comp) {
             $sql->innerJoin($comp);
             $sql->as($entity . '_comp' . $comp);
         }
@@ -385,17 +367,17 @@ final class Mapper extends AbstractMapper
      * @param array<string, string> $aliases
      * @param array<mixed> $conditions
      */
-    protected function parseCollection(
+    private function parseCollection(
         Sql $sql,
         Collection $collection,
         string $alias,
         array &$aliases,
         array &$conditions,
-    ): mixed {
-        $s      = $this->getStyle();
-        $entity = $collection->getName();
-        $parent = $collection->getParent()?->getName();
-        $next   = $collection->getNext()?->getName();
+    ): void {
+        $s      = $this->style;
+        $entity = $collection->name;
+        $parent = $collection->parent?->name;
+        $next   = $collection->next?->name;
 
         $parentAlias = $parent ? $aliases[$parent] : null;
         $aliases[$entity] = $alias;
@@ -417,10 +399,10 @@ final class Mapper extends AbstractMapper
             $sql->from($entity);
             $this->parseCompositions($sql, $collection, $entity);
 
-            return null;
+            return;
         }
 
-        if ($collection->isRequired()) {
+        if ($collection->required) {
             $sql->innerJoin($entity);
         } else {
             $sql->leftJoin($entity);
@@ -443,19 +425,17 @@ final class Mapper extends AbstractMapper
             $onAlias = $aliasedPk;
         }
 
-        return $sql->on([$onName => $onAlias]);
+        $sql->on([$onName => $onAlias]);
     }
 
-    protected function hasComposition(string $entity, string|null $next, string|null $parent): bool
+    private function hasComposition(string $entity, string|null $next, string|null $parent): bool
     {
         if ($next === null || $parent === null) {
             return false;
         }
 
-        $s = $this->getStyle();
-
-        return $entity === $s->composed($parent, $next)
-            || $entity === $s->composed($next, $parent);
+        return $entity === $this->style->composed($parent, $next)
+            || $entity === $this->style->composed($next, $parent);
     }
 
     /**
@@ -463,7 +443,7 @@ final class Mapper extends AbstractMapper
      *
      * @return SplObjectStorage<object, Collection>
      */
-    protected function createEntities(
+    private function createEntities(
         array $row,
         PDOStatement $statement,
         Collection $collection,
@@ -479,8 +459,8 @@ final class Mapper extends AbstractMapper
         foreach (array_reverse($row, true) as $col => $value) {
             /** @phpstan-ignore offsetAccess.nonOffsetAccessible */
             $columnName    = $statement->getColumnMeta($col)['name'];
-            $primaryName   = $this->getStyle()->identifier(
-                $entities[$entityInstance]->getName(),
+            $primaryName   = $this->style->identifier(
+                $entities[$entityInstance]->name,
             );
 
             $this->entityFactory->set($entityInstance, $columnName, $value);
@@ -496,7 +476,7 @@ final class Mapper extends AbstractMapper
     }
 
     /** @param SplObjectStorage<object, Collection> $hydrated */
-    private function parseHydrated(SplObjectStorage $hydrated): mixed
+    private function parseHydrated(SplObjectStorage $hydrated): object
     {
         $this->tracked->addAll($hydrated);
         $hydrated->rewind();
@@ -507,11 +487,9 @@ final class Mapper extends AbstractMapper
     /** @return SplObjectStorage<object, Collection>|false */
     private function fetchHydrated(Collection $collection, PDOStatement $statement): SplObjectStorage|false
     {
-        if (!$collection->hasMore()) {
-            return $this->fetchSingle($collection, $statement);
-        }
+        $method = $collection->more ? 'fetchMulti' : 'fetchSingle';
 
-        return $this->fetchMulti($collection, $statement);
+        return $this->$method($collection, $statement);
     }
 
     private function createStatement(
@@ -525,7 +503,7 @@ final class Mapper extends AbstractMapper
         }
 
         $statement = $this->db->prepare((string) $query, PDO::FETCH_NUM);
-        $statement->execute($query->getParams());
+        $statement->execute($query->params);
 
         return $statement;
     }
@@ -541,9 +519,9 @@ final class Mapper extends AbstractMapper
             return false;
         }
 
-        $entityName = $collection->resolveEntityName($this->entityFactory, $row);
+        $entity = $this->entityFactory->hydrate($row, $collection->resolveEntityName($this->entityFactory, $row));
         $entities = new SplObjectStorage();
-        $entities[$this->entityFactory->hydrate($row, $entityName)] = $collection;
+        $entities[$entity] = $collection;
 
         return $entities;
     }

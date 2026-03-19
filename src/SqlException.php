@@ -6,6 +6,6 @@ namespace Respect\Relational;
 
 use InvalidArgumentException;
 
-class SqlException extends InvalidArgumentException
+final class SqlException extends InvalidArgumentException
 {
 }

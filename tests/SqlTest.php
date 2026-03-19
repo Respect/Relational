@@ -63,7 +63,7 @@ class SqlTest extends TestCase
             'SELECT f1, f2 AS alias, f3, f4 AS another_alias FROM table',
             $sql,
         );
-        $this->assertEmpty($this->object->getParams());
+        $this->assertEmpty($this->object->params);
     }
 
     public function testSelectWithAggregateFunctions(): void
@@ -95,7 +95,7 @@ class SqlTest extends TestCase
             'SELECT * FROM table WHERE column = ? AND other_column = ?',
             $sql,
         );
-        $this->assertEquals(['123', '456'], $this->object->getParams());
+        $this->assertEquals(['123', '456'], $this->object->params);
     }
 
     public function testWhereWithOrConditions(): void
@@ -109,7 +109,7 @@ class SqlTest extends TestCase
             'SELECT * FROM table WHERE column = ? OR other_column = ?',
             $sql,
         );
-        $this->assertEquals(['123', '456'], $this->object->getParams());
+        $this->assertEquals(['123', '456'], $this->object->params);
     }
 
     public function testWhereWithNestedGroupedConditions(): void
@@ -127,7 +127,7 @@ class SqlTest extends TestCase
             'SELECT * FROM table WHERE foo = ? OR (xoo = ? AND xoo = ?)',
             $sql,
         );
-        $this->assertEquals(['baz', 'qux', 'zap'], $this->object->getParams());
+        $this->assertEquals(['baz', 'qux', 'zap'], $this->object->params);
     }
 
     public function testSelectWhereArrayQualifiedNames(): void
@@ -143,7 +143,7 @@ class SqlTest extends TestCase
             'SELECT * FROM table a, other_table b WHERE a.column = ? AND b.other_column = ?',
             $sql,
         );
-        $this->assertEquals(['123', '456'], $this->object->getParams());
+        $this->assertEquals(['123', '456'], $this->object->params);
     }
 
     public function testWhereIn(): void
@@ -152,7 +152,7 @@ class SqlTest extends TestCase
         $sql = (string) $this->object->select('*')->from('table')
             ->where([['column', 'IN', $data]]);
         $this->assertEquals('SELECT * FROM table WHERE column IN (?, ?)', $sql);
-        $this->assertEquals($data, $this->object->getParams());
+        $this->assertEquals($data, $this->object->params);
     }
 
     public function testWhereBetween(): void
@@ -160,7 +160,7 @@ class SqlTest extends TestCase
         $sql = (string) $this->object->select('*')->from('table')
             ->where([['column', 'BETWEEN', [1, 100]]]);
         $this->assertEquals('SELECT * FROM table WHERE column BETWEEN ? AND ?', $sql);
-        $this->assertEquals([1, 100], $this->object->getParams());
+        $this->assertEquals([1, 100], $this->object->params);
     }
 
     public function testWhereInWithCompoundConditions(): void
@@ -174,7 +174,7 @@ class SqlTest extends TestCase
             'SELECT * FROM table WHERE column IN (?, ?, ?) AND other = ?',
             $sql,
         );
-        $this->assertEquals(['a', 'b', 'c', 'foo'], $this->object->getParams());
+        $this->assertEquals(['a', 'b', 'c', 'foo'], $this->object->params);
     }
 
     /** @return array<int, array<int, string>> */
@@ -200,7 +200,7 @@ class SqlTest extends TestCase
         $sql = (string) $this->object->select('*')->from('table')
             ->where([['id', $operator, '10']]);
         $this->assertEquals('SELECT * FROM table WHERE id ' . $operator . ' ?', $sql);
-        $this->assertEquals(['10'], $this->object->getParams());
+        $this->assertEquals(['10'], $this->object->params);
     }
 
     public function testMixedOperatorsInCompoundConditions(): void
@@ -216,7 +216,7 @@ class SqlTest extends TestCase
             'SELECT * FROM table WHERE age >= ? AND name LIKE ? AND status != ?',
             $sql,
         );
-        $this->assertEquals(['18', '%foo%', 'banned'], $this->object->getParams());
+        $this->assertEquals(['18', '%foo%', 'banned'], $this->object->params);
     }
 
     public function testSelectGroupBy(): void
@@ -239,7 +239,7 @@ class SqlTest extends TestCase
             . ' HAVING other_column = ? AND yet_another_column = ?',
             $sql,
         );
-        $this->assertEquals([456, 567], $this->object->getParams());
+        $this->assertEquals([456, 567], $this->object->params);
     }
 
     public function testHavingWithAggregateOperators(): void
@@ -257,7 +257,7 @@ class SqlTest extends TestCase
             . ' GROUP BY abc, def HAVING SUM(abc) >= ? AND AVG(def) = ?',
             $sql,
         );
-        $this->assertEquals(['10', '10', 15], $this->object->getParams());
+        $this->assertEquals(['10', '10', 15], $this->object->params);
     }
 
     public function testSimpleUpdate(): void
@@ -273,7 +273,7 @@ class SqlTest extends TestCase
             . ' WHERE other_column = ? AND yet_another_column = ?',
             $sql,
         );
-        $this->assertEquals([123, 234, 456, 567], $this->object->getParams());
+        $this->assertEquals([123, 234, 456, 567], $this->object->params);
     }
 
     public function testSetWithRawExpression(): void
@@ -285,7 +285,7 @@ class SqlTest extends TestCase
             'UPDATE table SET counter = counter + 1, updated_at = NOW() WHERE id = ?',
             $sql,
         );
-        $this->assertEquals(['5'], $this->object->getParams());
+        $this->assertEquals(['5'], $this->object->params);
     }
 
     public function testSetWithSubquery(): void
@@ -298,7 +298,7 @@ class SqlTest extends TestCase
             'UPDATE table SET high_score = (SELECT MAX(score) FROM scores WHERE active = ?) WHERE id = ?',
             $sql,
         );
-        $this->assertEquals(['1', '5'], $this->object->getParams());
+        $this->assertEquals(['1', '5'], $this->object->params);
     }
 
     public function testSimpleInsert(): void
@@ -306,7 +306,7 @@ class SqlTest extends TestCase
         $sql = (string) $this->object->insertInto('table', ['column', 'column_2'])
             ->values([123, 234]);
         $this->assertEquals('INSERT INTO table (column, column_2) VALUES (?, ?)', $sql);
-        $this->assertEquals([123, 234], $this->object->getParams());
+        $this->assertEquals([123, 234], $this->object->params);
     }
 
     public function testInsertWithRawValues(): void
@@ -317,7 +317,7 @@ class SqlTest extends TestCase
             'INSERT INTO table (column, column_2, date) VALUES (?, ?, NOW())',
             $sql,
         );
-        $this->assertEquals([123, 234], $this->object->getParams());
+        $this->assertEquals([123, 234], $this->object->params);
     }
 
     public function testInsertWithSelectSubquery(): void
@@ -333,7 +333,7 @@ class SqlTest extends TestCase
             'INSERT INTO t1 (f1, f2) SELECT f1, f2 FROM t2 WHERE f3 = ? AND f4 = ?',
             $sql,
         );
-        $this->assertEquals([3, 4], $this->object->getParams());
+        $this->assertEquals([3, 4], $this->object->params);
     }
 
     public function testSimpleDelete(): void
@@ -347,7 +347,7 @@ class SqlTest extends TestCase
             'DELETE FROM table WHERE other_column = ? AND yet_another_column = ?',
             $sql,
         );
-        $this->assertEquals([456, 567], $this->object->getParams());
+        $this->assertEquals([456, 567], $this->object->params);
     }
 
     public function testWhereWithSubquery(): void
@@ -361,7 +361,7 @@ class SqlTest extends TestCase
             . ' AND column2 = ?',
             $sql,
         );
-        $this->assertEquals([2, 'foo'], $this->object->getParams());
+        $this->assertEquals([2, 'foo'], $this->object->params);
     }
 
     public function testNestedSubqueries(): void
@@ -377,7 +377,7 @@ class SqlTest extends TestCase
             . ' WHERE column2 = (SELECT column1 FROM t3 WHERE column3 = ?) AND column3 = ?)',
             $sql,
         );
-        $this->assertEquals([3, 'foo'], $this->object->getParams());
+        $this->assertEquals([3, 'foo'], $this->object->params);
     }
 
     public function testSelectColumnAsSubquery(): void
@@ -390,7 +390,7 @@ class SqlTest extends TestCase
             'SELECT f1, (SELECT f1 FROM t2 WHERE f2 = ?) AS subalias FROM t1 WHERE f2 = ?',
             $sql,
         );
-        $this->assertEquals([2, 'foo'], $this->object->getParams());
+        $this->assertEquals([2, 'foo'], $this->object->params);
     }
 
     public function testWhereWithFunctionColumn(): void
@@ -401,7 +401,7 @@ class SqlTest extends TestCase
             "SELECT column, COUNT(column), other_column FROM table WHERE AES_DECRYPT('pass', 'salt') = ?",
             $sql,
         );
-        $this->assertEquals([123], $this->object->getParams());
+        $this->assertEquals([123], $this->object->params);
     }
 
     public function testCreateTable(): void
@@ -533,7 +533,7 @@ class SqlTest extends TestCase
             'SELECT * FROM table WHERE a = ? ORDER BY b DESC',
             (string) $base,
         );
-        $this->assertEquals([1], $base->getParams());
+        $this->assertEquals([1], $base->params);
     }
 
     public function testConcatMergesParams(): void
@@ -542,7 +542,7 @@ class SqlTest extends TestCase
         $extra = Sql::select('*')->from('t2')->where([['b', '=', 2]]);
         $base->concat($extra);
 
-        $this->assertEquals([1, 2], $base->getParams());
+        $this->assertEquals([1, 2], $base->params);
     }
 
     public function testWhereWithNullValue(): void
@@ -550,7 +550,7 @@ class SqlTest extends TestCase
         $sql = (string) $this->object->select('*')->from('table')
             ->where([['col', '=', null]]);
         $this->assertEquals('SELECT * FROM table WHERE col IS NULL', $sql);
-        $this->assertEmpty($this->object->getParams());
+        $this->assertEmpty($this->object->params);
     }
 
     public function testWhereWithNotEqualNull(): void
@@ -558,7 +558,7 @@ class SqlTest extends TestCase
         $sql = (string) $this->object->select('*')->from('table')
             ->where([['col', '!=', null]]);
         $this->assertEquals('SELECT * FROM table WHERE col IS NOT NULL', $sql);
-        $this->assertEmpty($this->object->getParams());
+        $this->assertEmpty($this->object->params);
     }
 
     public function testWhereWithNotEqualNullDiamondOperator(): void
@@ -579,7 +579,7 @@ class SqlTest extends TestCase
             'SELECT * FROM table WHERE name = ? AND deleted_at IS NULL',
             $sql,
         );
-        $this->assertEquals(['foo'], $this->object->getParams());
+        $this->assertEquals(['foo'], $this->object->params);
     }
 
     public function testInsertWithNullValue(): void
@@ -587,7 +587,7 @@ class SqlTest extends TestCase
         $sql = (string) $this->object->insertInto('table', ['a', 'b', 'c'])
             ->values([1, null, 'foo']);
         $this->assertEquals('INSERT INTO table (a, b, c) VALUES (?, ?, ?)', $sql);
-        $this->assertEquals([1, null, 'foo'], $this->object->getParams());
+        $this->assertEquals([1, null, 'foo'], $this->object->params);
     }
 
     public function testSetWithNullValue(): void
@@ -599,7 +599,7 @@ class SqlTest extends TestCase
             'UPDATE table SET col = ?, other = ? WHERE id = ?',
             $sql,
         );
-        $this->assertEquals([null, 123, 1], $this->object->getParams());
+        $this->assertEquals([null, 123, 1], $this->object->params);
     }
 
     public function testNullWithUnsupportedOperatorThrows(): void

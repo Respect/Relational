@@ -6,6 +6,7 @@ namespace Respect\Relational;
 
 use PDO;
 use PDOStatement;
+use stdClass;
 
 use function array_map;
 use function is_array;
@@ -15,11 +16,11 @@ use function is_object;
 
 final class Db
 {
-    protected Sql $currentSql;
+    private Sql $currentSql;
 
-    protected Sql $protoSql;
+    private readonly Sql $protoSql;
 
-    public function __construct(protected readonly PDO $connection, Sql|null $sqlPrototype = null)
+    public function __construct(public readonly PDO $connection, Sql|null $sqlPrototype = null)
     {
         $connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $this->protoSql = $sqlPrototype ?: new Sql();
@@ -31,23 +32,28 @@ final class Db
         return (bool) $this->executeStatement();
     }
 
-    public function fetch(mixed $object = '\stdClass', mixed $extra = null): mixed
+    /**
+     * @param int|string|array<mixed>|callable|object $object
+     * @param array<mixed>|null $extra
+     */
+    public function fetch(int|string|array|callable|object $object = stdClass::class, array|null $extra = null): mixed
     {
         $result = $this->performFetch(__FUNCTION__, $object, $extra);
 
         return is_callable($object) ? $object($result) : $result;
     }
 
-    public function fetchAll(mixed $object = '\stdClass', mixed $extra = null): mixed
-    {
+    /**
+     * @param int|string|array<mixed>|callable|object $object
+     * @param array<mixed>|null $extra
+     */
+    public function fetchAll(
+        int|string|array|callable|object $object = stdClass::class,
+        array|null $extra = null,
+    ): mixed {
         $result = $this->performFetch(__FUNCTION__, $object, $extra);
 
         return is_callable($object) ? array_map($object, $result) : $result;
-    }
-
-    public function getConnection(): PDO
-    {
-        return $this->connection;
     }
 
     public function getSql(): Sql
@@ -55,14 +61,20 @@ final class Db
         return $this->currentSql;
     }
 
-    /** @param array<int, mixed>|null $extra */
-    public function prepare(string $queryString, mixed $object = '\stdClass', array|null $extra = null): PDOStatement
-    {
+    /**
+     * @param int|string|array<mixed>|callable|object $object
+     * @param array<int, mixed>|null $extra
+     */
+    public function prepare(
+        string $queryString,
+        int|string|array|callable|object $object = stdClass::class,
+        array|null $extra = null,
+    ): PDOStatement {
         $statement = $this->connection->prepare($queryString);
 
         match (true) {
             is_int($object) => $statement->setFetchMode($object),
-            $object === '\stdClass' || $object === 'stdClass' => $statement->setFetchMode(PDO::FETCH_OBJ),
+            $object === stdClass::class => $statement->setFetchMode(PDO::FETCH_OBJ),
             is_callable($object) => $statement->setFetchMode(PDO::FETCH_OBJ),
             is_object($object) => $statement->setFetchMode(PDO::FETCH_INTO, $object),
             is_array($object) => $statement->setFetchMode(PDO::FETCH_ASSOC),
@@ -73,20 +85,31 @@ final class Db
         return $statement;
     }
 
-    protected function executeStatement(mixed $object = '\stdClass', mixed $extra = null): PDOStatement
-    {
+    /**
+     * @param int|string|array<mixed>|callable|object $object
+     * @param array<mixed>|null $extra
+     */
+    private function executeStatement(
+        int|string|array|callable|object $object = stdClass::class,
+        array|null $extra = null,
+    ): PDOStatement {
         $statement = $this->prepare((string) $this->currentSql, $object, $extra);
-        $statement->execute($this->currentSql->getParams());
+        $statement->execute($this->currentSql->params);
         $this->currentSql = clone $this->protoSql;
 
         return $statement;
     }
 
-    protected function performFetch(string $method, mixed $object = '\stdClass', mixed $extra = null): mixed
-    {
-        $statement = $this->executeStatement($object, $extra);
-
-        return $statement->{$method}();
+    /**
+     * @param int|string|array<mixed>|callable|object $object
+     * @param array<mixed>|null $extra
+     */
+    private function performFetch(
+        string $method,
+        int|string|array|callable|object $object = stdClass::class,
+        array|null $extra = null,
+    ): mixed {
+        return $this->executeStatement($object, $extra)->{$method}();
     }
 
     /** @param array<mixed> $arguments */

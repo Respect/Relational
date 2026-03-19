@@ -113,7 +113,7 @@ class DbTest extends TestCase
         $sql = $this->object->select('*')->from('unit')
             ->where([['testb', '=', 'abc']])->getSql();
         $this->assertEquals('SELECT * FROM unit WHERE testb = ?', (string) $sql);
-        $this->assertEquals(['abc'], $sql->getParams());
+        $this->assertEquals(['abc'], $sql->params);
     }
 
     public function testFluentSelectWithParams(): void
@@ -133,7 +133,7 @@ class DbTest extends TestCase
 
     public function testGetConnectionReturnsPdoInstance(): void
     {
-        $connection = $this->object->getConnection();
+        $connection = $this->object->connection;
         $this->assertInstanceOf(PDO::class, $connection);
     }
 
