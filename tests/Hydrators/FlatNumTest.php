@@ -11,7 +11,6 @@ use PHPUnit\Framework\TestCase;
 use Respect\Data\Collections\Collection;
 use Respect\Data\Collections\Typed;
 use Respect\Data\EntityFactory;
-use Respect\Data\Styles\Standard;
 use stdClass;
 
 #[CoversClass(FlatNum::class)]
@@ -39,7 +38,7 @@ class FlatNumTest extends TestCase
         $stmt->execute();
         $row = $stmt->fetch(PDO::FETCH_NUM);
 
-        $hydrator = new FlatNum($stmt, new Standard());
+        $hydrator = new FlatNum($stmt);
         $result = $hydrator->hydrate($row, Collection::author(), $this->factory);
 
         $this->assertNotFalse($result);
@@ -60,7 +59,7 @@ class FlatNumTest extends TestCase
         $stmt->execute();
         $row = $stmt->fetch(PDO::FETCH_NUM);
 
-        $hydrator = new FlatNum($stmt, new Standard());
+        $hydrator = new FlatNum($stmt);
         $collection = Collection::author()->post;
         $result = $hydrator->hydrate($row, $collection, $this->factory);
 
@@ -75,7 +74,7 @@ class FlatNumTest extends TestCase
         $stmt->execute();
         $row = $stmt->fetch(PDO::FETCH_NUM);
 
-        $hydrator = new FlatNum($stmt, new Standard());
+        $hydrator = new FlatNum($stmt);
 
         $this->assertFalse($hydrator->hydrate($row, Collection::author(), $this->factory));
     }
@@ -91,7 +90,7 @@ class FlatNumTest extends TestCase
         $row = $stmt->fetch(PDO::FETCH_NUM);
 
         $factory = new EntityFactory(entityNamespace: 'Respect\Relational\Hydrators\\');
-        $hydrator = new FlatNum($stmt, new Standard());
+        $hydrator = new FlatNum($stmt);
         $collection = Typed::by('type')->issue();
         $result = $hydrator->hydrate($row, $collection, $factory);
 
