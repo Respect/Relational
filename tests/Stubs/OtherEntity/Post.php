@@ -10,6 +10,8 @@ class Post
 
     private mixed $author_id = null;
 
+    private mixed $author = null;
+
     private mixed $title = null;
 
     private mixed $text = null;
@@ -29,9 +31,14 @@ class Post
         return $this->id;
     }
 
-    public function getAuthor(): mixed
+    public function getAuthorId(): mixed
     {
         return $this->author_id;
+    }
+
+    public function getAuthor(): mixed
+    {
+        return $this->author;
     }
 
     public function getText(): mixed
