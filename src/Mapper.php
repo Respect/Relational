@@ -18,6 +18,7 @@ use Respect\Relational\Hydrators\FlatNum;
 use SplObjectStorage;
 use Throwable;
 
+use function array_key_exists;
 use function array_keys;
 use function array_merge;
 use function array_push;
@@ -71,12 +72,20 @@ final class Mapper extends AbstractMapper
 
         if ($next) {
             $remote = $this->style->remoteIdentifier($next->name);
-            $this->persist($this->entityFactory->get($object, $remote), $next);
+            $related = $this->getRelatedEntity($object, $remote);
+            if ($related !== null) {
+                $this->persist($related, $next);
+            }
         }
 
         foreach ($onCollection->children as $child) {
             $remote = $this->style->remoteIdentifier($child->name);
-            $this->persist($this->entityFactory->get($object, $remote), $child);
+            $related = $this->getRelatedEntity($object, $remote);
+            if ($related === null) {
+                continue;
+            }
+
+            $this->persist($related, $child);
         }
 
         return parent::persist($object, $onCollection);
@@ -104,6 +113,22 @@ final class Mapper extends AbstractMapper
     protected function defaultHydrator(Collection $collection): Hydrator
     {
         return new FlatNum($this->lastStatement);
+    }
+
+    /** Resolve related entity from relation property or FK field */
+    private function getRelatedEntity(object $object, string $remoteField): object|null
+    {
+        $relation = $this->style->relationProperty($remoteField);
+        if ($relation !== null) {
+            $value = $this->entityFactory->get($object, $relation);
+            if (is_object($value)) {
+                return $value;
+            }
+        }
+
+        $value = $this->entityFactory->get($object, $remoteField);
+
+        return is_object($value) ? $value : null;
     }
 
     private function flushSingle(object $entity): void
@@ -253,12 +278,27 @@ final class Mapper extends AbstractMapper
         $primaryName = $this->style->identifier($collection->name);
         $cols = $this->entityFactory->extractProperties($entity);
 
-        foreach ($cols as &$c) {
-            if (!is_object($c)) {
+        foreach ($cols as $key => $c) {
+            if (is_object($c) && $this->style->isRelationProperty($key)) {
+                unset($cols[$key]);
+
                 continue;
             }
 
-            $c = $this->entityFactory->get($c, $primaryName);
+            if (is_object($c)) {
+                $cols[$key] = $this->entityFactory->get($c, $primaryName);
+
+                continue;
+            }
+
+            if (
+                !$this->style->isRelationProperty($key)
+                || !array_key_exists($this->style->remoteIdentifier($key), $cols)
+            ) {
+                continue;
+            }
+
+            unset($cols[$key]);
         }
 
         return $this->filterColumns($cols, $collection);
