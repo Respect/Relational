@@ -1242,6 +1242,116 @@ class MapperTest extends TestCase
         $this->assertNull($row['text'], 'Non-filtered columns should not be inserted');
     }
 
+    /** Identity Map: fetch() short-circuit */
+    public function testFetchReturnsSameInstanceOnRepeatedPkLookup(): void
+    {
+        $first = $this->mapper->post(5)->fetch();
+        $second = $this->mapper->post(5)->fetch();
+
+        $this->assertSame($first, $second);
+    }
+
+    public function testFetchWithExtraBypassesIdentityMap(): void
+    {
+        $first = $this->mapper->post(5)->fetch();
+        $extra = new Sql();
+        $extra->orderBy('post.id');
+        $second = $this->mapper->post(5)->fetch($extra);
+
+        $this->assertNotSame($first, $second);
+        $this->assertEquals($first->id, $second->id);
+    }
+
+    public function testIdentityMapCountIncreasesOnFetch(): void
+    {
+        $this->assertSame(0, $this->mapper->identityMapCount());
+
+        $this->mapper->author(1)->fetch();
+
+        $this->assertGreaterThan(0, $this->mapper->identityMapCount());
+    }
+
+    public function testClearIdentityMapForcesFreshFetch(): void
+    {
+        $first = $this->mapper->post(5)->fetch();
+        $this->mapper->clearIdentityMap();
+        $second = $this->mapper->post(5)->fetch();
+
+        $this->assertNotSame($first, $second);
+        $this->assertEquals($first->id, $second->id);
+    }
+
+    /** Identity Map: flushSingle() insert/update/delete */
+    public function testInsertedEntityIsRetrievableFromIdentityMap(): void
+    {
+        $entity = new stdClass();
+        $entity->id = null;
+        $entity->title = 'New Post';
+        $entity->text = 'New Text';
+        $entity->author_id = 1;
+
+        $this->mapper->post->persist($entity);
+        $this->mapper->flush();
+
+        // The entity should now have an auto-assigned id and be cached
+        $this->assertNotNull($entity->id);
+
+        $fetched = $this->mapper->post($entity->id)->fetch();
+        $this->assertSame($entity, $fetched);
+    }
+
+    public function testUpdatedEntityKeepsReturningUpdatedInstance(): void
+    {
+        $entity = $this->mapper->post(5)->fetch();
+        $entity->title = 'Updated Title';
+
+        $this->mapper->post->persist($entity);
+        $this->mapper->flush();
+
+        $fetched = $this->mapper->post(5)->fetch();
+        $this->assertSame($entity, $fetched);
+        $this->assertSame('Updated Title', $fetched->title);
+    }
+
+    public function testDeletedEntityIsEvictedFromIdentityMap(): void
+    {
+        $entity = $this->mapper->post(5)->fetch();
+        $this->assertSame($entity, $this->mapper->post(5)->fetch());
+
+        $this->mapper->post->remove($entity);
+        $this->mapper->flush();
+
+        // After delete, fetch should hit DB (and return false since the row is gone)
+        $result = $this->mapper->post(5)->fetch();
+        $this->assertFalse($result);
+    }
+
+    /** Identity Map: parseHydrated() registers related entities */
+    public function testRelatedEntityFromJoinReturnsSameInstanceOnDirectFetch(): void
+    {
+        // Fetch a comment with its related post via join
+        $comment = $this->mapper->comment(7)->post->fetch();
+
+        // The related post entity should have been registered in the identity map
+        $post = $this->mapper->post(5)->fetch();
+        $this->assertSame($comment->post_id, $post->id);
+
+        // They should be the same object instance since parseHydrated()
+        // registers all entities (including nested ones) in the identity map
+        $this->assertSame($post, $this->mapper->post($post->id)->fetch());
+    }
+
+    public function testNestedRelatedEntitiesAllRegisteredInIdentityMap(): void
+    {
+        $this->mapper->comment(7)->post->author->fetch();
+
+        $postFromMap = $this->mapper->post(5)->fetch();
+        $authorFromMap = $this->mapper->author(1)->fetch();
+
+        $this->assertSame($postFromMap, $this->mapper->post(5)->fetch());
+        $this->assertSame($authorFromMap, $this->mapper->author(1)->fetch());
+    }
+
     private function query(string $sql): PDOStatement
     {
         $stmt = $this->conn->query($sql);

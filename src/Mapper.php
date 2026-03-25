@@ -44,6 +44,13 @@ final class Mapper extends AbstractMapper
 
     public function fetch(Collection $collection, mixed $extra = null): mixed
     {
+        if ($extra === null) {
+            $cached = $this->findInIdentityMap($collection);
+            if ($cached !== null) {
+                return $cached;
+            }
+        }
+
         $hydrated = $this->fetchHydrated($collection, $this->createStatement($collection, $extra));
 
         return $hydrated ? $this->parseHydrated($hydrated) : false;
@@ -97,7 +104,7 @@ final class Mapper extends AbstractMapper
         $conn->beginTransaction();
 
         try {
-            foreach ($this->changed as $entity) {
+            foreach ($this->pending as $entity) {
                 $this->flushSingle($entity);
             }
         } catch (Throwable $e) {
@@ -133,15 +140,20 @@ final class Mapper extends AbstractMapper
 
     private function flushSingle(object $entity): void
     {
-        $coll    = $this->tracked[$entity];
-        $cols    = $this->extractColumns($entity, $coll);
+        $coll = $this->tracked[$entity];
+        $cols = $this->extractColumns($entity, $coll);
+        $op   = $this->pending[$entity];
 
-        if ($this->removed->offsetExists($entity)) {
-            $this->rawDelete($cols, $coll, $entity);
-        } elseif ($this->new->offsetExists($entity)) {
-            $this->rawInsert($cols, $coll, $entity);
+        match ($op) {
+            'delete' => $this->rawDelete($cols, $coll, $entity),
+            'insert' => $this->rawInsert($cols, $coll, $entity),
+            default  => $this->rawUpdate($cols, $coll),
+        };
+
+        if ($op === 'delete') {
+            $this->evictFromIdentityMap($entity, $coll);
         } else {
-            $this->rawUpdate($cols, $coll);
+            $this->registerInIdentityMap($entity, $coll);
         }
     }
 
@@ -489,6 +501,12 @@ final class Mapper extends AbstractMapper
     private function parseHydrated(SplObjectStorage $hydrated): object
     {
         $this->tracked->addAll($hydrated);
+
+        // Register all hydrated entities in the PK-indexed identity map
+        foreach ($hydrated as $entity) {
+            $this->registerInIdentityMap($entity, $hydrated[$entity]);
+        }
+
         $hydrated->rewind();
 
         return $hydrated->current();
