@@ -11,11 +11,13 @@ class Post
 {
     public mixed $id = null;
 
-    public mixed $author_id = null;
+    public mixed $author;
 
     public string|null $text = null;
 
     public string|null $title = null;
+
+    public mixed $comment_id;
 
     #[NotPersistable]
     private string $datetime = '';

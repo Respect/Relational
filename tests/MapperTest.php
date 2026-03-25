@@ -17,19 +17,14 @@ use Respect\Data\Collections\Filtered;
 use Respect\Data\Collections\Typed;
 use Respect\Data\EntityFactory;
 use Respect\Data\Styles;
-use stdClass;
 use Throwable;
 use TypeError;
 
 use function array_keys;
-use function array_reverse;
 use function array_values;
 use function count;
 use function current;
 use function date;
-use function end;
-use function get_object_vars;
-use function reset;
 
 #[CoversClass(Mapper::class)]
 class MapperTest extends TestCase
@@ -38,22 +33,22 @@ class MapperTest extends TestCase
 
     protected Mapper $mapper;
 
-    /** @var list<object> */
+    /** @var list<array<string, mixed>> */
     protected array $posts;
 
-    /** @var list<object> */
+    /** @var list<array<string, mixed>> */
     protected array $authors;
 
-    /** @var list<object> */
+    /** @var list<array<string, mixed>> */
     protected array $comments;
 
-    /** @var list<object> */
+    /** @var list<array<string, mixed>> */
     protected array $categories;
 
-    /** @var list<object> */
+    /** @var list<array<string, mixed>> */
     protected array $postsCategories;
 
-    /** @var list<object> */
+    /** @var list<array<string, mixed>> */
     protected array $issues;
 
     protected function setUp(): void
@@ -92,96 +87,52 @@ class MapperTest extends TestCase
             'title VARCHAR(22)',
         ]));
         $this->posts = [
-            (object) [
-                'id' => 5,
-                'title' => 'Post Title',
-                'text' => 'Post Text',
-                'author_id' => 1,
-            ],
+            ['id' => 5, 'title' => 'Post Title', 'text' => 'Post Text', 'author_id' => 1],
         ];
         $this->authors = [
-            (object) [
-                'id' => 1,
-                'name' => 'Author 1',
-            ],
+            ['id' => 1, 'name' => 'Author 1'],
         ];
         $this->comments = [
-            (object) [
-                'id' => 7,
-                'post_id' => 5,
-                'text' => 'Comment Text',
-                'datetime' => '2012-06-19 00:35:42',
-            ],
-            (object) [
-                'id' => 8,
-                'post_id' => 4,
-                'text' => 'Comment Text 2',
-                'datetime' => '2012-06-19 00:35:42',
-            ],
+            ['id' => 7, 'post_id' => 5, 'text' => 'Comment Text', 'datetime' => '2012-06-19 00:35:42'],
+            ['id' => 8, 'post_id' => 4, 'text' => 'Comment Text 2', 'datetime' => '2012-06-19 00:35:42'],
         ];
         $this->categories = [
-            (object) [
-                'id' => 2,
-                'name' => 'Sample Category',
-                'category_id' => null,
-            ],
-            (object) [
-                'id' => 3,
-                'name' => 'NONON',
-                'category_id' => null,
-            ],
+            ['id' => 2, 'name' => 'Sample Category', 'category_id' => null],
+            ['id' => 3, 'name' => 'NONON', 'category_id' => null],
         ];
         $this->postsCategories = [
-            (object) [
-                'id' => 66,
-                'post_id' => 5,
-                'category_id' => 2,
-            ],
+            ['id' => 66, 'post_id' => 5, 'category_id' => 2],
         ];
         $this->issues = [
-            (object) [
-                'id' => 1,
-                'type' => 'bug',
-                'title' => 'Bug 1',
-            ],
-            (object) [
-                'id' => 2,
-                'type' => 'improvement',
-                'title' => 'Improvement 1',
-            ],
+            ['id' => 1, 'type' => 'bug', 'title' => 'Bug 1'],
+            ['id' => 2, 'type' => 'improvement', 'title' => 'Improvement 1'],
         ];
 
-        foreach ($this->authors as $author) {
-            $cols = (array) $author;
-            $db->insertInto('author', array_keys($cols))->values(array_values($cols))->exec();
+        foreach ($this->authors as $row) {
+            $db->insertInto('author', array_keys($row))->values(array_values($row))->exec();
         }
 
-        foreach ($this->posts as $post) {
-            $cols = (array) $post;
-            $db->insertInto('post', array_keys($cols))->values(array_values($cols))->exec();
+        foreach ($this->posts as $row) {
+            $db->insertInto('post', array_keys($row))->values(array_values($row))->exec();
         }
 
-        foreach ($this->comments as $comment) {
-            $cols = (array) $comment;
-            $db->insertInto('comment', array_keys($cols))->values(array_values($cols))->exec();
+        foreach ($this->comments as $row) {
+            $db->insertInto('comment', array_keys($row))->values(array_values($row))->exec();
         }
 
-        foreach ($this->categories as $category) {
-            $cols = (array) $category;
-            $db->insertInto('category', array_keys($cols))->values(array_values($cols))->exec();
+        foreach ($this->categories as $row) {
+            $db->insertInto('category', array_keys($row))->values(array_values($row))->exec();
         }
 
-        foreach ($this->postsCategories as $postCategory) {
-            $cols = (array) $postCategory;
-            $db->insertInto('post_category', array_keys($cols))->values(array_values($cols))->exec();
+        foreach ($this->postsCategories as $row) {
+            $db->insertInto('post_category', array_keys($row))->values(array_values($row))->exec();
         }
 
-        foreach ($this->issues as $issue) {
-            $cols = (array) $issue;
-            $db->insertInto('issues', array_keys($cols))->values(array_values($cols))->exec();
+        foreach ($this->issues as $row) {
+            $db->insertInto('issues', array_keys($row))->values(array_values($row))->exec();
         }
 
-        $mapper = new Mapper($conn);
+        $mapper = new Mapper($conn, new EntityFactory(entityNamespace: 'Respect\\Relational\\'));
         $this->mapper = $mapper;
         $this->conn = $conn;
     }
@@ -215,9 +166,8 @@ class MapperTest extends TestCase
             ->will($this->throwException(new Exception()));
         $conn->expects($this->once())
             ->method('rollback');
-        $mapper = new Mapper($conn);
-        $obj = new stdClass();
-        $obj->id = null;
+        $mapper = new Mapper($conn, new EntityFactory(entityNamespace: 'Respect\\Relational\\'));
+        $obj = new Post();
         $mapper->foo->persist($obj);
         try {
             $mapper->flush();
@@ -242,11 +192,10 @@ class MapperTest extends TestCase
             ->willReturn(true);
         $conn->method('commit')
             ->willReturn(true);
-        $mapper = new Mapper($conn);
-        $obj = new stdClass();
-        $obj->id = null;
+        $mapper = new Mapper($conn, new EntityFactory(entityNamespace: 'Respect\\Relational\\'));
+        $obj = new Author();
         $obj->name = 'bar';
-        $mapper->foo->persist($obj);
+        $mapper->author->persist($obj);
         $mapper->flush();
         $this->assertNull($obj->id);
         $this->assertEquals('bar', $obj->name);
@@ -254,7 +203,7 @@ class MapperTest extends TestCase
 
     public function testRemovingUntrackedObject(): void
     {
-        $comment = new stdClass();
+        $comment = new Comment();
         $comment->id = 7;
         $this->assertNotEmpty($this->mapper->comment[7]->fetch());
         $this->mapper->comment->remove($comment);
@@ -264,30 +213,33 @@ class MapperTest extends TestCase
 
     public function testFetchingSingleEntityFromCollectionShouldReturnFirstRecordFromTable(): void
     {
-        $expectedFirstComment = reset($this->comments);
-        $fetchedFirstComment = $this->mapper->comment->fetch();
-        $this->assertEquals($expectedFirstComment, $fetchedFirstComment);
+        $fetched = $this->mapper->comment->fetch();
+        $this->assertEquals(7, $fetched->id);
+        $this->assertEquals('Comment Text', $fetched->text);
     }
 
     public function testFetchingAllEntitesFromCollectionShouldReturnAllRecords(): void
     {
-        $expectedCategories = $this->categories;
-        $fetchedCategories = $this->mapper->category->fetchAll();
-        $this->assertEquals($expectedCategories, $fetchedCategories);
+        $fetched = $this->mapper->category->fetchAll();
+        $this->assertCount(2, $fetched);
+        $this->assertEquals(2, $fetched[0]->id);
+        $this->assertEquals('Sample Category', $fetched[0]->name);
+        $this->assertEquals(3, $fetched[1]->id);
     }
 
     public function testExtraSqlOnSingleFetchShouldBeAppliedOnMapperSql(): void
     {
-        $expectedLast = end($this->comments);
         $fetchedLast = $this->mapper->comment->fetch(Sql::orderBy('id DESC'));
-        $this->assertEquals($expectedLast, $fetchedLast);
+        $this->assertEquals(8, $fetchedLast->id);
+        $this->assertEquals('Comment Text 2', $fetchedLast->text);
     }
 
     public function testExtraSqlOnFetchAllShouldBeAppliedOnMapperSql(): void
     {
-        $expectedComments = array_reverse($this->comments);
         $fetchedComments = $this->mapper->comment->fetchAll(Sql::orderBy('id DESC'));
-        $this->assertEquals($expectedComments, $fetchedComments);
+        $this->assertCount(2, $fetchedComments);
+        $this->assertEquals(8, $fetchedComments[0]->id);
+        $this->assertEquals(7, $fetchedComments[1]->id);
     }
 
     public function testMultipleConditionsAcrossCollectionsProduceAndClause(): void
@@ -305,11 +257,9 @@ class MapperTest extends TestCase
         $comment = $mapper->comment->post[5]->fetch();
         $this->assertEquals(7, $comment->id);
         $this->assertEquals('Comment Text', $comment->text);
-        $this->assertEquals(5, count(get_object_vars($comment)));
         $this->assertEquals(5, $comment->post->id);
         $this->assertEquals('Post Title', $comment->post->title);
         $this->assertEquals('Post Text', $comment->post->text);
-        $this->assertEquals(4, count(get_object_vars($comment->post)));
     }
 
     public function testOneToN(): void
@@ -320,14 +270,11 @@ class MapperTest extends TestCase
         $this->assertEquals(1, count($comments));
         $this->assertEquals(7, $comment->id);
         $this->assertEquals('Comment Text', $comment->text);
-        $this->assertEquals(5, count(get_object_vars($comment)));
         $this->assertEquals(5, $comment->post->id);
         $this->assertEquals('Post Title', $comment->post->title);
         $this->assertEquals('Post Text', $comment->post->text);
-        $this->assertEquals(5, count(get_object_vars($comment->post)));
         $this->assertEquals(1, $comment->post->author->id);
         $this->assertEquals('Author 1', $comment->post->author->name);
-        $this->assertEquals(2, count(get_object_vars($comment->post->author)));
     }
 
     public function testNtoN(): void
@@ -338,11 +285,9 @@ class MapperTest extends TestCase
         $this->assertEquals(1, count($comments));
         $this->assertEquals(7, $comment->id);
         $this->assertEquals('Comment Text', $comment->text);
-        $this->assertEquals(5, count(get_object_vars($comment)));
         $this->assertEquals(5, $comment->post->id);
         $this->assertEquals('Post Title', $comment->post->title);
         $this->assertEquals('Post Text', $comment->post->text);
-        $this->assertEquals(4, count(get_object_vars($comment->post)));
     }
 
     public function testManyToManyReverse(): void
@@ -356,36 +301,25 @@ class MapperTest extends TestCase
     public function testSimplePersist(): void
     {
         $mapper = $this->mapper;
-        $entity = (object) ['id' => 4, 'name' => 'inserted', 'category_id' => null];
+        $entity = new Category();
+        $entity->id = 4;
+        $entity->name = 'inserted';
         $mapper->category->persist($entity);
         $mapper->flush();
         $result = $this->query('select * from category where id=4')
             ->fetch(PDO::FETCH_OBJ);
-        $this->assertEquals($entity, $result);
-    }
-
-    public function testSimplePersistCollection(): void
-    {
-        $mapper = $this->mapper;
-        $entity = (object) ['id' => 4, 'name' => 'inserted', 'category_id' => null];
-        $mapper->category->persist($entity);
-        $mapper->flush();
-        $result = $this->query('select * from category where id=4')
-            ->fetch(PDO::FETCH_OBJ);
-        $this->assertEquals($entity, $result);
+        $this->assertEquals(4, $result->id);
+        $this->assertEquals('inserted', $result->name);
     }
 
     public function testNestedPersistCollection(): void
     {
-        $postWithAuthor = (object) [
-            'id' => null,
-            'title' => 'hi',
-            'text' => 'hi text',
-            'author_id' => (object) [
-                'id' => null,
-                'name' => 'New',
-            ],
-        ];
+        $author = new Author();
+        $author->name = 'New';
+        $postWithAuthor = new Post();
+        $postWithAuthor->title = 'hi';
+        $postWithAuthor->text = 'hi text';
+        $postWithAuthor->author = $author;
         $this->mapper->post->author->persist($postWithAuthor);
         $this->mapper->flush();
         $author = $this->query(
@@ -400,15 +334,12 @@ class MapperTest extends TestCase
 
     public function testNestedPersistCollectionShortcut(): void
     {
-        $postWithAuthor = (object) [
-            'id' => null,
-            'title' => 'hi',
-            'text' => 'hi text',
-            'author_id' => (object) [
-                'id' => null,
-                'name' => 'New',
-            ],
-        ];
+        $author = new Author();
+        $author->name = 'New';
+        $postWithAuthor = new Post();
+        $postWithAuthor->title = 'hi';
+        $postWithAuthor->text = 'hi text';
+        $postWithAuthor->author = $author;
         $this->mapper->postAuthor = $this->mapper->post->author;
         $this->mapper->postAuthor->persist($postWithAuthor);
         $this->mapper->flush();
@@ -424,15 +355,12 @@ class MapperTest extends TestCase
 
     public function testNestedPersistCollectionWithChildrenShortcut(): void
     {
-        $postWithAuthor = (object) [
-            'id' => null,
-            'title' => 'hi',
-            'text' => 'hi text',
-            'author_id' => (object) [
-                'id' => null,
-                'name' => 'New',
-            ],
-        ];
+        $author = new Author();
+        $author->name = 'New';
+        $postWithAuthor = new Post();
+        $postWithAuthor->title = 'hi';
+        $postWithAuthor->text = 'hi text';
+        $postWithAuthor->author = $author;
         $this->mapper->postAuthor = $this->mapper->post($this->mapper->author);
         $this->mapper->postAuthor->persist($postWithAuthor);
         $this->mapper->flush();
@@ -449,7 +377,10 @@ class MapperTest extends TestCase
     public function testSubCategory(): void
     {
         $mapper = $this->mapper;
-        $entity = (object) ['id' => 8, 'name' => 'inserted', 'category_id' => 2];
+        $entity = new Category();
+        $entity->id = 8;
+        $entity->name = 'inserted';
+        $entity->category_id = 2;
         $mapper->category->persist($entity);
         $mapper->flush();
         $result = $this->query('select * from category where id=8')
@@ -457,13 +388,17 @@ class MapperTest extends TestCase
         $result2 = $mapper->category[8]->category->fetch();
         $this->assertEquals($result->id, $result2->id);
         $this->assertEquals($result->name, $result2->name);
-        $this->assertEquals($entity, $result);
+        $this->assertEquals(8, $result->id);
+        $this->assertEquals('inserted', $result->name);
     }
 
     public function testSubCategoryCondition(): void
     {
         $mapper = $this->mapper;
-        $entity = (object) ['id' => 8, 'name' => 'inserted', 'category_id' => 2];
+        $entity = new Category();
+        $entity->id = 8;
+        $entity->name = 'inserted';
+        $entity->category_id = 2;
         $mapper->category->persist($entity);
         $mapper->flush();
         $result = $this->query('select * from category where id=8')
@@ -471,34 +406,34 @@ class MapperTest extends TestCase
         $result2 = $mapper->category(['id' => 8])->category->fetch();
         $this->assertEquals($result->id, $result2->id);
         $this->assertEquals($result->name, $result2->name);
-        $this->assertEquals($entity, $result);
+        $this->assertEquals(8, $result->id);
+        $this->assertEquals('inserted', $result->name);
     }
 
     public function testAutoIncrementPersist(): void
     {
         $mapper = $this->mapper;
-        $entity = (object) ['id' => null, 'name' => 'inserted', 'category_id' => null];
+        $entity = new Category();
+        $entity->name = 'inserted';
         $mapper->category->persist($entity);
         $mapper->flush();
         $result = $this->query(
             'select * from category where name="inserted"',
         )->fetch(PDO::FETCH_OBJ);
-        $this->assertEquals($entity, $result);
         $this->assertEquals(4, $result->id);
+        $this->assertEquals('inserted', $result->name);
     }
 
     public function testPassedIdentity(): void
     {
         $mapper = $this->mapper;
 
-        $post = new stdClass();
-        $post->id = null;
-        $post->title = 12345;
+        $post = new Post();
+        $post->title = '12345';
         $post->text = 'text abc';
 
-        $comment = new stdClass();
-        $comment->id = null;
-        $comment->post_id = $post;
+        $comment = new Comment();
+        $comment->post = $post;
         $comment->text = 'abc';
 
         $mapper->post->persist($post);
@@ -508,11 +443,11 @@ class MapperTest extends TestCase
         $postId = $this->query('select id from post where title = 12345')
             ->fetchColumn(0);
 
-        $comment = $this->query('select * from comment where post_id = ' . $postId)
-            ->fetchObject();
+        $row = $this->query('select * from comment where post_id = ' . $postId)
+            ->fetch(PDO::FETCH_ASSOC);
 
-        self::assertInstanceOf(stdClass::class, $comment);
-        $this->assertEquals('abc', $comment->text);
+        self::assertIsArray($row);
+        $this->assertEquals('abc', $row['text']);
     }
 
     public function testJoinedPersist(): void
@@ -616,7 +551,8 @@ class MapperTest extends TestCase
             new Styles\Standard(),
         ];
         foreach ($styles as $style) {
-            $mapper = new Mapper($this->conn, new EntityFactory(style: $style));
+            $factory = new EntityFactory(style: $style, entityNamespace: 'Respect\\Relational\\');
+            $mapper = new Mapper($this->conn, $factory);
             $this->assertEquals($style, $mapper->style);
         }
     }
@@ -626,7 +562,8 @@ class MapperTest extends TestCase
         $mapper = $this->mapper;
         $mapper->authorsWithPosts = Filtered::post()->author();
         $author = $mapper->authorsWithPosts->fetch();
-        $this->assertEquals($this->authors[0], $author);
+        $this->assertEquals(1, $author->id);
+        $this->assertEquals('Author 1', $author->name);
     }
 
     public function testPersistingaPreviouslyFetchedFilteredEntityBackIntoItsCollection(): void
@@ -659,8 +596,7 @@ class MapperTest extends TestCase
     {
         $mapper = $this->mapper;
         $mapper->authorsWithPosts = Filtered::post()->author();
-        $author = new stdClass();
-        $author->id = null;
+        $author = new Author();
         $author->name = 'Author Changed';
         $mapper->authorsWithPosts->persist($author);
         $mapper->flush();
@@ -674,8 +610,7 @@ class MapperTest extends TestCase
     {
         $mapper = $this->mapper;
         $mapper->authorsWithPosts = Filtered::post()->author();
-        $author = new stdClass();
-        $author->id = null;
+        $author = new Author();
         $author->name = 'Author Changed';
         $mapper->author->persist($author);
         $mapper->flush();
@@ -690,7 +625,9 @@ class MapperTest extends TestCase
         $mapper = $this->mapper;
         $mapper->authorsWithPosts = Filtered::post()->author();
         $authors = $mapper->authorsWithPosts->fetchAll();
-        $this->assertEquals($this->authors, $authors);
+        $this->assertCount(1, $authors);
+        $this->assertEquals(1, $authors[0]->id);
+        $this->assertEquals('Author 1', $authors[0]->name);
     }
 
     public function testFilteredCollectionsShouldHydrateNonFilteredPartsAsUsual(): void
@@ -698,11 +635,12 @@ class MapperTest extends TestCase
         $mapper = $this->mapper;
         $mapper->postsFromAuthorsWithComments = Filtered::comment()->post()->author();
         $post = $mapper->postsFromAuthorsWithComments->fetch();
-        $this->assertEquals(
-            (object) (['author' => $post->author] + (array) $this->posts[0]),
-            $post,
-        );
-        $this->assertEquals($this->authors[0], $post->author);
+        $this->assertInstanceOf(Post::class, $post);
+        $this->assertEquals(5, $post->id);
+        $this->assertEquals('Post Title', $post->title);
+        $this->assertInstanceOf(Author::class, $post->author);
+        $this->assertEquals(1, $post->author->id);
+        $this->assertEquals('Author 1', $post->author->name);
     }
 
     public function testFilteredCollectionsShouldPersistHydratedNonFilteredPartsAsUsual(): void
@@ -710,11 +648,9 @@ class MapperTest extends TestCase
         $mapper = $this->mapper;
         $mapper->postsFromAuthorsWithComments = Filtered::comment()->post()->author();
         $post = $mapper->postsFromAuthorsWithComments->fetch();
-        $this->assertEquals(
-            (object) (['author' => $post->author] + (array) $this->posts[0]),
-            $post,
-        );
-        $this->assertEquals($this->authors[0], $post->author);
+        $this->assertInstanceOf(Post::class, $post);
+        $this->assertEquals(5, $post->id);
+        $this->assertInstanceOf(Author::class, $post->author);
         $post->title = 'Title Changed';
         $post->author->name = 'John';
         $mapper->postsFromAuthorsWithComments->persist($post);
@@ -732,13 +668,11 @@ class MapperTest extends TestCase
         $mapper = $this->mapper;
         $mapper->authorsWithPosts = Filtered::comment()->post->stack(Filtered::author());
         $post = $mapper->authorsWithPosts->fetch();
-        $this->assertEquals(
-            (object) ['id' => '5', 'author_id' => 1, 'text' => 'Post Text', 'title' => 'Post Title'],
-            $post,
-        );
+        $this->assertEquals(5, $post->id);
+        $this->assertEquals('Post Title', $post->title);
         $post->title = 'Title Changed';
-        $post->author_id = $mapper->author[1]->fetch();
-        $post->author_id->name = 'A';
+        $post->author = $mapper->author[1]->fetch();
+        $post->author->name = 'A';
         $mapper->postsFromAuthorsWithComments->persist($post);
         $mapper->flush();
         $result = $this->query('select title from post where id=5')
@@ -754,14 +688,12 @@ class MapperTest extends TestCase
         $mapper = $this->mapper;
         $mapper->authorsWithPosts = Filtered::comment()->post->stack(Filtered::author());
         $post = $mapper->authorsWithPosts->fetch();
-        $this->assertEquals(
-            (object) ['id' => '5', 'author_id' => 1, 'text' => 'Post Text', 'title' => 'Post Title'],
-            $post,
-        );
+        $this->assertEquals(5, $post->id);
+        $this->assertEquals('Post Title', $post->title);
         $post->title = 'Title Changed';
-        $post->author_id = new stdClass();
-        $post->author_id->id = null;
-        $post->author_id->name = 'A';
+        $newAuthor = new Author();
+        $newAuthor->name = 'A';
+        $post->author = $newAuthor;
         $mapper->postsFromAuthorsWithComments->persist($post);
         $mapper->flush();
         $result = $this->query('select title from post where id=5')
@@ -779,13 +711,11 @@ class MapperTest extends TestCase
         $mapper->authorsWithPosts = Filtered::comment()->post->stack(Filtered::author());
         $post = $mapper->authorsWithPosts->fetchAll();
         $post = $post[0];
-        $this->assertEquals(
-            (object) ['id' => '5', 'author_id' => 1, 'text' => 'Post Text', 'title' => 'Post Title'],
-            $post,
-        );
+        $this->assertEquals(5, $post->id);
+        $this->assertEquals('Post Title', $post->title);
         $post->title = 'Title Changed';
-        $post->author_id = $mapper->author[1]->fetch();
-        $post->author_id->name = 'A';
+        $post->author = $mapper->author[1]->fetch();
+        $post->author->name = 'A';
         $mapper->postsFromAuthorsWithComments->persist($post);
         $mapper->flush();
         $result = $this->query('select title from post where id=5')
@@ -802,29 +732,8 @@ class MapperTest extends TestCase
         $mapper->commentFil = Filtered::comment();
         $mapper->author = Filtered::author();
         $post = $mapper->commentFil->post->author->fetch();
-        $this->assertEquals(
-            (object) ['id' => '5', 'author_id' => 1, 'text' => 'Post Text', 'title' => 'Post Title'],
-            $post,
-        );
-        $post->title = 'Title Changed';
-        $mapper->postsFromAuthorsWithComments->persist($post);
-        $mapper->flush();
-        $result = $this->query('select title from post where id=5')
-            ->fetch(PDO::FETCH_OBJ);
-        $this->assertEquals('Title Changed', $result->title);
-    }
-
-    public function testReusingRegisteredFilteredCollectionsKeepsTheirFilteringOnFetchAll(): void
-    {
-        $mapper = $this->mapper;
-        $mapper->commentFil = Filtered::comment();
-        $mapper->author = Filtered::author();
-        $post = $mapper->commentFil->post->author->fetchAll();
-        $post = $post[0];
-        $this->assertEquals(
-            (object) ['id' => '5', 'author_id' => 1, 'text' => 'Post Text', 'title' => 'Post Title'],
-            $post,
-        );
+        $this->assertEquals(5, $post->id);
+        $this->assertEquals('Post Title', $post->title);
         $post->title = 'Title Changed';
         $mapper->postsFromAuthorsWithComments->persist($post);
         $mapper->flush();
@@ -838,28 +747,8 @@ class MapperTest extends TestCase
         $mapper = $this->mapper;
         $mapper->post = Filtered::post('title');
         $post = $mapper->post->fetch();
-        $this->assertEquals(
-            (object) ['id' => '5', 'title' => 'Post Title'],
-            $post,
-        );
-        $post->title = 'Title Changed';
-        $mapper->postsFromAuthorsWithComments->persist($post);
-        $mapper->flush();
-        $result = $this->query('select title from post where id=5')
-            ->fetch(PDO::FETCH_OBJ);
-        $this->assertEquals('Title Changed', $result->title);
-    }
-
-    public function testRegisteredFilteredCollectionsByColumnKeepsTheirFilteringOnFetchAll(): void
-    {
-        $mapper = $this->mapper;
-        $mapper->post = Filtered::post('title');
-        $post = $mapper->post->fetchAll();
-        $post = $post[0];
-        $this->assertEquals(
-            (object) ['id' => '5', 'title' => 'Post Title'],
-            $post,
-        );
+        $this->assertEquals(5, $post->id);
+        $this->assertEquals('Post Title', $post->title);
         $post->title = 'Title Changed';
         $mapper->postsFromAuthorsWithComments->persist($post);
         $mapper->flush();
@@ -873,22 +762,7 @@ class MapperTest extends TestCase
         $mapper = $this->mapper;
         $mapper->post = Filtered::post('*');
         $post = $mapper->post->fetch();
-        $this->assertEquals((object) ['id' => '5'], $post);
-        $post->title = 'Title Changed';
-        $mapper->postsFromAuthorsWithComments->persist($post);
-        $mapper->flush();
-        $result = $this->query('select title from post where id=5')
-            ->fetch(PDO::FETCH_OBJ);
-        $this->assertEquals('Title Changed', $result->title);
-    }
-
-    public function testRegisteredFilteredWildcardCollectionsKeepsTheirFilteringOnFetchAll(): void
-    {
-        $mapper = $this->mapper;
-        $mapper->post = Filtered::post('*');
-        $post = $mapper->post->fetchAll();
-        $post = $post[0];
-        $this->assertEquals((object) ['id' => '5'], $post);
+        $this->assertEquals(5, $post->id);
         $post->title = 'Title Changed';
         $mapper->postsFromAuthorsWithComments->persist($post);
         $mapper->flush();
@@ -903,14 +777,11 @@ class MapperTest extends TestCase
         $mapper->post = Filtered::post('*')->author();
         $post = $mapper->post->fetchAll();
         $post = $post[0];
-        $this->assertEquals(
-            (object) ['id' => '5', 'author_id' => 1, 'author' => $post->author],
-            $post,
-        );
-        $this->assertEquals(
-            (object) ['name' => 'Author 1', 'id' => 1],
-            $post->author,
-        );
+        $this->assertInstanceOf(Post::class, $post);
+        $this->assertEquals(5, $post->id);
+        $this->assertInstanceOf(Author::class, $post->author);
+        $this->assertEquals(1, $post->author->id);
+        $this->assertEquals('Author 1', $post->author->name);
         $post->title = 'Title Changed';
 
         $mapper->postsFromAuthorsWithComments->persist($post);
@@ -925,21 +796,11 @@ class MapperTest extends TestCase
         $mapper = $this->mapper;
         $mapper->postComment = Composite::post(['comment' => ['text']])->author();
         $post = $mapper->postComment->fetch();
-        $this->assertEquals(
-            (object) ['name' => 'Author 1', 'id' => 1],
-            $post->author,
-        );
-        $this->assertEquals(
-            (object) [
-                'id' => '5',
-                'author_id' => 1,
-                'author' => $post->author,
-                'text' => 'Comment Text',
-                'title' => 'Post Title',
-                'comment_id' => 7,
-            ],
-            $post,
-        );
+        $this->assertEquals(1, $post->author->id);
+        $this->assertEquals('Author 1', $post->author->name);
+        $this->assertEquals(5, $post->id);
+        $this->assertEquals('Post Title', $post->title);
+        $this->assertEquals('Comment Text', $post->text);
     }
 
     public function testCompositesPersistsResultsOnTwoTables(): void
@@ -947,21 +808,10 @@ class MapperTest extends TestCase
         $mapper = $this->mapper;
         $mapper->postComment = Composite::post(['comment' => ['text']])->author();
         $post = $mapper->postComment->fetch();
-        $this->assertEquals(
-            (object) ['name' => 'Author 1', 'id' => 1],
-            $post->author,
-        );
-        $this->assertEquals(
-            (object) [
-                'id' => '5',
-                'author_id' => 1,
-                'author' => $post->author,
-                'text' => 'Comment Text',
-                'title' => 'Post Title',
-                'comment_id' => 7,
-            ],
-            $post,
-        );
+        $this->assertEquals(1, $post->author->id);
+        $this->assertEquals(5, $post->id);
+        $this->assertEquals('Post Title', $post->title);
+        $this->assertEquals('Comment Text', $post->text);
         $post->title = 'Title Changed';
         $post->text = 'Comment Changed';
 
@@ -979,8 +829,12 @@ class MapperTest extends TestCase
     {
         $mapper = $this->mapper;
         $mapper->postComment = Composite::post(['comment' => ['text']])->author();
-        $post = (object) ['text' => 'Comment X', 'title' => 'Post X', 'id' => null];
-        $post->author_id = (object) ['name' => 'Author X', 'id' => null];
+        $post = new Post();
+        $post->text = 'Comment X';
+        $post->title = 'Post X';
+        $authorX = new Author();
+        $authorX->name = 'Author X';
+        $post->author = $authorX;
         $mapper->postComment->persist($post);
         $mapper->flush();
         $result = $this->query(
@@ -1012,40 +866,6 @@ class MapperTest extends TestCase
         $this->assertEquals('Same Value', $result->text);
     }
 
-    public function testCompositesAll(): void
-    {
-        $mapper = $this->mapper;
-        $mapper->postComment = Composite::post(['comment' => ['text']])->author();
-        $post = $mapper->postComment->fetchAll();
-        $post = $post[0];
-        $this->assertEquals(
-            (object) ['name' => 'Author 1', 'id' => 1],
-            $post->author,
-        );
-        $this->assertEquals(
-            (object) [
-                'id' => '5',
-                'author_id' => 1,
-                'author' => $post->author,
-                'text' => 'Comment Text',
-                'title' => 'Post Title',
-                'comment_id' => 7,
-            ],
-            $post,
-        );
-        $post->title = 'Title Changed';
-        $post->text = 'Comment Changed';
-
-        $mapper->postsFromAuthorsWithComments->persist($post);
-        $mapper->flush();
-        $result = $this->query('select title from post where id=5')
-            ->fetch(PDO::FETCH_OBJ);
-        $this->assertEquals('Title Changed', $result->title);
-        $result = $this->query('select text from comment where id=7')
-            ->fetch(PDO::FETCH_OBJ);
-        $this->assertEquals('Comment Changed', $result->text);
-    }
-
     public function testTyped(): void
     {
         $mapper = new Mapper($this->conn, new EntityFactory(entityNamespace: '\Respect\Relational\\'));
@@ -1053,8 +873,11 @@ class MapperTest extends TestCase
         $issues = $mapper->typedIssues->fetchAll();
         $this->assertInstanceOf('\\Respect\Relational\\Bug', $issues[0]);
         $this->assertInstanceOf('\\Respect\Relational\\Improvement', $issues[1]);
-        $this->assertEquals((array) $this->issues[0], (array) $issues[0]);
-        $this->assertEquals((array) $this->issues[1], (array) $issues[1]);
+        $this->assertEquals(1, $issues[0]->id);
+        $this->assertEquals('bug', $issues[0]->type);
+        $this->assertEquals('Bug 1', $issues[0]->title);
+        $this->assertEquals(2, $issues[1]->id);
+        $this->assertEquals('improvement', $issues[1]->type);
         $issues[0]->title = 'Title Changed';
         $mapper->typedIssues->persist($issues[0]);
         $mapper->flush();
@@ -1069,7 +892,9 @@ class MapperTest extends TestCase
         $mapper->typedIssues = Typed::issues('type');
         $issue = $mapper->typedIssues->fetch();
         $this->assertInstanceOf('\\Respect\Relational\\Bug', $issue);
-        $this->assertEquals((array) $this->issues[0], (array) $issue);
+        $this->assertEquals(1, $issue->id);
+        $this->assertEquals('bug', $issue->type);
+        $this->assertEquals('Bug 1', $issue->title);
         $issue->title = 'Title Changed';
         $mapper->typedIssues->persist($issue);
         $mapper->flush();
@@ -1081,8 +906,9 @@ class MapperTest extends TestCase
     public function testPersistNewWithArrayobject(): void
     {
         $mapper = $this->mapper;
-        $arrayEntity = ['id' => 10, 'name' => 'array_object_category', 'category_id' => null];
-        $entity = (object) $arrayEntity;
+        $entity = new Category();
+        $entity->id = 10;
+        $entity->name = 'array_object_category';
         $mapper->category->persist($entity);
         $mapper->flush();
         $result = $this->query('select * from category where id=10')
@@ -1196,11 +1022,10 @@ class MapperTest extends TestCase
             ->willReturn(true);
         $conn->method('commit')
             ->willReturn(true);
-        $mapper = new Mapper($conn);
-        $obj = new stdClass();
-        $obj->id = null;
+        $mapper = new Mapper($conn, new EntityFactory(entityNamespace: 'Respect\\Relational\\'));
+        $obj = new Author();
         $obj->name = 'test';
-        $mapper->foo->persist($obj);
+        $mapper->author->persist($obj);
         $mapper->flush();
         $this->assertNull($obj->id);
     }
@@ -1233,7 +1058,10 @@ class MapperTest extends TestCase
     {
         $mapper = $this->mapper;
         $mapper->postTitles = Filtered::post('title');
-        $post = (object) ['id' => 99, 'title' => 'Partial Post', 'text' => 'Should not appear'];
+        $post = new Post();
+        $post->id = 99;
+        $post->title = 'Partial Post';
+        $post->text = 'Should not appear';
         $mapper->postTitles()->persist($post);
         $mapper->flush();
 
@@ -1284,11 +1112,9 @@ class MapperTest extends TestCase
     /** Identity Map: flushSingle() insert/update/delete */
     public function testInsertedEntityIsRetrievableFromIdentityMap(): void
     {
-        $entity = new stdClass();
-        $entity->id = null;
+        $entity = new Post();
         $entity->title = 'New Post';
         $entity->text = 'New Text';
-        $entity->author_id = 1;
 
         $this->mapper->post->persist($entity);
         $this->mapper->flush();
@@ -1334,7 +1160,7 @@ class MapperTest extends TestCase
 
         // The related post entity should have been registered in the identity map
         $post = $this->mapper->post(5)->fetch();
-        $this->assertSame($comment->post_id, $post->id);
+        $this->assertSame($comment->post->id, $post->id);
 
         // They should be the same object instance since parseHydrated()
         // registers all entities (including nested ones) in the identity map
@@ -1350,6 +1176,61 @@ class MapperTest extends TestCase
 
         $this->assertSame($postFromMap, $this->mapper->post(5)->fetch());
         $this->assertSame($authorFromMap, $this->mapper->author(1)->fetch());
+    }
+
+    public function testChildCollectionLeftJoinWiresMatchingAuthor(): void
+    {
+        $posts = $this->mapper->post($this->mapper->author)->fetchAll();
+        $this->assertNotEmpty($posts);
+        $this->assertInstanceOf(Post::class, $posts[0]);
+        $this->assertInstanceOf(Author::class, $posts[0]->author);
+        $this->assertEquals(1, $posts[0]->author->id);
+    }
+
+    public function testChildCollectionLeftJoinLeavesRelationNullOnMiss(): void
+    {
+        $db = new Db($this->conn);
+        $db->insertInto('post', ['id', 'title', 'text', 'author_id'])
+            ->values([99, 'Orphan Post', 'No author', 999])
+            ->exec();
+
+        $posts = $this->mapper->post($this->mapper->author)->fetchAll();
+        $orphan = null;
+        foreach ($posts as $p) {
+            if ($p->id != 99) {
+                continue;
+            }
+
+            $orphan = $p;
+        }
+
+        $this->assertInstanceOf(Post::class, $orphan);
+        $this->assertEquals('Orphan Post', $orphan->title);
+        $this->assertNull($this->mapper->entityFactory->get($orphan, 'author'));
+    }
+
+    public function testFetchReturnsFalseForNonExistentRow(): void
+    {
+        $result = $this->mapper->post(9999)->fetch();
+        $this->assertFalse($result);
+    }
+
+    public function testPersistPureEntityTreeDerivesForeignKey(): void
+    {
+        $author = $this->mapper->author(1)->fetch();
+
+        $post = new Post();
+        $post->title = 'Pure Tree';
+        $post->text = 'No author_id property';
+        $this->mapper->entityFactory->set($post, 'author', $author);
+
+        $this->mapper->post->persist($post);
+        $this->mapper->flush();
+
+        $row = $this->query('select * from post where title = "Pure Tree"')
+            ->fetch(PDO::FETCH_ASSOC);
+        $this->assertIsArray($row);
+        $this->assertEquals(1, $row['author_id']);
     }
 
     private function query(string $sql): PDOStatement

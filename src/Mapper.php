@@ -18,7 +18,6 @@ use Respect\Relational\Hydrators\FlatNum;
 use SplObjectStorage;
 use Throwable;
 
-use function array_key_exists;
 use function array_keys;
 use function array_merge;
 use function array_push;
@@ -287,33 +286,10 @@ final class Mapper extends AbstractMapper
     /** @return array<string, mixed> */
     private function extractColumns(object $entity, Collection $collection): array
     {
-        $primaryName = $this->style->identifier($collection->name);
-        $cols = $this->entityFactory->extractProperties($entity);
-
-        foreach ($cols as $key => $c) {
-            if (is_object($c) && $this->style->isRelationProperty($key)) {
-                unset($cols[$key]);
-
-                continue;
-            }
-
-            if (is_object($c)) {
-                $cols[$key] = $this->entityFactory->get($c, $primaryName);
-
-                continue;
-            }
-
-            if (
-                !$this->style->isRelationProperty($key)
-                || !array_key_exists($this->style->remoteIdentifier($key), $cols)
-            ) {
-                continue;
-            }
-
-            unset($cols[$key]);
-        }
-
-        return $this->filterColumns($cols, $collection);
+        return $this->filterColumns(
+            $this->entityFactory->extractColumns($entity),
+            $collection,
+        );
     }
 
     /** @param array<string, Collection> $collections */

@@ -11,7 +11,7 @@ use PHPUnit\Framework\TestCase;
 use Respect\Data\Collections\Collection;
 use Respect\Data\Collections\Typed;
 use Respect\Data\EntityFactory;
-use stdClass;
+use Respect\Relational\Bug;
 
 #[CoversClass(FlatNum::class)]
 class FlatNumTest extends TestCase
@@ -28,7 +28,7 @@ class FlatNumTest extends TestCase
         $this->pdo->exec('CREATE TABLE post (id INTEGER PRIMARY KEY, title TEXT, author_id INTEGER)');
         $this->pdo->exec("INSERT INTO author VALUES (1, 'Alice')");
         $this->pdo->exec("INSERT INTO post VALUES (10, 'Hello', 1)");
-        $this->factory = new EntityFactory();
+        $this->factory = new EntityFactory(entityNamespace: 'Respect\\Relational\\');
     }
 
     #[Test]
@@ -83,19 +83,18 @@ class FlatNumTest extends TestCase
     public function hydrateResolvesTypedEntity(): void
     {
         $this->pdo->exec('CREATE TABLE issue (id INTEGER PRIMARY KEY, title TEXT, type TEXT)');
-        $this->pdo->exec("INSERT INTO issue VALUES (1, 'Bug Report', 'stdClass')");
+        $this->pdo->exec("INSERT INTO issue VALUES (1, 'Bug Report', 'Bug')");
 
         $stmt = $this->pdo->prepare('SELECT id, title, type FROM issue');
         $stmt->execute();
         $row = $stmt->fetch(PDO::FETCH_NUM);
 
-        $factory = new EntityFactory(entityNamespace: 'Respect\Relational\Hydrators\\');
         $hydrator = new FlatNum($stmt);
         $collection = Typed::issue('type');
-        $result = $hydrator->hydrate($row, $collection, $factory);
+        $result = $hydrator->hydrate($row, $collection, $this->factory);
 
         $this->assertNotFalse($result);
         $result->rewind();
-        $this->assertInstanceOf(stdClass::class, $result->current());
+        $this->assertInstanceOf(Bug::class, $result->current());
     }
 }

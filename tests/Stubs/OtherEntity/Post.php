@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace Respect\Relational\OtherEntity;
 
+use Respect\Data\NotPersistable;
+
 class Post
 {
     private mixed $id = null;
 
     private mixed $author_id = null;
 
+    #[NotPersistable]
     private mixed $author = null;
 
     private mixed $title = null;
