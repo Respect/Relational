@@ -12,6 +12,7 @@ use PDOException;
 use PDOStatement;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use ReflectionProperty;
 use Respect\Data\Collections\Composite;
 use Respect\Data\Collections\Filtered;
 use Respect\Data\Collections\Typed;
@@ -176,6 +177,31 @@ class MapperTest extends TestCase
         }
     }
 
+    public function testFailedFlushResetsPending(): void
+    {
+        // Force a flush failure via a UNIQUE constraint violation
+        $this->conn->exec('CREATE UNIQUE INDEX author_name_unique ON author(name)');
+
+        $dupe = new Author();
+        $dupe->name = 'Author 1'; // already seeded
+        $this->mapper->author->persist($dupe);
+
+        try {
+            $this->mapper->flush();
+            $this->fail('Expected flush to throw on UNIQUE violation');
+        } catch (Throwable) {
+            // expected
+        }
+
+        // Second flush with a valid entity should succeed without replaying the failed one
+        $author = new Author();
+        $author->name = 'Fresh Author';
+        $this->mapper->author->persist($author);
+        $this->mapper->flush();
+
+        $this->assertGreaterThan(0, $author->id);
+    }
+
     public function testIgnoringLastInsertIdErrors(): void
     {
         $conn = $this->createStub(PDO::class);
@@ -197,7 +223,7 @@ class MapperTest extends TestCase
         $obj->name = 'bar';
         $mapper->author->persist($obj);
         $mapper->flush();
-        $this->assertNull($obj->id);
+        $this->assertFalse((new ReflectionProperty($obj, 'id'))->isInitialized($obj));
         $this->assertEquals('bar', $obj->name);
     }
 
@@ -377,10 +403,12 @@ class MapperTest extends TestCase
     public function testSubCategory(): void
     {
         $mapper = $this->mapper;
+        $parent = $mapper->category[2]->fetch();
+
         $entity = new Category();
         $entity->id = 8;
         $entity->name = 'inserted';
-        $entity->category_id = 2;
+        $entity->category = $parent;
         $mapper->category->persist($entity);
         $mapper->flush();
         $result = $this->query('select * from category where id=8')
@@ -395,10 +423,12 @@ class MapperTest extends TestCase
     public function testSubCategoryCondition(): void
     {
         $mapper = $this->mapper;
+        $parent = $mapper->category[2]->fetch();
+
         $entity = new Category();
         $entity->id = 8;
         $entity->name = 'inserted';
-        $entity->category_id = 2;
+        $entity->category = $parent;
         $mapper->category->persist($entity);
         $mapper->flush();
         $result = $this->query('select * from category where id=8')
@@ -866,6 +896,18 @@ class MapperTest extends TestCase
         $this->assertEquals('Same Value', $result->text);
     }
 
+    public function testCompositeColumnOverridesParentOnNameCollision(): void
+    {
+        $mapper = $this->mapper;
+        $mapper->postComment = Composite::post(['comment' => ['text']])->author();
+        $post = $mapper->postComment->fetch();
+
+        // Both post and comment have a 'text' column.
+        // The composite column (comment.text) should take precedence.
+        $this->assertEquals('Comment Text', $post->text);
+        $this->assertNotEquals('Post Text', $post->text);
+    }
+
     public function testTyped(): void
     {
         $mapper = new Mapper($this->conn, new EntityFactory(entityNamespace: '\Respect\Relational\\'));
@@ -1027,7 +1069,7 @@ class MapperTest extends TestCase
         $obj->name = 'test';
         $mapper->author->persist($obj);
         $mapper->flush();
-        $this->assertNull($obj->id);
+        $this->assertFalse((new ReflectionProperty($obj, 'id'))->isInitialized($obj));
     }
 
     public function testFetchReturnsDbInstance(): void
@@ -1120,7 +1162,7 @@ class MapperTest extends TestCase
         $this->mapper->flush();
 
         // The entity should now have an auto-assigned id and be cached
-        $this->assertNotNull($entity->id);
+        $this->assertGreaterThan(0, $entity->id);
 
         $fetched = $this->mapper->post($entity->id)->fetch();
         $this->assertSame($entity, $fetched);
@@ -1231,6 +1273,94 @@ class MapperTest extends TestCase
             ->fetch(PDO::FETCH_ASSOC);
         $this->assertIsArray($row);
         $this->assertEquals(1, $row['author_id']);
+    }
+
+    public function testPersistWithUninitializedRelationSkipsCascade(): void
+    {
+        // Post has `Author $author` (uninitialized). Persist should not
+        // crash — it should skip the cascade for the missing relation.
+        $mapper = $this->mapper;
+        $post = new Post();
+        $post->title = 'No Author';
+        $post->text = 'Body';
+
+        $mapper->post->persist($post);
+        $mapper->flush();
+
+        $this->assertGreaterThan(0, $post->id);
+        $result = $this->query('select title from post where id=' . $post->id)
+            ->fetch(PDO::FETCH_OBJ);
+        $this->assertEquals('No Author', $result->title);
+    }
+
+    public function testCompositeUpdateSkipsMissingSpecColumn(): void
+    {
+        // Composite spec asks for 'text' from comment, but we only change
+        // 'title' (a post column). The composite should not crash on the
+        // missing spec column — it should just skip it.
+        $mapper = $this->mapper;
+        $mapper->postComment = Composite::post(['comment' => ['text']])->author();
+        $post = $mapper->postComment->fetch();
+
+        // Only change a parent column, leave composite column unchanged
+        $post->title = 'Only Title Changed';
+
+        $mapper->postComment->persist($post);
+        $mapper->flush();
+
+        $result = $this->query('select title from post where id=5')
+            ->fetch(PDO::FETCH_OBJ);
+        $this->assertEquals('Only Title Changed', $result->title);
+        // Comment text should remain untouched
+        $result = $this->query('select text from comment where id=7')
+            ->fetch(PDO::FETCH_OBJ);
+        $this->assertEquals('Comment Text', $result->text);
+    }
+
+    public function testCompositeInsertWithNoMatchingColumnsSkipsChild(): void
+    {
+        // New entity where the composite spec columns are NOT set — the
+        // child INSERT should be skipped entirely (no empty INSERT).
+        $mapper = $this->mapper;
+        $mapper->postComment = Composite::post(['comment' => ['text']])->author();
+
+        $post = new Postcomment();
+        $post->title = 'Post Without Comment';
+        $author = new Author();
+        $author->name = 'Author X';
+        $post->author = $author;
+        // Note: $post->text is NOT set (uninitialized)
+
+        $mapper->postComment->persist($post);
+        $mapper->flush();
+
+        $result = $this->query('select title from post order by id desc')
+            ->fetch(PDO::FETCH_OBJ);
+        $this->assertEquals('Post Without Comment', $result->title);
+    }
+
+    public function testFetchWithArrayConditions(): void
+    {
+        // Test multiple array conditions (hits the AND branch in parseConditions)
+        $result = $this->mapper->post[['title' => 'Post Title', 'author_id' => 1]]->fetchAll();
+        $this->assertCount(1, $result);
+        $this->assertEquals('Post Title', $result[0]->title);
+    }
+
+    public function testPersistCascadeSkipsNullChildRelation(): void
+    {
+        // Register a collection with children: post → author (child).
+        // Persist a post where $author is uninitialized.
+        // The cascade should skip the null child without crashing (L87-91).
+        $mapper = $this->mapper;
+        $this->expectNotToPerformAssertions();
+        $mapper->postsFromAuthorsWithComments->persist(new class {
+            public int $id;
+
+            public string $title = 'Orphan Post';
+
+            public string $text = '';
+        });
     }
 
     private function query(string $sql): PDOStatement

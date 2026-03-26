@@ -8,13 +8,13 @@ use DomainException;
 
 class Comment
 {
-    public int|null $id = null;
+    public int $id;
 
-    public int|null $post_id = null;
+    public Post $post;
 
-    public string|null $text = null;
+    public string $text;
 
-    public string|null $datetime = null;
+    public string $datetime;
 
     public function __construct()
     {

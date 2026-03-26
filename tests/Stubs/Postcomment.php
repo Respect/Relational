@@ -6,5 +6,11 @@ namespace Respect\Relational;
 
 class Postcomment
 {
-    public int|null $id = null;
+    public int $id;
+
+    public string $title;
+
+    public string $text;
+
+    public Author $author;
 }

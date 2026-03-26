@@ -6,9 +6,9 @@ namespace Respect\Relational;
 
 class PostCategory
 {
-    public mixed $id = null;
+    public int $id;
 
-    public mixed $post_id = null;
+    public Post $post;
 
-    public mixed $category_id = null;
+    public Category $category;
 }

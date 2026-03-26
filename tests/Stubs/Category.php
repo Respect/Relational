@@ -6,9 +6,9 @@ namespace Respect\Relational;
 
 class Category
 {
-    public mixed $id = null;
+    public int $id;
 
-    public string|null $name = null;
+    public string $name;
 
-    public mixed $category_id = null;
+    public Category $category;
 }

@@ -9,15 +9,15 @@ use Respect\Data\NotPersistable;
 
 class Post
 {
-    public mixed $id = null;
+    public int $id;
 
-    public mixed $author;
+    public Author $author;
 
-    public string|null $text = null;
+    public string $text;
 
-    public string|null $title = null;
+    public string $title;
 
-    public mixed $comment_id;
+    public Comment $comment;
 
     #[NotPersistable]
     private string $datetime = '';
