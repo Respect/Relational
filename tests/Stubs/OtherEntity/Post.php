@@ -4,62 +4,52 @@ declare(strict_types=1);
 
 namespace Respect\Relational\OtherEntity;
 
-use Respect\Data\NotPersistable;
-
 class Post
 {
-    private mixed $id = null;
+    private int $id;
 
-    private mixed $author_id = null;
+    private Author $author;
 
-    #[NotPersistable]
-    private mixed $author = null;
+    private string $title;
 
-    private mixed $title = null;
+    private string $text;
 
-    private mixed $text = null;
-
-    public function getTitle(): mixed
+    public function getTitle(): string
     {
         return $this->title;
     }
 
-    public function setTitle(mixed $title): void
+    public function setTitle(string $title): void
     {
         $this->title = $title;
     }
 
-    public function getId(): mixed
+    public function getId(): int|null
     {
         return $this->id;
     }
 
-    public function getAuthorId(): mixed
-    {
-        return $this->author_id;
-    }
-
-    public function getAuthor(): mixed
+    public function getAuthor(): Author
     {
         return $this->author;
     }
 
-    public function getText(): mixed
+    public function getText(): string
     {
         return $this->text;
     }
 
-    public function setId(mixed $id): void
+    public function setId(int|null $id): void
     {
         $this->id = $id;
     }
 
     public function setAuthor(Author $author): void
     {
-        $this->author_id = $author;
+        $this->author = $author;
     }
 
-    public function setText(mixed $text): void
+    public function setText(string $text): void
     {
         $this->text = $text;
     }

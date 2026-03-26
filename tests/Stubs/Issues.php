@@ -6,7 +6,7 @@ namespace Respect\Relational;
 
 class Issues
 {
-    public mixed $id = null;
+    public int $id;
 
     public string|null $type = null;
 

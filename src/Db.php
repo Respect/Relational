@@ -93,9 +93,10 @@ final class Db
         int|string|array|callable|object $object = stdClass::class,
         array|null $extra = null,
     ): PDOStatement {
-        $statement = $this->prepare((string) $this->currentSql, $object, $extra);
-        $statement->execute($this->currentSql->params);
+        $sql = $this->currentSql;
         $this->currentSql = clone $this->protoSql;
+        $statement = $this->prepare((string) $sql, $object, $extra);
+        $statement->execute($sql->params);
 
         return $statement;
     }

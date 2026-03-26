@@ -108,6 +108,7 @@ final class Mapper extends AbstractMapper
             }
         } catch (Throwable $e) {
             $conn->rollback();
+            $this->reset();
 
             throw $e;
         }
@@ -157,6 +158,14 @@ final class Mapper extends AbstractMapper
     }
 
     /**
+     * Extract composed columns from parent, UPDATE child tables using FK relationship.
+     *
+     * For existing entities (UPDATE path), the parent PK is known and we can
+     * update the child table directly: UPDATE comment SET text=? WHERE post_id=?
+     *
+     * For new entities (INSERT path), child inserts happen after the parent
+     * via insertCompositionChildren().
+     *
      * @param array<string, mixed> $cols
      *
      * @return array<string, mixed>
@@ -167,28 +176,73 @@ final class Mapper extends AbstractMapper
             return $cols;
         }
 
+        $parentPk = $this->style->identifier($collection->name);
+        $parentPkValue = $cols[$parentPk] ?? null;
+        $fkToParent = $this->style->remoteIdentifier($collection->name);
+
         foreach ($collection->compositions as $comp => $spec) {
             $compCols = [];
             foreach ($spec as $key) {
-                if (!isset($cols[$key])) {
+                $dbKey = $this->style->realProperty($key);
+                if (!isset($cols[$dbKey])) {
                     continue;
                 }
 
-                $compCols[$key] = $cols[$key];
-                unset($cols[$key]);
+                $compCols[$dbKey] = $cols[$dbKey];
+                unset($cols[$dbKey]);
             }
 
-            if (isset($cols[$comp . '_id'])) {
-                $compCols['id'] = $cols[$comp . '_id'];
-                unset($cols[$comp . '_id']);
-                $this->rawUpdate($compCols, $this->__get($comp));
-            } else {
-                $compCols['id'] = null;
-                $this->rawInsert($compCols, $this->__get($comp));
+            if ($parentPkValue === null || empty($compCols)) {
+                continue;
             }
+
+            $this->db
+                ->update($comp)
+                ->set($compCols)
+                ->where([[$fkToParent, '=', $parentPkValue]])
+                ->exec();
         }
 
         return $cols;
+    }
+
+    private function insertCompositionChildren(Collection $collection, object|null $entity): void
+    {
+        if (!$collection instanceof Composite || $entity === null) {
+            return;
+        }
+
+        $parentPk = $this->style->identifier($collection->name);
+        $parentPkValue = $this->entityFactory->get($entity, $parentPk);
+
+        if ($parentPkValue === null) {
+            return;
+        }
+
+        $fkToParent = $this->style->remoteIdentifier($collection->name);
+        $entityCols = $this->entityFactory->extractColumns($entity);
+
+        foreach ($collection->compositions as $comp => $spec) {
+            $compCols = [];
+            foreach ($spec as $key) {
+                $dbKey = $this->style->realProperty($key);
+                if (!isset($entityCols[$key])) {
+                    continue;
+                }
+
+                $compCols[$dbKey] = $entityCols[$key];
+            }
+
+            if (empty($compCols)) {
+                continue;
+            }
+
+            $compCols[$fkToParent] = $parentPkValue;
+            $this->db
+                ->insertInto($comp, array_keys($compCols))
+                ->values(array_values($compCols))
+                ->exec();
+        }
     }
 
     /**
@@ -249,6 +303,8 @@ final class Mapper extends AbstractMapper
             $this->checkNewIdentity($entity, $collection);
         }
 
+        $this->insertCompositionChildren($collection, $entity);
+
         return $result;
     }
 
@@ -264,7 +320,7 @@ final class Mapper extends AbstractMapper
             return false;
         }
 
-        $this->entityFactory->set($entity, $this->style->identifier($collection->name), $identity);
+        $this->entityFactory->set($entity, $this->style->identifier($collection->name), (int) $identity);
 
         return true;
     }
@@ -286,10 +342,17 @@ final class Mapper extends AbstractMapper
     /** @return array<string, mixed> */
     private function extractColumns(object $entity, Collection $collection): array
     {
-        return $this->filterColumns(
+        $cols = $this->filterColumns(
             $this->entityFactory->extractColumns($entity),
             $collection,
         );
+
+        $dbCols = [];
+        foreach ($cols as $key => $value) {
+            $dbCols[$this->style->realProperty($key)] = $value;
+        }
+
+        return $dbCols;
     }
 
     /** @param array<string, Collection> $collections */
@@ -302,10 +365,6 @@ final class Mapper extends AbstractMapper
                     foreach ($columns as $col) {
                         $selectTable[] = $tableSpecifier . '_comp' . $composition . '.' . $col;
                     }
-
-                    $selectTable[] = $tableSpecifier . '_comp' . $composition . '.' .
-                    $this->style->identifier($composition) .
-                    ' as ' . $composition . '_id';
                 }
             }
 
@@ -393,8 +452,13 @@ final class Mapper extends AbstractMapper
         }
 
         foreach (array_keys($collection->compositions) as $comp) {
+            $alias = $entity . '_comp' . $comp;
             $sql->innerJoin($comp);
-            $sql->as($entity . '_comp' . $comp);
+            $sql->as($alias);
+            $sql->on([
+                $alias . '.' . $this->style->remoteIdentifier($entity)
+                    => $entity . '.' . $this->style->identifier($entity),
+            ]);
         }
     }
 

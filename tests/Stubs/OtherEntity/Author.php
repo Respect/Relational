@@ -6,26 +6,26 @@ namespace Respect\Relational\OtherEntity;
 
 class Author
 {
-    private mixed $id = null;
+    private int $id;
 
-    private mixed $name = null;
+    private string $name;
 
-    public function getId(): mixed
+    public function getId(): int|null
     {
         return $this->id;
     }
 
-    public function getName(): mixed
+    public function getName(): string
     {
         return $this->name;
     }
 
-    public function setId(mixed $id): void
+    public function setId(int|null $id): void
     {
         $this->id = $id;
     }
 
-    public function setName(mixed $name): void
+    public function setName(string $name): void
     {
         $this->name = $name;
     }

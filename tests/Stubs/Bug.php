@@ -6,7 +6,7 @@ namespace Respect\Relational;
 
 class Bug
 {
-    public int|null $id = null;
+    public int $id;
 
     public string|null $title = null;
 

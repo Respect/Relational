@@ -8,11 +8,11 @@ use Datetime;
 
 class Comment
 {
-    public mixed $id = null;
+    public int $id;
 
-    public mixed $post;
+    public Post $post;
 
-    public string|null $text = null;
+    public string $text;
 
     private string|null $datetime = null;
 
