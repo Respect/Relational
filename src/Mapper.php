@@ -34,11 +34,15 @@ final class Mapper extends AbstractMapper
 
     private PDOStatement $lastStatement;
 
+    /** @var SplObjectStorage<object, true> */
+    private SplObjectStorage $persisting;
+
     public function __construct(PDO|Db $db, EntityFactory $entityFactory = new EntityFactory())
     {
         parent::__construct($entityFactory);
 
         $this->db = $db instanceof PDO ? new Db($db) : $db;
+        $this->persisting = new SplObjectStorage();
     }
 
     public function fetch(Collection $collection, mixed $extra = null): mixed
@@ -74,24 +78,34 @@ final class Mapper extends AbstractMapper
             return parent::persist($object, $onCollection);
         }
 
-        $next = $onCollection->next;
-
-        if ($next) {
-            $remote = $this->style->remoteIdentifier($next->name);
-            $related = $this->getRelatedEntity($object, $remote);
-            if ($related !== null) {
-                $this->persist($related, $next);
-            }
+        if ($this->persisting->offsetExists($object)) {
+            return parent::persist($object, $onCollection);
         }
 
-        foreach ($onCollection->children as $child) {
-            $remote = $this->style->remoteIdentifier($child->name);
-            $related = $this->getRelatedEntity($object, $remote);
-            if ($related === null) {
-                continue;
+        $this->persisting[$object] = true;
+
+        try {
+            $next = $onCollection->next;
+
+            if ($next) {
+                $remote = $this->style->remoteIdentifier($next->name);
+                $related = $this->getRelatedEntity($object, $remote);
+                if ($related !== null) {
+                    $this->persist($related, $next);
+                }
             }
 
-            $this->persist($related, $child);
+            foreach ($onCollection->children as $child) {
+                $remote = $this->style->remoteIdentifier($child->name);
+                $related = $this->getRelatedEntity($object, $remote);
+                if ($related === null) {
+                    continue;
+                }
+
+                $this->persist($related, $child);
+            }
+        } finally {
+            $this->persisting->offsetUnset($object);
         }
 
         return parent::persist($object, $onCollection);

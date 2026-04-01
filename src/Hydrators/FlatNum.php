@@ -6,6 +6,7 @@ namespace Respect\Relational\Hydrators;
 
 use PDOStatement;
 use Respect\Data\Hydrators\Flat;
+use RuntimeException;
 
 use function is_int;
 
@@ -40,6 +41,15 @@ final class FlatNum extends Flat
     /** @return array<string, mixed> */
     private function columnMeta(int $col): array
     {
-        return $this->metaCache[$col] ??= $this->statement->getColumnMeta($col) ?: [];
+        if (isset($this->metaCache[$col])) {
+            return $this->metaCache[$col];
+        }
+
+        $meta = $this->statement->getColumnMeta($col);
+        if ($meta === false) {
+            throw new RuntimeException('PDO driver does not support getColumnMeta() for column ' . $col);
+        }
+
+        return $this->metaCache[$col] = $meta;
     }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Respect\Relational\Hydrators;
 
 use PDO;
+use PDOStatement;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -12,6 +13,7 @@ use Respect\Data\Collections\Collection;
 use Respect\Data\Collections\Typed;
 use Respect\Data\EntityFactory;
 use Respect\Relational\Bug;
+use RuntimeException;
 
 #[CoversClass(FlatNum::class)]
 class FlatNumTest extends TestCase
@@ -98,5 +100,19 @@ class FlatNumTest extends TestCase
         $this->assertNotFalse($result);
         $result->rewind();
         $this->assertInstanceOf(Bug::class, $result->current());
+    }
+
+    #[Test]
+    public function columnMetaThrowsWhenDriverDoesNotSupport(): void
+    {
+        $stmt = $this->createStub(PDOStatement::class);
+        $stmt->method('getColumnMeta')->willReturn(false);
+
+        $hydrator = new FlatNum($stmt);
+        $collection = Collection::author();
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('PDO driver does not support getColumnMeta()');
+        $hydrator->hydrate([1, 'Alice'], $collection, $this->factory);
     }
 }
