@@ -1716,6 +1716,23 @@ class MapperTest extends TestCase
         $this->assertSame('Immutable Post', $postRow->title);
     }
 
+    public function testPersistWithSelfReferentialCycleDoesNotInfiniteLoop(): void
+    {
+        $cat = new Category();
+        $cat->name = 'Root';
+        $cat->category = $cat; // self-referential cycle
+
+        // Should not infinite-loop — cycle detection skips already-visiting objects
+        $this->mapper->category->category->persist($cat);
+        $this->mapper->flush();
+
+        $this->assertGreaterThan(0, $cat->id);
+
+        $row = $this->query('SELECT * FROM category WHERE id=' . $cat->id)
+            ->fetch(PDO::FETCH_OBJ);
+        $this->assertSame('Root', $row->name);
+    }
+
     private function query(string $sql): PDOStatement
     {
         $stmt = $this->conn->query($sql);
