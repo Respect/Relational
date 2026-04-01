@@ -24,8 +24,11 @@ use function strtoupper;
 /** Fluent SQL builder with shape-based argument detection */
 class Sql
 {
-    /** Instructions where assoc array values are raw identifiers, not parameterized */
-    private const array RAW = ['on', 'select'];
+    /** Instructions where a single assoc-array arg means raw `key = value` pairs */
+    private const array RAW_PAIRS = ['on'];
+
+    /** Instructions where args are always comma-listed (aliases, not pairs) */
+    private const array COMMA_ONLY = ['select'];
 
     /**
      * Operators that expand an array value into multiple placeholders.
@@ -343,6 +346,10 @@ class Sql
             return $this;
         }
 
+        if (in_array($name, self::COMMA_ONLY)) {
+            return $this->commaList(...$args);
+        }
+
         if (!is_array($args[0])) {
             if (count($args) > 1 && is_array($args[1]) && array_is_list($args[1])) {
                 return $this->namedList((string) $args[0], $args[1]);
@@ -352,7 +359,7 @@ class Sql
         }
 
         if (!array_is_list($args[0])) {
-            if (in_array($name, self::RAW)) {
+            if (in_array($name, self::RAW_PAIRS)) {
                 return $this->rawPairs($args[0]);
             }
 

@@ -14,12 +14,11 @@ use Respect\Data\Collections\Composite;
 use Respect\Data\Collections\Filtered;
 use Respect\Data\EntityFactory;
 use Respect\Data\Hydrator;
-use Respect\Relational\Hydrators\FlatNum;
+use Respect\Data\Hydrators\PrestyledAssoc;
 use SplObjectStorage;
 use Throwable;
 
 use function array_keys;
-use function array_merge;
 use function array_push;
 use function array_values;
 use function is_array;
@@ -31,8 +30,6 @@ use function iterator_to_array;
 final class Mapper extends AbstractMapper
 {
     public readonly Db $db;
-
-    private PDOStatement $lastStatement;
 
     /** @var SplObjectStorage<object, true> */
     private SplObjectStorage $persisting;
@@ -133,7 +130,7 @@ final class Mapper extends AbstractMapper
 
     protected function defaultHydrator(Collection $collection): Hydrator
     {
-        return new FlatNum($this->lastStatement);
+        return new PrestyledAssoc();
     }
 
     /** Resolve related entity from relation property or FK field */
@@ -374,46 +371,51 @@ final class Mapper extends AbstractMapper
     {
         $selectTable = [];
         foreach ($collections as $tableSpecifier => $c) {
-            if ($c instanceof Composite) {
-                foreach ($c->compositions as $composition => $columns) {
-                    foreach ($columns as $col) {
-                        $selectTable[] = $tableSpecifier . '_comp' . $composition . '.' . $col;
-                    }
-                }
-            }
-
             if ($c instanceof Filtered) {
                 $filters = $c->filters;
                 if ($filters) {
-                    $pkName = $tableSpecifier . '.' .
-                        $this->style->identifier($c->name);
+                    $fields = $this->entityFactory->enumerateFields($c->name);
+                    $pk = $this->style->identifier($c->name);
+                    $selectTable[] = self::aliasedColumn($tableSpecifier, $pk, $fields[$pk] ?? $pk);
 
-                    if ($c->identifierOnly) {
-                        $selectColumns = [$pkName];
-                    } else {
-                        $selectColumns = [
-                            $tableSpecifier . '.' .
-                            $this->style->identifier($c->name),
-                        ];
+                    if (!$c->identifierOnly) {
                         foreach ($filters as $f) {
-                            $selectColumns[] = $tableSpecifier . '.' . $f;
+                            $selectTable[] = self::aliasedColumn($tableSpecifier, $f, $fields[$f] ?? $f);
                         }
                     }
 
                     $nextName = $c->next?->name;
                     if ($nextName !== null) {
-                        $selectColumns[] = $tableSpecifier . '.' .
-                            $this->style->remoteIdentifier($nextName);
+                        $fk = $this->style->remoteIdentifier($nextName);
+                        $selectTable[] = self::aliasedColumn($tableSpecifier, $fk, $fields[$fk] ?? $fk);
                     }
-
-                    $selectTable = array_merge($selectTable, $selectColumns);
                 }
             } else {
-                $selectTable[] = $tableSpecifier . '.*';
+                foreach ($this->entityFactory->enumerateFields($c->name) as $dbCol => $styledProp) {
+                    $selectTable[] = self::aliasedColumn($tableSpecifier, $dbCol, $styledProp);
+                }
+            }
+
+            // Composition columns come after entity columns so they override on collision
+            if (!$c instanceof Composite) {
+                continue;
+            }
+
+            foreach ($c->compositions as $composition => $columns) {
+                $compPrefix = $tableSpecifier . Composite::COMPOSITION_MARKER . $composition;
+                foreach ($columns as $col) {
+                    $selectTable[] = self::aliasedColumn($compPrefix, $col, $col);
+                }
             }
         }
 
         return $sql->select(...$selectTable);
+    }
+
+    /** @return array<string, string> Alias array for Sql::select() */
+    private static function aliasedColumn(string $specifier, string $dbCol, string $prop): array
+    {
+        return [$specifier . '__' . $prop => $specifier . '.' . $dbCol];
     }
 
     /** @param array<string, Collection> $collections */
@@ -466,7 +468,7 @@ final class Mapper extends AbstractMapper
         }
 
         foreach (array_keys($collection->compositions) as $comp) {
-            $alias = $entity . '_comp' . $comp;
+            $alias = $entity . Composite::COMPOSITION_MARKER . $comp;
             $sql->innerJoin($comp);
             $sql->as($alias);
             $sql->on([
@@ -569,9 +571,8 @@ final class Mapper extends AbstractMapper
     /** @return SplObjectStorage<object, Collection>|false */
     private function fetchHydrated(Collection $collection, PDOStatement $statement): SplObjectStorage|false
     {
-        $this->lastStatement = $statement;
         $hydrator = $this->resolveHydrator($collection);
-        $row = $statement->fetch(PDO::FETCH_NUM);
+        $row = $statement->fetch(PDO::FETCH_ASSOC);
 
         return $hydrator->hydrate($row, $collection, $this->entityFactory);
     }
@@ -586,7 +587,7 @@ final class Mapper extends AbstractMapper
             $query->concat($withExtra);
         }
 
-        $statement = $this->db->prepare((string) $query, PDO::FETCH_NUM);
+        $statement = $this->db->prepare((string) $query, PDO::FETCH_ASSOC);
         $statement->execute($query->params);
 
         return $statement;
