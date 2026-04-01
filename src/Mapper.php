@@ -82,13 +82,13 @@ final class Mapper extends AbstractMapper
         $this->persisting[$object] = true;
 
         try {
-            $next = $onCollection->next;
+            $connectsTo = $onCollection->connectsTo;
 
-            if ($next) {
-                $remote = $this->style->remoteIdentifier($next->name);
+            if ($connectsTo) {
+                $remote = $this->style->remoteIdentifier($connectsTo->name);
                 $related = $this->getRelatedEntity($object, $remote);
                 if ($related !== null) {
-                    $this->persist($related, $next);
+                    $this->persist($related, $connectsTo);
                 }
             }
 
@@ -384,9 +384,9 @@ final class Mapper extends AbstractMapper
                         }
                     }
 
-                    $nextName = $c->next?->name;
-                    if ($nextName !== null) {
-                        $fk = $this->style->remoteIdentifier($nextName);
+                    $connectedName = $c->connectsTo?->name;
+                    if ($connectedName !== null) {
+                        $fk = $this->style->remoteIdentifier($connectedName);
                         $selectTable[] = self::aliasedColumn($tableSpecifier, $fk, $fields[$fk] ?? $fk);
                     }
                 }
@@ -492,7 +492,7 @@ final class Mapper extends AbstractMapper
         $s      = $this->style;
         $entity = $collection->name;
         $parent = $collection->parent?->name;
-        $next   = $collection->next?->name;
+        $connected = $collection->connectsTo?->name;
 
         $parentAlias = $parent ? $aliases[$parent] : null;
         $aliases[$entity] = $alias;
@@ -532,7 +532,7 @@ final class Mapper extends AbstractMapper
         $aliasedPk       = $alias . '.' . $s->identifier($entity);
         $aliasedParentPk = $parentAlias . '.' . $s->identifier($parent);
 
-        if ($this->hasComposition($entity, $next, $parent)) {
+        if ($this->hasComposition($entity, $connected, $parent)) {
             $onName  = $alias . '.' . $s->remoteIdentifier($parent);
             $onAlias = $aliasedParentPk;
         } else {
@@ -543,14 +543,14 @@ final class Mapper extends AbstractMapper
         $sql->on([$onName => $onAlias]);
     }
 
-    private function hasComposition(string $entity, string|null $next, string|null $parent): bool
+    private function hasComposition(string $entity, string|null $connected, string|null $parent): bool
     {
-        if ($next === null || $parent === null) {
+        if ($connected === null || $parent === null) {
             return false;
         }
 
-        return $entity === $this->style->composed($parent, $next)
-            || $entity === $this->style->composed($next, $parent);
+        return $entity === $this->style->composed($parent, $connected)
+            || $entity === $this->style->composed($connected, $parent);
     }
 
     /** @param SplObjectStorage<object, Collection> $hydrated */

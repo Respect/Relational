@@ -1545,9 +1545,10 @@ class MapperTest extends TestCase
 
         $bob = $this->mapper->read_only_author[2]->fetch();
 
-        // withChanges creates modified copy, PK preserved → auto-update
-        $updated = $this->mapper->entityFactory->withChanges(
-            $post,
+        // Partial entity with same PK → auto-update via identity map
+        $updated = $this->mapper->entityFactory->create(
+            ReadOnlyPost::class,
+            id: 1,
             title: 'Changed',
             readOnlyAuthor: $bob,
         );
@@ -1562,16 +1563,18 @@ class MapperTest extends TestCase
         $this->assertSame(2, (int) $result->read_only_author_id);
     }
 
-    public function testPersistWithInlineChangesRoundTrip(): void
+    public function testPersistPartialEntityRoundTrip(): void
     {
         $fetched = $this->mapper->read_only_author[1]->fetch();
         $this->assertSame('Alice', $fetched->name);
 
-        $updated = $this->mapper->read_only_author[1]->persist(
-            $fetched,
+        $partial = $this->mapper->entityFactory->create(
+            ReadOnlyAuthor::class,
+            id: 1,
             name: 'Alice Updated',
             bio: 'new bio',
         );
+        $updated = $this->mapper->read_only_author->persist($partial);
         $this->mapper->flush();
 
         $this->assertNotSame($fetched, $updated);
@@ -1584,7 +1587,7 @@ class MapperTest extends TestCase
         $this->assertSame('new bio', $result->bio);
     }
 
-    public function testPersistWithInlineChangesOnGraph(): void
+    public function testPersistPartialEntityOnGraph(): void
     {
         $this->conn->exec((string) Sql::createTable('read_only_post', [
             'id INTEGER PRIMARY KEY',
@@ -1600,14 +1603,16 @@ class MapperTest extends TestCase
             ->values([1, 'Original', 'Body', 1])
             ->exec();
 
-        $post = $this->mapper->read_only_post->read_only_author->fetch();
+        $this->mapper->read_only_post->read_only_author->fetch();
         $bob = $this->mapper->read_only_author[2]->fetch();
 
-        $updated = $this->mapper->read_only_post->persist(
-            $post,
+        $partial = $this->mapper->entityFactory->create(
+            ReadOnlyPost::class,
+            id: 1,
             title: 'Changed',
             readOnlyAuthor: $bob,
         );
+        $updated = $this->mapper->read_only_post->persist($partial);
         $this->mapper->flush();
 
         $this->assertSame(1, $updated->id);
