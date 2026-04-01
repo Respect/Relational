@@ -16,6 +16,7 @@ use Respect\Data\Collections\Composite;
 use Respect\Data\Collections\Filtered;
 use Respect\Data\Collections\Typed;
 use Respect\Data\EntityFactory;
+use Respect\Data\Hydrators\PrestyledAssoc;
 use Respect\Data\Styles;
 use Throwable;
 use TypeError;
@@ -141,7 +142,9 @@ class MapperTest extends TestCase
             ->values([1, 'Alice', 'Alice bio'])
             ->exec();
 
-        $mapper = new Mapper($conn, new EntityFactory(entityNamespace: 'Respect\\Relational\\'));
+        $mapper = new Mapper($conn, new PrestyledAssoc(new EntityFactory(
+            entityNamespace: 'Respect\\Relational\\',
+        )));
         $this->mapper = $mapper;
         $this->conn = $conn;
     }
@@ -175,7 +178,9 @@ class MapperTest extends TestCase
             ->will($this->throwException(new Exception()));
         $conn->expects($this->once())
             ->method('rollback');
-        $mapper = new Mapper($conn, new EntityFactory(entityNamespace: 'Respect\\Relational\\'));
+        $mapper = new Mapper($conn, new PrestyledAssoc(new EntityFactory(
+            entityNamespace: 'Respect\\Relational\\',
+        )));
         $obj = new Post();
         $mapper->post->persist($obj);
         try {
@@ -226,7 +231,9 @@ class MapperTest extends TestCase
             ->willReturn(true);
         $conn->method('commit')
             ->willReturn(true);
-        $mapper = new Mapper($conn, new EntityFactory(entityNamespace: 'Respect\\Relational\\'));
+        $mapper = new Mapper($conn, new PrestyledAssoc(new EntityFactory(
+            entityNamespace: 'Respect\\Relational\\',
+        )));
         $obj = new Author();
         $obj->name = 'bar';
         $mapper->author->persist($obj);
@@ -513,21 +520,27 @@ class MapperTest extends TestCase
 
     public function testFetchingEntityTyped(): void
     {
-        $mapper = new Mapper($this->conn, new EntityFactory(entityNamespace: '\Respect\Relational\\'));
+        $mapper = new Mapper($this->conn, new PrestyledAssoc(new EntityFactory(
+            entityNamespace: '\Respect\Relational\\',
+        )));
         $comment = $mapper->comment[8]->fetch();
         $this->assertInstanceOf('\Respect\Relational\Comment', $comment);
     }
 
     public function testFetchingAllEntityTyped(): void
     {
-        $mapper = new Mapper($this->conn, new EntityFactory(entityNamespace: '\Respect\Relational\\'));
+        $mapper = new Mapper($this->conn, new PrestyledAssoc(new EntityFactory(
+            entityNamespace: '\Respect\Relational\\',
+        )));
         $comment = $mapper->comment->fetchAll();
         $this->assertInstanceOf('\Respect\Relational\Comment', $comment[1]);
     }
 
     public function testFetchingAllEntityTypedNested(): void
     {
-        $mapper = new Mapper($this->conn, new EntityFactory(entityNamespace: '\Respect\Relational\\'));
+        $mapper = new Mapper($this->conn, new PrestyledAssoc(new EntityFactory(
+            entityNamespace: '\Respect\Relational\\',
+        )));
         $comment = $mapper->comment->post->fetchAll();
         $this->assertInstanceOf('\Respect\Relational\Comment', $comment[0]);
         $this->assertInstanceOf('\Respect\Relational\Post', $comment[0]->post);
@@ -535,7 +548,9 @@ class MapperTest extends TestCase
 
     public function testPersistingEntityTyped(): void
     {
-        $mapper = new Mapper($this->conn, new EntityFactory(entityNamespace: '\Respect\Relational\\'));
+        $mapper = new Mapper($this->conn, new PrestyledAssoc(new EntityFactory(
+            entityNamespace: '\Respect\Relational\\',
+        )));
         $comment = $mapper->comment[8]->fetch();
         $comment->text = 'HeyHey';
         $mapper->comment->persist($comment);
@@ -547,7 +562,9 @@ class MapperTest extends TestCase
 
     public function testPersistingNewEntityTyped(): void
     {
-        $mapper = new Mapper($this->conn, new EntityFactory(entityNamespace: '\Respect\Relational\\'));
+        $mapper = new Mapper($this->conn, new PrestyledAssoc(new EntityFactory(
+            entityNamespace: '\Respect\Relational\\',
+        )));
         $comment = new Comment();
         $comment->text = 'HeyHey';
         $mapper->comment->persist($comment);
@@ -559,7 +576,9 @@ class MapperTest extends TestCase
 
     public function testSettersAndGettersDatetimeAsObject(): void
     {
-        $mapper = new Mapper($this->conn, new EntityFactory(entityNamespace: '\Respect\Relational\\'));
+        $mapper = new Mapper($this->conn, new PrestyledAssoc(new EntityFactory(
+            entityNamespace: '\Respect\Relational\\',
+        )));
         $post = new Post();
         $post->id = 44;
         $post->text = 'Test using datetime setters';
@@ -590,7 +609,7 @@ class MapperTest extends TestCase
         ];
         foreach ($styles as $style) {
             $factory = new EntityFactory(style: $style, entityNamespace: 'Respect\\Relational\\');
-            $mapper = new Mapper($this->conn, $factory);
+            $mapper = new Mapper($this->conn, new PrestyledAssoc($factory));
             $this->assertEquals($style, $mapper->style);
         }
     }
@@ -920,7 +939,9 @@ class MapperTest extends TestCase
 
     public function testTyped(): void
     {
-        $mapper = new Mapper($this->conn, new EntityFactory(entityNamespace: '\Respect\Relational\\'));
+        $mapper = new Mapper($this->conn, new PrestyledAssoc(new EntityFactory(
+            entityNamespace: '\Respect\Relational\\',
+        )));
         $mapper->typedIssues = Typed::issues('type');
         $issues = $mapper->typedIssues->fetchAll();
         $this->assertInstanceOf('\\Respect\Relational\\Bug', $issues[0]);
@@ -940,7 +961,9 @@ class MapperTest extends TestCase
 
     public function testTypedSingle(): void
     {
-        $mapper = new Mapper($this->conn, new EntityFactory(entityNamespace: '\Respect\Relational\\'));
+        $mapper = new Mapper($this->conn, new PrestyledAssoc(new EntityFactory(
+            entityNamespace: '\Respect\Relational\\',
+        )));
         $mapper->typedIssues = Typed::issues('type');
         $issue = $mapper->typedIssues->fetch();
         $this->assertInstanceOf('\\Respect\Relational\\Bug', $issue);
@@ -970,21 +993,27 @@ class MapperTest extends TestCase
 
     public function testFetchingEntityWithoutPublicPropertiesTyped(): void
     {
-        $mapper = new Mapper($this->conn, new EntityFactory(entityNamespace: '\Respect\Relational\OtherEntity\\'));
+        $mapper = new Mapper($this->conn, new PrestyledAssoc(new EntityFactory(
+            entityNamespace: '\Respect\Relational\OtherEntity\\',
+        )));
         $post = $mapper->post[5]->fetch();
         $this->assertInstanceOf('\Respect\Relational\OtherEntity\Post', $post);
     }
 
     public function testFetchingAllEntityWithoutPublicPropertiesTyped(): void
     {
-        $mapper = new Mapper($this->conn, new EntityFactory(entityNamespace: '\Respect\Relational\OtherEntity\\'));
+        $mapper = new Mapper($this->conn, new PrestyledAssoc(new EntityFactory(
+            entityNamespace: '\Respect\Relational\OtherEntity\\',
+        )));
         $posts = $mapper->post->fetchAll();
         $this->assertInstanceOf('\Respect\Relational\OtherEntity\Post', $posts[0]);
     }
 
     public function testFetchingAllEntityWithoutPublicPropertiesTypedNested(): void
     {
-        $mapper = new Mapper($this->conn, new EntityFactory(entityNamespace: '\Respect\Relational\OtherEntity\\'));
+        $mapper = new Mapper($this->conn, new PrestyledAssoc(new EntityFactory(
+            entityNamespace: '\Respect\Relational\OtherEntity\\',
+        )));
         $posts = $mapper->post->author->fetchAll();
         $this->assertInstanceOf('\Respect\Relational\OtherEntity\Post', $posts[0]);
         $this->assertInstanceOf(
@@ -995,7 +1024,9 @@ class MapperTest extends TestCase
 
     public function testPersistingEntityWithoutPublicPropertiesTyped(): void
     {
-        $mapper = new Mapper($this->conn, new EntityFactory(entityNamespace: '\Respect\Relational\OtherEntity\\'));
+        $mapper = new Mapper($this->conn, new PrestyledAssoc(new EntityFactory(
+            entityNamespace: '\Respect\Relational\OtherEntity\\',
+        )));
 
         $post = $mapper->post[5]->fetch();
         $post->setText('HeyHey');
@@ -1009,7 +1040,9 @@ class MapperTest extends TestCase
 
     public function testPersistingNewEntityWithoutPublicPropertiesTyped(): void
     {
-        $mapper = new Mapper($this->conn, new EntityFactory(entityNamespace: '\Respect\Relational\OtherEntity\\'));
+        $mapper = new Mapper($this->conn, new PrestyledAssoc(new EntityFactory(
+            entityNamespace: '\Respect\Relational\OtherEntity\\',
+        )));
 
         $author = new OtherEntity\Author();
         $author->setId(1);
@@ -1028,7 +1061,9 @@ class MapperTest extends TestCase
 
     public function testShouldSkipEntityConstructorByDefault(): void
     {
-        $mapper = new Mapper($this->conn, new EntityFactory(entityNamespace: 'Respect\\Relational\\OtherEntity\\'));
+        $mapper = new Mapper($this->conn, new PrestyledAssoc(new EntityFactory(
+            entityNamespace: 'Respect\\Relational\\OtherEntity\\',
+        )));
 
         // create() uses newInstanceWithoutConstructor, so the constructor is never called
         $comment = $mapper->comment->fetch();
@@ -1058,7 +1093,9 @@ class MapperTest extends TestCase
             ->willReturn(true);
         $conn->method('commit')
             ->willReturn(true);
-        $mapper = new Mapper($conn, new EntityFactory(entityNamespace: 'Respect\\Relational\\'));
+        $mapper = new Mapper($conn, new PrestyledAssoc(new EntityFactory(
+            entityNamespace: 'Respect\\Relational\\',
+        )));
         $obj = new Author();
         $obj->name = 'test';
         $mapper->author->persist($obj);

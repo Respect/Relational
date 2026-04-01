@@ -12,7 +12,6 @@ use Respect\Data\CollectionIterator;
 use Respect\Data\Collections\Collection;
 use Respect\Data\Collections\Composite;
 use Respect\Data\Collections\Filtered;
-use Respect\Data\EntityFactory;
 use Respect\Data\Hydrator;
 use Respect\Data\Hydrators\PrestyledAssoc;
 use SplObjectStorage;
@@ -34,9 +33,9 @@ final class Mapper extends AbstractMapper
     /** @var SplObjectStorage<object, true> */
     private SplObjectStorage $persisting;
 
-    public function __construct(PDO|Db $db, EntityFactory $entityFactory = new EntityFactory())
+    public function __construct(PDO|Db $db, Hydrator $hydrator = new PrestyledAssoc())
     {
-        parent::__construct($entityFactory);
+        parent::__construct($hydrator);
 
         $this->db = $db instanceof PDO ? new Db($db) : $db;
         $this->persisting = new SplObjectStorage();
@@ -126,11 +125,6 @@ final class Mapper extends AbstractMapper
 
         $this->reset();
         $conn->commit();
-    }
-
-    protected function defaultHydrator(Collection $collection): Hydrator
-    {
-        return new PrestyledAssoc();
     }
 
     /** Resolve related entity from relation property or FK field */
@@ -571,10 +565,9 @@ final class Mapper extends AbstractMapper
     /** @return SplObjectStorage<object, Collection>|false */
     private function fetchHydrated(Collection $collection, PDOStatement $statement): SplObjectStorage|false
     {
-        $hydrator = $this->resolveHydrator($collection);
         $row = $statement->fetch(PDO::FETCH_ASSOC);
 
-        return $hydrator->hydrate($row, $collection, $this->entityFactory);
+        return $this->hydrator->hydrateAll($row, $collection);
     }
 
     private function createStatement(
