@@ -68,7 +68,7 @@ final class Mapper extends AbstractMapper
         return $entities;
     }
 
-    public function persist(object $object, Collection $onCollection): bool
+    public function persist(object $object, Collection $onCollection): object
     {
         if ($onCollection instanceof Filtered) {
             return parent::persist($object, $onCollection);
