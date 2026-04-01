@@ -39,7 +39,8 @@ class FlatNumTest extends TestCase
         $row = $stmt->fetch(PDO::FETCH_NUM);
 
         $hydrator = new FlatNum($stmt);
-        $result = $hydrator->hydrate($row, Collection::author(), $this->factory);
+        $collection = Collection::author();
+        $result = $hydrator->hydrate($row, $collection, $this->factory);
 
         $this->assertNotFalse($result);
         $this->assertCount(1, $result);
@@ -76,7 +77,8 @@ class FlatNumTest extends TestCase
 
         $hydrator = new FlatNum($stmt);
 
-        $this->assertFalse($hydrator->hydrate($row, Collection::author(), $this->factory));
+        $collection = Collection::author();
+        $this->assertFalse($hydrator->hydrate($row, $collection, $this->factory));
     }
 
     #[Test]

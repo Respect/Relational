@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Respect\Relational;
 
 use Datetime;
-use DomainException;
 use Exception;
 use PDO;
 use PDOException;
@@ -87,6 +86,11 @@ class MapperTest extends TestCase
             'type VARCHAR(255)',
             'title VARCHAR(22)',
         ]));
+        $conn->exec((string) Sql::createTable('read_only_author', [
+            'id INTEGER PRIMARY KEY',
+            'name VARCHAR(255)',
+            'bio TEXT',
+        ]));
         $this->posts = [
             ['id' => 5, 'title' => 'Post Title', 'text' => 'Post Text', 'author_id' => 1],
         ];
@@ -133,6 +137,10 @@ class MapperTest extends TestCase
             $db->insertInto('issues', array_keys($row))->values(array_values($row))->exec();
         }
 
+        $db->insertInto('read_only_author', ['id', 'name', 'bio'])
+            ->values([1, 'Alice', 'Alice bio'])
+            ->exec();
+
         $mapper = new Mapper($conn, new EntityFactory(entityNamespace: 'Respect\\Relational\\'));
         $this->mapper = $mapper;
         $this->conn = $conn;
@@ -169,7 +177,7 @@ class MapperTest extends TestCase
             ->method('rollback');
         $mapper = new Mapper($conn, new EntityFactory(entityNamespace: 'Respect\\Relational\\'));
         $obj = new Post();
-        $mapper->foo->persist($obj);
+        $mapper->post->persist($obj);
         try {
             $mapper->flush();
         } catch (Throwable) {
@@ -693,7 +701,7 @@ class MapperTest extends TestCase
         $this->assertEquals('John', $result->name);
     }
 
-    public function testMultipleFilteredCollectionsDontPersist(): void
+    public function testPersistOnBaseCollectionDoesNotCascadeFilteredRelations(): void
     {
         $mapper = $this->mapper;
         $mapper->authorsWithPosts = Filtered::comment()->post->stack(Filtered::author());
@@ -703,7 +711,9 @@ class MapperTest extends TestCase
         $post->title = 'Title Changed';
         $post->author = $mapper->author[1]->fetch();
         $post->author->name = 'A';
-        $mapper->postsFromAuthorsWithComments->persist($post);
+
+        // Persisting via base post collection updates only the post, not the author
+        $mapper->post->persist($post);
         $mapper->flush();
         $result = $this->query('select title from post where id=5')
             ->fetch(PDO::FETCH_OBJ);
@@ -724,7 +734,7 @@ class MapperTest extends TestCase
         $newAuthor = new Author();
         $newAuthor->name = 'A';
         $post->author = $newAuthor;
-        $mapper->postsFromAuthorsWithComments->persist($post);
+        $mapper->post->persist($post);
         $mapper->flush();
         $result = $this->query('select title from post where id=5')
             ->fetch(PDO::FETCH_OBJ);
@@ -746,7 +756,7 @@ class MapperTest extends TestCase
         $post->title = 'Title Changed';
         $post->author = $mapper->author[1]->fetch();
         $post->author->name = 'A';
-        $mapper->postsFromAuthorsWithComments->persist($post);
+        $mapper->post->persist($post);
         $mapper->flush();
         $result = $this->query('select title from post where id=5')
             ->fetch(PDO::FETCH_OBJ);
@@ -765,7 +775,7 @@ class MapperTest extends TestCase
         $this->assertEquals(5, $post->id);
         $this->assertEquals('Post Title', $post->title);
         $post->title = 'Title Changed';
-        $mapper->postsFromAuthorsWithComments->persist($post);
+        $mapper->post->persist($post);
         $mapper->flush();
         $result = $this->query('select title from post where id=5')
             ->fetch(PDO::FETCH_OBJ);
@@ -780,7 +790,7 @@ class MapperTest extends TestCase
         $this->assertEquals(5, $post->id);
         $this->assertEquals('Post Title', $post->title);
         $post->title = 'Title Changed';
-        $mapper->postsFromAuthorsWithComments->persist($post);
+        $mapper->post->persist($post);
         $mapper->flush();
         $result = $this->query('select title from post where id=5')
             ->fetch(PDO::FETCH_OBJ);
@@ -794,7 +804,7 @@ class MapperTest extends TestCase
         $post = $mapper->post->fetch();
         $this->assertEquals(5, $post->id);
         $post->title = 'Title Changed';
-        $mapper->postsFromAuthorsWithComments->persist($post);
+        $mapper->post->persist($post);
         $mapper->flush();
         $result = $this->query('select title from post where id=5')
             ->fetch(PDO::FETCH_OBJ);
@@ -814,7 +824,7 @@ class MapperTest extends TestCase
         $this->assertEquals('Author 1', $post->author->name);
         $post->title = 'Title Changed';
 
-        $mapper->postsFromAuthorsWithComments->persist($post);
+        $mapper->post->persist($post);
         $mapper->flush();
         $result = $this->query('select title from post where id=5')
             ->fetch(PDO::FETCH_OBJ);
@@ -845,7 +855,7 @@ class MapperTest extends TestCase
         $post->title = 'Title Changed';
         $post->text = 'Comment Changed';
 
-        $mapper->postsFromAuthorsWithComments->persist($post);
+        $mapper->postComment->persist($post);
         $mapper->flush();
         $result = $this->query('select title from post where id=5')
             ->fetch(PDO::FETCH_OBJ);
@@ -1016,29 +1026,13 @@ class MapperTest extends TestCase
         $this->assertEquals('My new Post Text', $result);
     }
 
-    public function testShouldExecuteEntityConstructorByDefault(): void
+    public function testShouldSkipEntityConstructorByDefault(): void
     {
         $mapper = new Mapper($this->conn, new EntityFactory(entityNamespace: 'Respect\\Relational\\OtherEntity\\'));
 
-        try {
-            $mapper->comment->fetch();
-            $this->fail('This should throws exception');
-        } catch (DomainException $e) {
-            $this->assertEquals('Exception from __construct', $e->getMessage());
-        }
-    }
-
-    public function testShouldNotExecuteEntityConstructorWhenDisabled(): void
-    {
-        $mapper = new Mapper($this->conn, new EntityFactory(
-            entityNamespace: 'Respect\\Relational\\OtherEntity\\',
-            disableConstructor: true,
-        ));
-
-        $this->assertInstanceOf(
-            'Respect\\Relational\\OtherEntity\\Comment',
-            $mapper->comment->fetch(),
-        );
+        // create() uses newInstanceWithoutConstructor, so the constructor is never called
+        $comment = $mapper->comment->fetch();
+        $this->assertInstanceOf('Respect\\Relational\\OtherEntity\\Comment', $comment);
     }
 
     public function testFetchWithConditionUsingColumnValue(): void
@@ -1354,13 +1348,372 @@ class MapperTest extends TestCase
         // The cascade should skip the null child without crashing (L87-91).
         $mapper = $this->mapper;
         $this->expectNotToPerformAssertions();
-        $mapper->postsFromAuthorsWithComments->persist(new class {
+        $mapper->post($mapper->author)->persist(new class {
             public int $id;
 
             public string $title = 'Orphan Post';
 
             public string $text = '';
         });
+    }
+
+    public function testReadOnlyNestedHydrationPostWithAuthor(): void
+    {
+        $this->conn->exec((string) Sql::createTable('read_only_post', [
+            'id INTEGER PRIMARY KEY',
+            'title VARCHAR(255)',
+            'text TEXT',
+            'read_only_author_id INTEGER',
+        ]));
+        $db = new Db($this->conn);
+        $db->insertInto('read_only_post', ['id', 'title', 'text', 'read_only_author_id'])
+            ->values([1, 'Post Title', 'Post Text', 1])
+            ->exec();
+
+        $post = $this->mapper->read_only_post->read_only_author->fetch();
+
+        $this->assertInstanceOf(ReadOnlyPost::class, $post);
+        $this->assertSame(1, $post->id);
+        $this->assertSame('Post Title', $post->title);
+
+        $this->assertInstanceOf(ReadOnlyAuthor::class, $post->readOnlyAuthor);
+        $this->assertSame(1, $post->readOnlyAuthor->id);
+        $this->assertSame('Alice', $post->readOnlyAuthor->name);
+    }
+
+    public function testReadOnlyThreeLevelHydration(): void
+    {
+        $this->conn->exec((string) Sql::createTable('read_only_post', [
+            'id INTEGER PRIMARY KEY',
+            'title VARCHAR(255)',
+            'text TEXT',
+            'read_only_author_id INTEGER',
+        ]));
+        $this->conn->exec((string) Sql::createTable('read_only_comment', [
+            'id INTEGER PRIMARY KEY',
+            'text TEXT',
+            'read_only_post_id INTEGER',
+        ]));
+        $db = new Db($this->conn);
+        $db->insertInto('read_only_post', ['id', 'title', 'text', 'read_only_author_id'])
+            ->values([1, 'Post Title', 'Post Text', 1])
+            ->exec();
+        $db->insertInto('read_only_comment', ['id', 'text', 'read_only_post_id'])
+            ->values([1, 'Great post!', 1])
+            ->exec();
+
+        $comment = $this->mapper->read_only_comment->read_only_post->read_only_author->fetch();
+
+        $this->assertInstanceOf(ReadOnlyComment::class, $comment);
+        $this->assertSame(1, $comment->id);
+        $this->assertSame('Great post!', $comment->text);
+
+        $this->assertInstanceOf(ReadOnlyPost::class, $comment->readOnlyPost);
+        $this->assertSame(1, $comment->readOnlyPost->id);
+        $this->assertSame('Post Title', $comment->readOnlyPost->title);
+
+        $this->assertInstanceOf(ReadOnlyAuthor::class, $comment->readOnlyPost->readOnlyAuthor);
+        $this->assertSame('Alice', $comment->readOnlyPost->readOnlyAuthor->name);
+    }
+
+    public function testReadOnlyInsertWithRelationCascade(): void
+    {
+        $this->conn->exec((string) Sql::createTable('read_only_post', [
+            'id INTEGER PRIMARY KEY',
+            'title VARCHAR(255)',
+            'text TEXT',
+            'read_only_author_id INTEGER',
+        ]));
+
+        $author = $this->mapper->entityFactory->create(ReadOnlyAuthor::class, name: 'New Author');
+        $post = $this->mapper->entityFactory->create(
+            ReadOnlyPost::class,
+            title: 'New Post',
+            text: 'Post body',
+            readOnlyAuthor: $author,
+        );
+
+        // Cascade persist: author first, then post
+        $this->mapper->read_only_post->read_only_author->persist($post);
+        $this->mapper->flush();
+
+        $this->assertGreaterThan(0, $author->id);
+        $this->assertGreaterThan(0, $post->id);
+
+        // Verify FK was correctly stored
+        $result = $this->query(
+            'SELECT * FROM read_only_post WHERE id=' . $post->id,
+        )->fetch(PDO::FETCH_OBJ);
+        $this->assertSame($author->id, (int) $result->read_only_author_id);
+        $this->assertSame('New Post', $result->title);
+    }
+
+    public function testReadOnlyUpdateViaCollectionPkPreservesRelation(): void
+    {
+        $this->conn->exec((string) Sql::createTable('read_only_post', [
+            'id INTEGER PRIMARY KEY',
+            'title VARCHAR(255)',
+            'text TEXT',
+            'read_only_author_id INTEGER',
+        ]));
+        $db = new Db($this->conn);
+        $db->insertInto('read_only_post', ['id', 'title', 'text', 'read_only_author_id'])
+            ->values([1, 'Original', 'Body', 1])
+            ->exec();
+
+        // Fetch the full graph
+        $fetched = $this->mapper->read_only_post->read_only_author->fetch();
+        $this->assertSame('Original', $fetched->title);
+        $this->assertSame('Alice', $fetched->readOnlyAuthor->name);
+
+        // Replace the post keeping same author
+        $updated = $this->mapper->entityFactory->create(
+            ReadOnlyPost::class,
+            title: 'Updated',
+            text: 'New body',
+            readOnlyAuthor: $fetched->readOnlyAuthor,
+        );
+        $this->mapper->read_only_post[1]->persist($updated);
+        $this->mapper->flush();
+
+        $this->assertSame(1, $updated->id);
+
+        // Verify DB
+        $result = $this->query('SELECT * FROM read_only_post WHERE id=1')
+            ->fetch(PDO::FETCH_OBJ);
+        $this->assertSame('Updated', $result->title);
+        $this->assertSame('New body', $result->text);
+        $this->assertSame(1, (int) $result->read_only_author_id);
+    }
+
+    public function testReadOnlyUpdateChangesRelation(): void
+    {
+        $this->conn->exec((string) Sql::createTable('read_only_post', [
+            'id INTEGER PRIMARY KEY',
+            'title VARCHAR(255)',
+            'text TEXT',
+            'read_only_author_id INTEGER',
+        ]));
+        $db = new Db($this->conn);
+        $db->insertInto('read_only_author', ['id', 'name', 'bio'])
+            ->values([2, 'Bob', 'Bob bio'])
+            ->exec();
+        $db->insertInto('read_only_post', ['id', 'title', 'text', 'read_only_author_id'])
+            ->values([1, 'Original', 'Body', 1])
+            ->exec();
+
+        $fetched = $this->mapper->read_only_post->read_only_author->fetch();
+        $this->assertSame('Alice', $fetched->readOnlyAuthor->name);
+
+        $bob = $this->mapper->read_only_author[2]->fetch();
+
+        // Replace post with a different author
+        $updated = $this->mapper->entityFactory->create(
+            ReadOnlyPost::class,
+            title: 'Reassigned',
+            text: 'Text',
+            readOnlyAuthor: $bob,
+        );
+        $this->mapper->read_only_post[1]->persist($updated);
+        $this->mapper->flush();
+
+        $result = $this->query('SELECT * FROM read_only_post WHERE id=1')
+            ->fetch(PDO::FETCH_OBJ);
+        $this->assertSame('Reassigned', $result->title);
+        $this->assertSame(2, (int) $result->read_only_author_id);
+    }
+
+    public function testReadOnlyWithChangesAndPersistRoundTrip(): void
+    {
+        $this->conn->exec((string) Sql::createTable('read_only_post', [
+            'id INTEGER PRIMARY KEY',
+            'title VARCHAR(255)',
+            'text TEXT',
+            'read_only_author_id INTEGER',
+        ]));
+        $db = new Db($this->conn);
+        $db->insertInto('read_only_author', ['id', 'name', 'bio'])
+            ->values([2, 'Bob', 'Bob bio'])
+            ->exec();
+        $db->insertInto('read_only_post', ['id', 'title', 'text', 'read_only_author_id'])
+            ->values([1, 'Original', 'Body', 1])
+            ->exec();
+
+        // Fetch full graph
+        $post = $this->mapper->read_only_post->read_only_author->fetch();
+        $this->assertSame('Alice', $post->readOnlyAuthor->name);
+
+        $bob = $this->mapper->read_only_author[2]->fetch();
+
+        // withChanges creates modified copy, PK preserved → auto-update
+        $updated = $this->mapper->entityFactory->withChanges(
+            $post,
+            title: 'Changed',
+            readOnlyAuthor: $bob,
+        );
+        $this->mapper->read_only_post->persist($updated);
+        $this->mapper->flush();
+
+        // Verify DB
+        $result = $this->query('SELECT * FROM read_only_post WHERE id=1')
+            ->fetch(PDO::FETCH_OBJ);
+        $this->assertSame('Changed', $result->title);
+        $this->assertSame('Body', $result->text);
+        $this->assertSame(2, (int) $result->read_only_author_id);
+    }
+
+    public function testPersistWithInlineChangesRoundTrip(): void
+    {
+        $fetched = $this->mapper->read_only_author[1]->fetch();
+        $this->assertSame('Alice', $fetched->name);
+
+        $updated = $this->mapper->read_only_author[1]->persist(
+            $fetched,
+            name: 'Alice Updated',
+            bio: 'new bio',
+        );
+        $this->mapper->flush();
+
+        $this->assertNotSame($fetched, $updated);
+        $this->assertSame(1, $updated->id);
+        $this->assertSame('Alice Updated', $updated->name);
+
+        $result = $this->query('SELECT * FROM read_only_author WHERE id=1')
+            ->fetch(PDO::FETCH_OBJ);
+        $this->assertSame('Alice Updated', $result->name);
+        $this->assertSame('new bio', $result->bio);
+    }
+
+    public function testPersistWithInlineChangesOnGraph(): void
+    {
+        $this->conn->exec((string) Sql::createTable('read_only_post', [
+            'id INTEGER PRIMARY KEY',
+            'title VARCHAR(255)',
+            'text TEXT',
+            'read_only_author_id INTEGER',
+        ]));
+        $db = new Db($this->conn);
+        $db->insertInto('read_only_author', ['id', 'name', 'bio'])
+            ->values([2, 'Bob', 'Bob bio'])
+            ->exec();
+        $db->insertInto('read_only_post', ['id', 'title', 'text', 'read_only_author_id'])
+            ->values([1, 'Original', 'Body', 1])
+            ->exec();
+
+        $post = $this->mapper->read_only_post->read_only_author->fetch();
+        $bob = $this->mapper->read_only_author[2]->fetch();
+
+        $updated = $this->mapper->read_only_post->persist(
+            $post,
+            title: 'Changed',
+            readOnlyAuthor: $bob,
+        );
+        $this->mapper->flush();
+
+        $this->assertSame(1, $updated->id);
+        $result = $this->query('SELECT * FROM read_only_post WHERE id=1')
+            ->fetch(PDO::FETCH_OBJ);
+        $this->assertSame('Changed', $result->title);
+        $this->assertSame(2, (int) $result->read_only_author_id);
+    }
+
+    public function testReadOnlyEntityHydration(): void
+    {
+        $entity = $this->mapper->read_only_author[1]->fetch();
+
+        $this->assertInstanceOf(ReadOnlyAuthor::class, $entity);
+        $this->assertSame(1, $entity->id);
+        $this->assertSame('Alice', $entity->name);
+        $this->assertSame('Alice bio', $entity->bio);
+    }
+
+    public function testReadOnlyEntityInsertWithAutoIncrementPk(): void
+    {
+        $entity = $this->mapper->entityFactory->create(ReadOnlyAuthor::class, name: 'Bob', bio: 'Bob bio');
+        $this->mapper->read_only_author->persist($entity);
+        $this->mapper->flush();
+
+        $this->assertGreaterThan(0, $entity->id);
+
+        $result = $this->query(
+            'SELECT * FROM read_only_author WHERE name="Bob"',
+        )->fetch(PDO::FETCH_OBJ);
+        $this->assertSame('Bob', $result->name);
+        $this->assertSame('Bob bio', $result->bio);
+    }
+
+    public function testReadOnlyEntityUpdateViaCollectionPk(): void
+    {
+        // Fetch to populate identity map
+        $fetched = $this->mapper->read_only_author[1]->fetch();
+        $this->assertSame('Alice', $fetched->name);
+
+        // Persist a new readonly entity via collection[pk]
+        $updated = $this->mapper->entityFactory->create(ReadOnlyAuthor::class, name: 'Alice Updated', bio: 'new bio');
+        $this->mapper->read_only_author[1]->persist($updated);
+        $this->mapper->flush();
+
+        // Verify PK was transferred
+        $this->assertSame(1, $updated->id);
+
+        // Verify database was updated
+        $result = $this->query(
+            'SELECT * FROM read_only_author WHERE id=1',
+        )->fetch(PDO::FETCH_OBJ);
+        $this->assertSame('Alice Updated', $result->name);
+        $this->assertSame('new bio', $result->bio);
+    }
+
+    public function testReadOnlyDeleteAndRefetch(): void
+    {
+        $fetched = $this->mapper->read_only_author[1]->fetch();
+        $this->assertSame('Alice', $fetched->name);
+
+        $this->mapper->read_only_author->remove($fetched);
+        $this->mapper->flush();
+
+        $result = $this->query('SELECT COUNT(*) as cnt FROM read_only_author WHERE id=1')
+            ->fetch(PDO::FETCH_OBJ);
+        $this->assertSame(0, (int) $result->cnt);
+
+        $this->mapper->clearIdentityMap();
+        $refetched = $this->mapper->read_only_author[1]->fetch();
+        $this->assertFalse($refetched);
+    }
+
+    public function testMixedMutableAuthorReadOnlyPost(): void
+    {
+        $this->conn->exec((string) Sql::createTable('read_only_post', [
+            'id INTEGER PRIMARY KEY',
+            'title VARCHAR(255)',
+            'text TEXT',
+            'read_only_author_id INTEGER',
+        ]));
+
+        // Mutable author + readonly post in same graph
+        $author = new Author();
+        $author->name = 'Mutable Author';
+        $this->mapper->author->persist($author);
+        $this->mapper->flush();
+
+        $readonlyPost = $this->mapper->entityFactory->create(
+            ReadOnlyPost::class,
+            title: 'Immutable Post',
+            text: 'Body',
+        );
+        $this->mapper->read_only_post->persist($readonlyPost);
+        $this->mapper->flush();
+
+        $this->assertGreaterThan(0, $author->id);
+        $this->assertGreaterThan(0, $readonlyPost->id);
+
+        // Verify both persisted
+        $authorRow = $this->query('SELECT * FROM author WHERE name="Mutable Author"')
+            ->fetch(PDO::FETCH_OBJ);
+        $postRow = $this->query('SELECT * FROM read_only_post WHERE id=' . $readonlyPost->id)
+            ->fetch(PDO::FETCH_OBJ);
+        $this->assertSame('Mutable Author', $authorRow->name);
+        $this->assertSame('Immutable Post', $postRow->title);
     }
 
     private function query(string $sql): PDOStatement
