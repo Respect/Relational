@@ -66,6 +66,29 @@ class SqlTest extends TestCase
         $this->assertEmpty($this->object->params);
     }
 
+    public function testSelectWithAllAliasedColumns(): void
+    {
+        $sql = (string) $this->object->select(
+            ['t__id' => 't.id'],
+            ['t__name' => 't.name'],
+        )->from('t');
+        $this->assertEquals(
+            'SELECT t.id AS t__id, t.name AS t__name FROM t',
+            $sql,
+        );
+    }
+
+    public function testSelectWithSingleAliasedColumn(): void
+    {
+        $sql = (string) $this->object->select(
+            ['t__id' => 't.id'],
+        )->from('t');
+        $this->assertEquals(
+            'SELECT t.id AS t__id FROM t',
+            $sql,
+        );
+    }
+
     public function testSelectWithAggregateFunctions(): void
     {
         $sql = (string) $this->object->select('column', 'COUNT(column)', 'SUM(amount)')
