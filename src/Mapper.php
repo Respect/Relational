@@ -11,7 +11,6 @@ use Respect\Data\AbstractMapper;
 use Respect\Data\CollectionIterator;
 use Respect\Data\Collections\Collection;
 use Respect\Data\Collections\Composite;
-use Respect\Data\Collections\Filtered;
 use Respect\Data\Hydrator;
 use Respect\Data\Hydrators\PrestyledAssoc;
 use SplObjectStorage;
@@ -70,10 +69,6 @@ final class Mapper extends AbstractMapper
 
     public function persist(object $object, Collection $onCollection): object
     {
-        if ($onCollection instanceof Filtered) {
-            return parent::persist($object, $onCollection);
-        }
-
         if ($this->persisting->offsetExists($object)) {
             return parent::persist($object, $onCollection);
         }
@@ -81,17 +76,11 @@ final class Mapper extends AbstractMapper
         $this->persisting[$object] = true;
 
         try {
-            $connectsTo = $onCollection->connectsTo;
-
-            if ($connectsTo) {
-                $remote = $this->style->remoteIdentifier($connectsTo->name);
-                $related = $this->getRelatedEntity($object, $remote);
-                if ($related !== null) {
-                    $this->persist($related, $connectsTo);
+            foreach ($onCollection->with as $child) {
+                if ($child->name === null) {
+                    continue;
                 }
-            }
 
-            foreach ($onCollection->children as $child) {
                 $remote = $this->style->remoteIdentifier($child->name);
                 $related = $this->getRelatedEntity($object, $remote);
                 if ($related === null) {
@@ -347,13 +336,8 @@ final class Mapper extends AbstractMapper
     /** @return array<string, mixed> */
     private function extractColumns(object $entity, Collection $collection): array
     {
-        $cols = $this->filterColumns(
-            $this->entityFactory->extractColumns($entity),
-            $collection,
-        );
-
         $dbCols = [];
-        foreach ($cols as $key => $value) {
+        foreach ($this->entityFactory->extractColumns($entity) as $key => $value) {
             $dbCols[$this->style->realProperty($key)] = $value;
         }
 
@@ -365,29 +349,8 @@ final class Mapper extends AbstractMapper
     {
         $selectTable = [];
         foreach ($collections as $tableSpecifier => $c) {
-            if ($c instanceof Filtered) {
-                $filters = $c->filters;
-                if ($filters) {
-                    $fields = $this->entityFactory->enumerateFields($c->name);
-                    $pk = $this->style->identifier($c->name);
-                    $selectTable[] = self::aliasedColumn($tableSpecifier, $pk, $fields[$pk] ?? $pk);
-
-                    if (!$c->identifierOnly) {
-                        foreach ($filters as $f) {
-                            $selectTable[] = self::aliasedColumn($tableSpecifier, $f, $fields[$f] ?? $f);
-                        }
-                    }
-
-                    $connectedName = $c->connectsTo?->name;
-                    if ($connectedName !== null) {
-                        $fk = $this->style->remoteIdentifier($connectedName);
-                        $selectTable[] = self::aliasedColumn($tableSpecifier, $fk, $fields[$fk] ?? $fk);
-                    }
-                }
-            } else {
-                foreach ($this->entityFactory->enumerateFields($c->name) as $dbCol => $styledProp) {
-                    $selectTable[] = self::aliasedColumn($tableSpecifier, $dbCol, $styledProp);
-                }
+            foreach ($this->entityFactory->enumerateFields($c->name) as $dbCol => $styledProp) {
+                $selectTable[] = self::aliasedColumn($tableSpecifier, $dbCol, $styledProp);
             }
 
             // Composition columns come after entity columns so they override on collision
@@ -440,10 +403,10 @@ final class Mapper extends AbstractMapper
         $parsedConditions = [];
         $aliasedPk = $alias . '.' . $this->style->identifier($collection->name);
 
-        if (is_scalar($collection->condition)) {
-            $parsedConditions[] = [$aliasedPk, '=', $collection->condition];
-        } elseif (is_array($collection->condition)) {
-            foreach ($collection->condition as $column => $value) {
+        if (is_scalar($collection->filter)) {
+            $parsedConditions[] = [$aliasedPk, '=', $collection->filter];
+        } elseif (is_array($collection->filter)) {
+            foreach ($collection->filter as $column => $value) {
                 if (!empty($parsedConditions)) {
                     $parsedConditions[] = 'AND';
                 }
@@ -486,7 +449,6 @@ final class Mapper extends AbstractMapper
         $s      = $this->style;
         $entity = $collection->name;
         $parent = $collection->parent?->name;
-        $connected = $collection->connectsTo?->name;
 
         $parentAlias = $parent ? $aliases[$parent] : null;
         $aliases[$entity] = $alias;
@@ -526,7 +488,7 @@ final class Mapper extends AbstractMapper
         $aliasedPk       = $alias . '.' . $s->identifier($entity);
         $aliasedParentPk = $parentAlias . '.' . $s->identifier($parent);
 
-        if ($this->hasComposition($entity, $connected, $parent)) {
+        if ($this->isCompositionJoin($collection, $entity, $parent)) {
             $onName  = $alias . '.' . $s->remoteIdentifier($parent);
             $onAlias = $aliasedParentPk;
         } else {
@@ -537,14 +499,23 @@ final class Mapper extends AbstractMapper
         $sql->on([$onName => $onAlias]);
     }
 
-    private function hasComposition(string $entity, string|null $connected, string|null $parent): bool
+    private function isCompositionJoin(Collection $collection, string $entity, string $parent): bool
     {
-        if ($connected === null || $parent === null) {
-            return false;
+        foreach ($collection->with as $child) {
+            $connected = $child->name;
+            if ($connected === null) {
+                continue;
+            }
+
+            if (
+                $entity === $this->style->composed($parent, $connected)
+                || $entity === $this->style->composed($connected, $parent)
+            ) {
+                return true;
+            }
         }
 
-        return $entity === $this->style->composed($parent, $connected)
-            || $entity === $this->style->composed($connected, $parent);
+        return false;
     }
 
     /** @param SplObjectStorage<object, Collection> $hydrated */
