@@ -10,7 +10,6 @@ use PDOStatement;
 use Respect\Data\AbstractMapper;
 use Respect\Data\CollectionIterator;
 use Respect\Data\Collections\Collection;
-use Respect\Data\Collections\Composite;
 use Respect\Data\Hydrator;
 use Respect\Data\Hydrators\PrestyledAssoc;
 use SplObjectStorage;
@@ -152,94 +151,6 @@ final class Mapper extends AbstractMapper
     }
 
     /**
-     * Extract composed columns from parent, UPDATE child tables using FK relationship.
-     *
-     * For existing entities (UPDATE path), the parent PK is known and we can
-     * update the child table directly: UPDATE comment SET text=? WHERE post_id=?
-     *
-     * For new entities (INSERT path), child inserts happen after the parent
-     * via insertCompositionChildren().
-     *
-     * @param array<string, mixed> $cols
-     *
-     * @return array<string, mixed>
-     */
-    private function extractAndOperateCompositions(Collection $collection, array $cols): array
-    {
-        if (!$collection instanceof Composite) {
-            return $cols;
-        }
-
-        $parentPk = $this->style->identifier($collection->name);
-        $parentPkValue = $cols[$parentPk] ?? null;
-        $fkToParent = $this->style->remoteIdentifier($collection->name);
-
-        foreach ($collection->compositions as $comp => $spec) {
-            $compCols = [];
-            foreach ($spec as $key) {
-                $dbKey = $this->style->realProperty($key);
-                if (!isset($cols[$dbKey])) {
-                    continue;
-                }
-
-                $compCols[$dbKey] = $cols[$dbKey];
-                unset($cols[$dbKey]);
-            }
-
-            if ($parentPkValue === null || empty($compCols)) {
-                continue;
-            }
-
-            $this->db
-                ->update($comp)
-                ->set($compCols)
-                ->where([[$fkToParent, '=', $parentPkValue]])
-                ->exec();
-        }
-
-        return $cols;
-    }
-
-    private function insertCompositionChildren(Collection $collection, object|null $entity): void
-    {
-        if (!$collection instanceof Composite || $entity === null) {
-            return;
-        }
-
-        $parentPk = $this->style->identifier($collection->name);
-        $parentPkValue = $this->entityFactory->get($entity, $parentPk);
-
-        if ($parentPkValue === null) {
-            return;
-        }
-
-        $fkToParent = $this->style->remoteIdentifier($collection->name);
-        $entityCols = $this->entityFactory->extractColumns($entity);
-
-        foreach ($collection->compositions as $comp => $spec) {
-            $compCols = [];
-            foreach ($spec as $key) {
-                $dbKey = $this->style->realProperty($key);
-                if (!isset($entityCols[$key])) {
-                    continue;
-                }
-
-                $compCols[$dbKey] = $entityCols[$key];
-            }
-
-            if (empty($compCols)) {
-                continue;
-            }
-
-            $compCols[$fkToParent] = $parentPkValue;
-            $this->db
-                ->insertInto($comp, array_keys($compCols))
-                ->values(array_values($compCols))
-                ->exec();
-        }
-    }
-
-    /**
      * @param array<string, mixed> $columns
      *
      * @return array<int, array<int, mixed>>
@@ -271,7 +182,6 @@ final class Mapper extends AbstractMapper
     /** @param array<string, mixed> $columns */
     private function rawUpdate(array $columns, Collection $collection): bool
     {
-        $columns   = $this->extractAndOperateCompositions($collection, $columns);
         $condition = $this->guessCondition($columns, $collection);
 
         return $this->db
@@ -287,8 +197,7 @@ final class Mapper extends AbstractMapper
         Collection $collection,
         object|null $entity = null,
     ): bool {
-        $columns = $this->extractAndOperateCompositions($collection, $columns);
-        $result  = $this->db
+        $result = $this->db
             ->insertInto($collection->name, array_keys($columns))
             ->values(array_values($columns))
             ->exec();
@@ -296,8 +205,6 @@ final class Mapper extends AbstractMapper
         if ($entity !== null) {
             $this->checkNewIdentity($entity, $collection);
         }
-
-        $this->insertCompositionChildren($collection, $entity);
 
         return $result;
     }
@@ -351,18 +258,6 @@ final class Mapper extends AbstractMapper
         foreach ($collections as $tableSpecifier => $c) {
             foreach ($this->entityFactory->enumerateFields($c->name) as $dbCol => $styledProp) {
                 $selectTable[] = self::aliasedColumn($tableSpecifier, $dbCol, $styledProp);
-            }
-
-            // Composition columns come after entity columns so they override on collision
-            if (!$c instanceof Composite) {
-                continue;
-            }
-
-            foreach ($c->compositions as $composition => $columns) {
-                $compPrefix = $tableSpecifier . Composite::COMPOSITION_MARKER . $composition;
-                foreach ($columns as $col) {
-                    $selectTable[] = self::aliasedColumn($compPrefix, $col, $col);
-                }
             }
         }
 
@@ -418,23 +313,6 @@ final class Mapper extends AbstractMapper
         return $parsedConditions;
     }
 
-    private function parseCompositions(Sql $sql, Collection $collection, string $entity): void
-    {
-        if (!$collection instanceof Composite) {
-            return;
-        }
-
-        foreach (array_keys($collection->compositions) as $comp) {
-            $alias = $entity . Composite::COMPOSITION_MARKER . $comp;
-            $sql->innerJoin($comp);
-            $sql->as($alias);
-            $sql->on([
-                $alias . '.' . $this->style->remoteIdentifier($entity)
-                    => $entity . '.' . $this->style->identifier($entity),
-            ]);
-        }
-    }
-
     /**
      * @param array<string, string> $aliases
      * @param array<mixed> $conditions
@@ -468,7 +346,6 @@ final class Mapper extends AbstractMapper
         //No parent collection means it's the first table in the query
         if ($parentAlias === null) {
             $sql->from($entity);
-            $this->parseCompositions($sql, $collection, $entity);
 
             return;
         }
@@ -478,8 +355,6 @@ final class Mapper extends AbstractMapper
         } else {
             $sql->leftJoin($entity);
         }
-
-        $this->parseCompositions($sql, $collection, $entity);
 
         if ($alias !== $entity) {
             $sql->as($alias);
