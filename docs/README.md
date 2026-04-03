@@ -151,21 +151,14 @@ Any good database is based on conventions. Our defaults are:
 
 Nodes on the fluent chain are these table names.
 
-Conventions differ in style, we support many styles of casing (camel case, studly
-caps, lowercase) and underscoring:
-
-  * Default style (The above)
-  * Sakila style (MySQL sample database)
-  * Northwind style (SQL Server sample database)
-  * CakePHP style (to make it easier to migrate from apps written in CakePHP)
-
-Usage:
+Conventions differ in style. We support Standard (snake_case) and Plural
+(pluralized snake_case, familiar from Rails, Laravel, etc):
 
 ```php
-$mapper->setStyle(new Styles\Sakila);
+$mapper->setStyle(new Styles\Plural);
 ```
 
-Styles are implemented as plugins. Refer to the `Respect\Relational\Styles\Stylable`
+Styles are implemented as plugins. Refer to the `Respect\Data\Styles\Stylable`
 interface.
 
 ```php

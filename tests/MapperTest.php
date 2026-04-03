@@ -586,10 +586,8 @@ class MapperTest extends TestCase
             $this->mapper->style,
         );
         $styles = [
-            new Styles\CakePHP(),
-            new Styles\NorthWind(),
-            new Styles\Sakila(),
             new Styles\Standard(),
+            new Styles\Plural(),
         ];
         foreach ($styles as $style) {
             $factory = new EntityFactory(style: $style, entityNamespace: 'Respect\\Relational\\');
