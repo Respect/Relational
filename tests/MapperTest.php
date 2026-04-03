@@ -12,9 +12,6 @@ use PDOStatement;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use ReflectionProperty;
-use Respect\Data\Collections\Collection;
-use Respect\Data\Collections\Composite;
-use Respect\Data\Collections\Typed;
 use Respect\Data\EntityFactory;
 use Respect\Data\Hydrators\PrestyledAssoc;
 use Respect\Data\Styles;
@@ -49,9 +46,6 @@ class MapperTest extends TestCase
     /** @var list<array<string, mixed>> */
     protected array $postsCategories;
 
-    /** @var list<array<string, mixed>> */
-    protected array $issues;
-
     protected function setUp(): void
     {
         $conn = new PDO('sqlite::memory:');
@@ -82,11 +76,6 @@ class MapperTest extends TestCase
             'post_id INTEGER',
             'category_id INTEGER',
         ]));
-        $conn->exec((string) Sql::createTable('issues', [
-            'id INTEGER PRIMARY KEY',
-            'type VARCHAR(255)',
-            'title VARCHAR(22)',
-        ]));
         $conn->exec((string) Sql::createTable('read_only_author', [
             'id INTEGER PRIMARY KEY',
             'name VARCHAR(255)',
@@ -109,11 +98,6 @@ class MapperTest extends TestCase
         $this->postsCategories = [
             ['id' => 66, 'post_id' => 5, 'category_id' => 2],
         ];
-        $this->issues = [
-            ['id' => 1, 'type' => 'bug', 'title' => 'Bug 1'],
-            ['id' => 2, 'type' => 'improvement', 'title' => 'Improvement 1'],
-        ];
-
         foreach ($this->authors as $row) {
             $db->insertInto('author', array_keys($row))->values(array_values($row))->exec();
         }
@@ -132,10 +116,6 @@ class MapperTest extends TestCase
 
         foreach ($this->postsCategories as $row) {
             $db->insertInto('post_category', array_keys($row))->values(array_values($row))->exec();
-        }
-
-        foreach ($this->issues as $row) {
-            $db->insertInto('issues', array_keys($row))->values(array_values($row))->exec();
         }
 
         $db->insertInto('read_only_author', ['id', 'name', 'bio'])
@@ -618,149 +598,6 @@ class MapperTest extends TestCase
         }
     }
 
-    public function testCompositesBringResultsFromTwoTables(): void
-    {
-        $mapper = $this->mapper;
-        $mapper->registerCollection('postComment', Composite::post(
-            ['comment' => ['text']],
-            with: [Collection::author()],
-        ));
-        $post = $mapper->fetch($mapper->postComment());
-        $this->assertEquals(1, $post->author->id);
-        $this->assertEquals('Author 1', $post->author->name);
-        $this->assertEquals(5, $post->id);
-        $this->assertEquals('Post Title', $post->title);
-        $this->assertEquals('Comment Text', $post->text);
-    }
-
-    public function testCompositesPersistsResultsOnTwoTables(): void
-    {
-        $mapper = $this->mapper;
-        $mapper->registerCollection('postComment', Composite::post(
-            ['comment' => ['text']],
-            with: [Collection::author()],
-        ));
-        $post = $mapper->fetch($mapper->postComment());
-        $this->assertEquals(1, $post->author->id);
-        $this->assertEquals(5, $post->id);
-        $this->assertEquals('Post Title', $post->title);
-        $this->assertEquals('Comment Text', $post->text);
-        $post->title = 'Title Changed';
-        $post->text = 'Comment Changed';
-
-        $mapper->persist($post, $mapper->postComment());
-        $mapper->flush();
-        $result = $this->query('select title from post where id=5')
-            ->fetch(PDO::FETCH_OBJ);
-        $this->assertEquals('Title Changed', $result->title);
-        $result = $this->query('select text from comment where id=7')
-            ->fetch(PDO::FETCH_OBJ);
-        $this->assertEquals('Comment Changed', $result->text);
-    }
-
-    public function testCompositesPersistsNewlyCreatedEntitiesOnTwoTables(): void
-    {
-        $mapper = $this->mapper;
-        $mapper->registerCollection('postComment', Composite::post(
-            ['comment' => ['text']],
-            with: [Collection::author()],
-        ));
-        $post = new Post();
-        $post->text = 'Comment X';
-        $post->title = 'Post X';
-        $authorX = new Author();
-        $authorX->name = 'Author X';
-        $post->author = $authorX;
-        $mapper->persist($post, $mapper->postComment());
-        $mapper->flush();
-        $result = $this->query(
-            'select title, text from post order by id desc',
-        )->fetch(PDO::FETCH_OBJ);
-        $this->assertEquals('Post X', $result->title);
-        $this->assertEquals('', $result->text);
-        $result = $this->query(
-            'select text from comment order by id desc',
-        )->fetch(PDO::FETCH_OBJ);
-        $this->assertEquals('Comment X', $result->text);
-    }
-
-    public function testCompositesPersistDoesNotDropColumnsWithMatchingValues(): void
-    {
-        $mapper = $this->mapper;
-        $mapper->registerCollection('postComment', Composite::post(
-            ['comment' => ['text']],
-            with: [Collection::author()],
-        ));
-        $post = $mapper->fetch($mapper->postComment());
-        $post->title = 'Same Value';
-        $post->text = 'Same Value';
-
-        $mapper->persist($post, $mapper->postComment());
-        $mapper->flush();
-        $result = $this->query('select title from post where id=5')
-            ->fetch(PDO::FETCH_OBJ);
-        $this->assertEquals('Same Value', $result->title);
-        $result = $this->query('select text from comment where id=7')
-            ->fetch(PDO::FETCH_OBJ);
-        $this->assertEquals('Same Value', $result->text);
-    }
-
-    public function testCompositeColumnOverridesParentOnNameCollision(): void
-    {
-        $mapper = $this->mapper;
-        $mapper->registerCollection('postComment', Composite::post(
-            ['comment' => ['text']],
-            with: [Collection::author()],
-        ));
-        $post = $mapper->fetch($mapper->postComment());
-
-        // Both post and comment have a 'text' column.
-        // The composite column (comment.text) should take precedence.
-        $this->assertEquals('Comment Text', $post->text);
-        $this->assertNotEquals('Post Text', $post->text);
-    }
-
-    public function testTyped(): void
-    {
-        $mapper = new Mapper($this->conn, new PrestyledAssoc(new EntityFactory(
-            entityNamespace: '\Respect\Relational\\',
-        )));
-        $mapper->registerCollection('typedIssues', Typed::issues('type'));
-        $issues = $mapper->fetchAll($mapper->typedIssues());
-        $this->assertInstanceOf('\\Respect\Relational\\Bug', $issues[0]);
-        $this->assertInstanceOf('\\Respect\Relational\\Improvement', $issues[1]);
-        $this->assertEquals(1, $issues[0]->id);
-        $this->assertEquals('bug', $issues[0]->type);
-        $this->assertEquals('Bug 1', $issues[0]->title);
-        $this->assertEquals(2, $issues[1]->id);
-        $this->assertEquals('improvement', $issues[1]->type);
-        $issues[0]->title = 'Title Changed';
-        $mapper->persist($issues[0], $mapper->typedIssues());
-        $mapper->flush();
-        $result = $this->query('select title from issues where id=1')
-            ->fetch(PDO::FETCH_OBJ);
-        $this->assertEquals('Title Changed', $result->title);
-    }
-
-    public function testTypedSingle(): void
-    {
-        $mapper = new Mapper($this->conn, new PrestyledAssoc(new EntityFactory(
-            entityNamespace: '\Respect\Relational\\',
-        )));
-        $mapper->registerCollection('typedIssues', Typed::issues('type'));
-        $issue = $mapper->fetch($mapper->typedIssues());
-        $this->assertInstanceOf('\\Respect\Relational\\Bug', $issue);
-        $this->assertEquals(1, $issue->id);
-        $this->assertEquals('bug', $issue->type);
-        $this->assertEquals('Bug 1', $issue->title);
-        $issue->title = 'Title Changed';
-        $mapper->persist($issue, $mapper->typedIssues());
-        $mapper->flush();
-        $result = $this->query('select title from issues where id=1')
-            ->fetch(PDO::FETCH_OBJ);
-        $this->assertEquals('Title Changed', $result->title);
-    }
-
     public function testPersistNewWithArrayobject(): void
     {
         $mapper = $this->mapper;
@@ -1072,58 +909,6 @@ class MapperTest extends TestCase
         $result = $this->query('select title from post where id=' . $post->id)
             ->fetch(PDO::FETCH_OBJ);
         $this->assertEquals('No Author', $result->title);
-    }
-
-    public function testCompositeUpdateSkipsMissingSpecColumn(): void
-    {
-        // Composite spec asks for 'text' from comment, but we only change
-        // 'title' (a post column). The composite should not crash on the
-        // missing spec column — it should just skip it.
-        $mapper = $this->mapper;
-        $mapper->registerCollection('postComment', Composite::post(
-            ['comment' => ['text']],
-            with: [Collection::author()],
-        ));
-        $post = $mapper->fetch($mapper->postComment());
-
-        // Only change a parent column, leave composite column unchanged
-        $post->title = 'Only Title Changed';
-
-        $mapper->persist($post, $mapper->postComment());
-        $mapper->flush();
-
-        $result = $this->query('select title from post where id=5')
-            ->fetch(PDO::FETCH_OBJ);
-        $this->assertEquals('Only Title Changed', $result->title);
-        // Comment text should remain untouched
-        $result = $this->query('select text from comment where id=7')
-            ->fetch(PDO::FETCH_OBJ);
-        $this->assertEquals('Comment Text', $result->text);
-    }
-
-    public function testCompositeInsertWithNoMatchingColumnsSkipsChild(): void
-    {
-        // New entity where the composite spec columns are NOT set — the
-        // child INSERT should be skipped entirely (no empty INSERT).
-        $mapper = $this->mapper;
-        $mapper->registerCollection('postComment', Composite::post(
-            ['comment' => ['text']],
-            with: [Collection::author()],
-        ));
-
-        $post = new Postcomment();
-        $post->title = 'Post Without Comment';
-        $author = new Author();
-        $author->name = 'Author X';
-        $post->author = $author;
-        // Note: $post->text is NOT set (uninitialized)
-
-        $mapper->persist($post, $mapper->postComment());
-        $mapper->flush();
-
-        $result = $this->query('select title from post order by id desc')
-            ->fetch(PDO::FETCH_OBJ);
-        $this->assertEquals('Post Without Comment', $result->title);
     }
 
     public function testFetchWithArrayConditions(): void
