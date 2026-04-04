@@ -38,7 +38,7 @@ final class Db
      */
     public function fetch(int|string|array|callable|object $object = stdClass::class, array|null $extra = null): mixed
     {
-        $result = $this->performFetch(__FUNCTION__, $object, $extra);
+        $result = $this->executeStatement($object, $extra)->fetch();
 
         return is_callable($object) ? $object($result) : $result;
     }
@@ -51,14 +51,9 @@ final class Db
         int|string|array|callable|object $object = stdClass::class,
         array|null $extra = null,
     ): mixed {
-        $result = $this->performFetch(__FUNCTION__, $object, $extra);
+        $result = $this->executeStatement($object, $extra)->fetchAll();
 
         return is_callable($object) ? array_map($object, $result) : $result;
-    }
-
-    public function getSql(): Sql
-    {
-        return $this->currentSql;
     }
 
     /**
@@ -99,18 +94,6 @@ final class Db
         $statement->execute($sql->params);
 
         return $statement;
-    }
-
-    /**
-     * @param int|string|array<mixed>|callable|object $object
-     * @param array<mixed>|null $extra
-     */
-    private function performFetch(
-        string $method,
-        int|string|array|callable|object $object = stdClass::class,
-        array|null $extra = null,
-    ): mixed {
-        return $this->executeStatement($object, $extra)->{$method}();
     }
 
     /** @param array<mixed> $arguments */
