@@ -108,14 +108,6 @@ class DbTest extends TestCase
         $this->assertTrue(is_array($line));
     }
 
-    public function testGetSql(): void
-    {
-        $sql = $this->object->select('*')->from('unit')
-            ->where([['testb', '=', 'abc']])->getSql();
-        $this->assertEquals('SELECT * FROM unit WHERE testb = ?', (string) $sql);
-        $this->assertEquals(['abc'], $sql->params);
-    }
-
     public function testFluentSelectWithParams(): void
     {
         $line = $this->object->select('*')->from('unit')

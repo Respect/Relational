@@ -365,8 +365,7 @@ class MapperTest extends TestCase
         $postWithAuthor->title = 'hi';
         $postWithAuthor->text = 'hi text';
         $postWithAuthor->author = $author;
-        $this->mapper->registerCollection('postAuthor', $this->mapper->post([$this->mapper->author()]));
-        $this->mapper->persist($postWithAuthor, $this->mapper->postAuthor());
+        $this->mapper->persist($postWithAuthor, $this->mapper->post([$this->mapper->author()]));
         $this->mapper->flush();
         $author = $this->query(
             'select * from author order by id desc limit 1',
@@ -378,7 +377,7 @@ class MapperTest extends TestCase
         $this->assertEquals('hi', $post->title);
     }
 
-    public function testNestedPersistCollectionWithChildrenShortcut(): void
+    public function testNestedPersistWithChildrenShortcut(): void
     {
         $author = new Author();
         $author->name = 'New';
@@ -386,8 +385,7 @@ class MapperTest extends TestCase
         $postWithAuthor->title = 'hi';
         $postWithAuthor->text = 'hi text';
         $postWithAuthor->author = $author;
-        $this->mapper->registerCollection('postAuthor', $this->mapper->post([$this->mapper->author()]));
-        $this->mapper->persist($postWithAuthor, $this->mapper->postAuthor());
+        $this->mapper->persist($postWithAuthor, $this->mapper->post([$this->mapper->author()]));
         $this->mapper->flush();
         $author = $this->query(
             'select * from author order by id desc limit 1',
@@ -746,15 +744,6 @@ class MapperTest extends TestCase
 
         $this->assertNotSame($first, $second);
         $this->assertEquals($first->id, $second->id);
-    }
-
-    public function testIdentityMapCountIncreasesOnFetch(): void
-    {
-        $this->assertSame(0, $this->mapper->identityMapCount());
-
-        $this->mapper->fetch($this->mapper->author(filter: 1));
-
-        $this->assertGreaterThan(0, $this->mapper->identityMapCount());
     }
 
     public function testClearIdentityMapForcesFreshFetch(): void
