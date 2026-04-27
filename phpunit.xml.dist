@@ -4,7 +4,12 @@
          bootstrap="vendor/autoload.php">
     <testsuites>
         <testsuite name="unit">
-            <directory suffix="Test.php">tests</directory>
+            <file>tests/ConnectionFactoryTest.php</file>
+            <file>tests/SqlTest.php</file>
+        </testsuite>
+        <testsuite name="database">
+            <file>tests/DbTest.php</file>
+            <file>tests/MapperTest.php</file>
         </testsuite>
     </testsuites>
     <source>

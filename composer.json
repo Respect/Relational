@@ -45,6 +45,14 @@
         "phpcs": "vendor/bin/phpcs",
         "phpstan": "vendor/bin/phpstan analyze",
         "phpunit": "vendor/bin/phpunit",
+        "phpunit:sqlite": "DB_DRIVER=sqlite vendor/bin/phpunit",
+        "phpunit:mysql": "DB_DRIVER=mysql DB_USER=root DB_PASSWORD=test vendor/bin/phpunit",
+        "phpunit:pgsql": "DB_DRIVER=pgsql DB_USER=postgres DB_PASSWORD=test vendor/bin/phpunit",
+        "phpunit:all": [
+            "@phpunit:sqlite",
+            "@phpunit:mysql",
+            "@phpunit:pgsql"
+        ],
         "coverage": "vendor/bin/phpunit --coverage-text",
         "qa": [
             "@phpcs",
