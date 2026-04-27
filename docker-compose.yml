@@ -1,0 +1,29 @@
+# Host ports (33306, 55432) deliberately differ from the MySQL/Postgres
+# defaults so a developer with a local install of either is not blocked.
+# CI runs against the standard ports (3306, 5432) via GitHub Actions services.
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: test
+      MYSQL_DATABASE: relational_test
+    ports:
+      - "33306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-ptest"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: relational_test
+    ports:
+      - "55432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d relational_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 20

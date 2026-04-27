@@ -205,10 +205,33 @@ final class Mapper extends AbstractMapper
 
     private function checkNewIdentity(object $entity, Scope $scope): bool
     {
+        $conn = $this->db->connection;
+
+        // Postgres aborts the surrounding transaction when lastInsertId() is
+        // called and no sequence has fired in the session (e.g. the row was
+        // inserted with an explicit id). Wrap in a savepoint so the abort is
+        // contained and the insert survives the commit. MySQL is excluded
+        // because issuing SAVEPOINT between the INSERT and LAST_INSERT_ID()
+        // resets the latter to 0.
+        $useSavepoint = $conn->inTransaction()
+            && $conn->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql';
+
+        if ($useSavepoint) {
+            $conn->exec('SAVEPOINT respect_relational_lastid');
+        }
+
         try {
-            $identity = $this->db->connection->lastInsertId();
+            $identity = $conn->lastInsertId();
         } catch (PDOException) {
+            if ($useSavepoint) {
+                $conn->exec('ROLLBACK TO SAVEPOINT respect_relational_lastid');
+            }
+
             return false;
+        }
+
+        if ($useSavepoint) {
+            $conn->exec('RELEASE SAVEPOINT respect_relational_lastid');
         }
 
         if (!$identity) {

@@ -10,25 +10,26 @@ use PDO;
 use PDOException;
 use PDOStatement;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\TestCase;
 use ReflectionProperty;
 use Respect\Data\EntityFactory;
 use Respect\Data\Hydrators\PrestyledAssoc;
 use Respect\Data\Styles;
+use Respect\Relational\Database\DatabaseTestCase;
+use Respect\Relational\Database\Schema;
 use Throwable;
 use TypeError;
 
+use function array_filter;
 use function array_keys;
 use function array_values;
 use function count;
 use function current;
 use function date;
+use function str_contains;
 
 #[CoversClass(Mapper::class)]
-class MapperTest extends TestCase
+class MapperTest extends DatabaseTestCase
 {
-    protected PDO $conn;
-
     protected Mapper $mapper;
 
     /** @var list<array<string, mixed>> */
@@ -48,36 +49,51 @@ class MapperTest extends TestCase
 
     protected function setUp(): void
     {
-        $conn = new PDO('sqlite::memory:');
+        parent::setUp();
+
+        $this->resetTables(
+            'post_category',
+            'category',
+            'comment',
+            'post',
+            'author',
+            'read_only_comment',
+            'read_only_post',
+            'read_only_author',
+        );
+
+        $pk = Schema::pkAuto($this->driver);
+        $datetime = Schema::dateTime($this->driver);
+        $conn = $this->conn;
         $db = new Db($conn);
         $conn->exec((string) Sql::createTable('post', [
-            'id INTEGER PRIMARY KEY',
+            'id ' . $pk,
             'title VARCHAR(255)',
             'text TEXT',
             'author_id INTEGER',
         ]));
         $conn->exec((string) Sql::createTable('author', [
-            'id INTEGER PRIMARY KEY',
+            'id ' . $pk,
             'name VARCHAR(255)',
         ]));
         $conn->exec((string) Sql::createTable('comment', [
-            'id INTEGER PRIMARY KEY',
+            'id ' . $pk,
             'post_id INTEGER',
             'text TEXT',
-            'datetime DATETIME',
+            'datetime ' . $datetime,
         ]));
         $conn->exec((string) Sql::createTable('category', [
-            'id INTEGER PRIMARY KEY',
+            'id ' . $pk,
             'name VARCHAR(255)',
             'category_id INTEGER',
         ]));
         $conn->exec((string) Sql::createTable('post_category', [
-            'id INTEGER PRIMARY KEY',
+            'id ' . $pk,
             'post_id INTEGER',
             'category_id INTEGER',
         ]));
         $conn->exec((string) Sql::createTable('read_only_author', [
-            'id INTEGER PRIMARY KEY',
+            'id ' . $pk,
             'name VARCHAR(255)',
             'bio TEXT',
         ]));
@@ -122,11 +138,19 @@ class MapperTest extends TestCase
             ->values([1, 'Alice', 'Alice bio'])
             ->exec();
 
+        $this->syncSequences([
+            'post' => 'id',
+            'author' => 'id',
+            'comment' => 'id',
+            'category' => 'id',
+            'post_category' => 'id',
+            'read_only_author' => 'id',
+        ]);
+
         $mapper = new Mapper($conn, new PrestyledAssoc(new EntityFactory(
             entityNamespace: 'Respect\\Relational\\',
         )));
         $this->mapper = $mapper;
-        $this->conn = $conn;
     }
 
     public function testCreatingWithDbInstance(): void
@@ -220,6 +244,43 @@ class MapperTest extends TestCase
         $mapper->flush();
         $this->assertFalse((new ReflectionProperty($obj, 'id'))->isInitialized($obj));
         $this->assertEquals('bar', $obj->name);
+    }
+
+    public function testCheckNewIdentityWrapsLastInsertIdInSavepointOnPgsql(): void
+    {
+        $execCalls = [];
+        $conn = $this->recordingPdoStub('pgsql', $execCalls);
+        $this->persistOneAuthor($conn);
+        $this->assertContains('SAVEPOINT respect_relational_lastid', $execCalls);
+        $this->assertContains('RELEASE SAVEPOINT respect_relational_lastid', $execCalls);
+    }
+
+    public function testCheckNewIdentityRollsBackSavepointWhenLastInsertIdFailsOnPgsql(): void
+    {
+        $execCalls = [];
+        $conn = $this->recordingPdoStub('pgsql', $execCalls, new PDOException('lastval not defined'));
+        $this->persistOneAuthor($conn);
+        $this->assertContains('SAVEPOINT respect_relational_lastid', $execCalls);
+        $this->assertContains('ROLLBACK TO SAVEPOINT respect_relational_lastid', $execCalls);
+        $this->assertNotContains('RELEASE SAVEPOINT respect_relational_lastid', $execCalls);
+    }
+
+    public function testCheckNewIdentityIssuesNoSavepointOnSqlite(): void
+    {
+        $execCalls = [];
+        $conn = $this->recordingPdoStub('sqlite', $execCalls);
+        $this->persistOneAuthor($conn);
+        $savepointCalls = array_filter($execCalls, static fn(string $sql): bool => str_contains($sql, 'SAVEPOINT'));
+        $this->assertSame([], $savepointCalls);
+    }
+
+    public function testCheckNewIdentityIssuesNoSavepointOnMysql(): void
+    {
+        $execCalls = [];
+        $conn = $this->recordingPdoStub('mysql', $execCalls);
+        $this->persistOneAuthor($conn);
+        $savepointCalls = array_filter($execCalls, static fn(string $sql): bool => str_contains($sql, 'SAVEPOINT'));
+        $this->assertSame([], $savepointCalls);
     }
 
     public function testRemovingUntrackedObject(): void
@@ -445,7 +506,7 @@ class MapperTest extends TestCase
         $mapper->persist($entity, $mapper->category());
         $mapper->flush();
         $result = $this->query(
-            'select * from category where name="inserted"',
+            "select * from category where name='inserted'",
         )->fetch(PDO::FETCH_OBJ);
         $this->assertEquals(4, $result->id);
         $this->assertEquals('inserted', $result->name);
@@ -467,7 +528,7 @@ class MapperTest extends TestCase
         $mapper->persist($comment, $mapper->comment());
         $mapper->flush();
 
-        $postId = $this->query('select id from post where title = 12345')
+        $postId = $this->query("select id from post where title = '12345'")
             ->fetchColumn(0);
 
         $row = $this->query('select * from comment where post_id = ' . $postId)
@@ -874,7 +935,7 @@ class MapperTest extends TestCase
         $this->mapper->persist($post, $this->mapper->post());
         $this->mapper->flush();
 
-        $row = $this->query('select * from post where title = "Pure Tree"')
+        $row = $this->query("select * from post where title = 'Pure Tree'")
             ->fetch(PDO::FETCH_ASSOC);
         $this->assertIsArray($row);
         $this->assertEquals(1, $row['author_id']);
@@ -925,7 +986,7 @@ class MapperTest extends TestCase
     public function testReadOnlyNestedHydrationPostWithAuthor(): void
     {
         $this->conn->exec((string) Sql::createTable('read_only_post', [
-            'id INTEGER PRIMARY KEY',
+            'id ' . Schema::pkAuto($this->driver),
             'title VARCHAR(255)',
             'text TEXT',
             'read_only_author_id INTEGER',
@@ -949,13 +1010,13 @@ class MapperTest extends TestCase
     public function testReadOnlyThreeLevelHydration(): void
     {
         $this->conn->exec((string) Sql::createTable('read_only_post', [
-            'id INTEGER PRIMARY KEY',
+            'id ' . Schema::pkAuto($this->driver),
             'title VARCHAR(255)',
             'text TEXT',
             'read_only_author_id INTEGER',
         ]));
         $this->conn->exec((string) Sql::createTable('read_only_comment', [
-            'id INTEGER PRIMARY KEY',
+            'id ' . Schema::pkAuto($this->driver),
             'text TEXT',
             'read_only_post_id INTEGER',
         ]));
@@ -986,7 +1047,7 @@ class MapperTest extends TestCase
     public function testReadOnlyInsertWithRelationCascade(): void
     {
         $this->conn->exec((string) Sql::createTable('read_only_post', [
-            'id INTEGER PRIMARY KEY',
+            'id ' . Schema::pkAuto($this->driver),
             'title VARCHAR(255)',
             'text TEXT',
             'read_only_author_id INTEGER',
@@ -1018,7 +1079,7 @@ class MapperTest extends TestCase
     public function testReadOnlyUpdateViaCollectionPkPreservesRelation(): void
     {
         $this->conn->exec((string) Sql::createTable('read_only_post', [
-            'id INTEGER PRIMARY KEY',
+            'id ' . Schema::pkAuto($this->driver),
             'title VARCHAR(255)',
             'text TEXT',
             'read_only_author_id INTEGER',
@@ -1056,7 +1117,7 @@ class MapperTest extends TestCase
     public function testReadOnlyUpdateChangesRelation(): void
     {
         $this->conn->exec((string) Sql::createTable('read_only_post', [
-            'id INTEGER PRIMARY KEY',
+            'id ' . Schema::pkAuto($this->driver),
             'title VARCHAR(255)',
             'text TEXT',
             'read_only_author_id INTEGER',
@@ -1093,7 +1154,7 @@ class MapperTest extends TestCase
     public function testReadOnlyWithChangesAndPersistRoundTrip(): void
     {
         $this->conn->exec((string) Sql::createTable('read_only_post', [
-            'id INTEGER PRIMARY KEY',
+            'id ' . Schema::pkAuto($this->driver),
             'title VARCHAR(255)',
             'text TEXT',
             'read_only_author_id INTEGER',
@@ -1157,7 +1218,7 @@ class MapperTest extends TestCase
     public function testPersistPartialEntityOnGraph(): void
     {
         $this->conn->exec((string) Sql::createTable('read_only_post', [
-            'id INTEGER PRIMARY KEY',
+            'id ' . Schema::pkAuto($this->driver),
             'title VARCHAR(255)',
             'text TEXT',
             'read_only_author_id INTEGER',
@@ -1208,7 +1269,7 @@ class MapperTest extends TestCase
         $this->assertGreaterThan(0, $entity->id);
 
         $result = $this->query(
-            'SELECT * FROM read_only_author WHERE name="Bob"',
+            "SELECT * FROM read_only_author WHERE name='Bob'",
         )->fetch(PDO::FETCH_OBJ);
         $this->assertSame('Bob', $result->name);
         $this->assertSame('Bob bio', $result->bio);
@@ -1256,7 +1317,7 @@ class MapperTest extends TestCase
     public function testMixedMutableAuthorReadOnlyPost(): void
     {
         $this->conn->exec((string) Sql::createTable('read_only_post', [
-            'id INTEGER PRIMARY KEY',
+            'id ' . Schema::pkAuto($this->driver),
             'title VARCHAR(255)',
             'text TEXT',
             'read_only_author_id INTEGER',
@@ -1280,7 +1341,7 @@ class MapperTest extends TestCase
         $this->assertGreaterThan(0, $readonlyPost->id);
 
         // Verify both persisted
-        $authorRow = $this->query('SELECT * FROM author WHERE name="Mutable Author"')
+        $authorRow = $this->query("SELECT * FROM author WHERE name='Mutable Author'")
             ->fetch(PDO::FETCH_OBJ);
         $postRow = $this->query('SELECT * FROM read_only_post WHERE id=' . $readonlyPost->id)
             ->fetch(PDO::FETCH_OBJ);
@@ -1311,5 +1372,48 @@ class MapperTest extends TestCase
         self::assertInstanceOf(PDOStatement::class, $stmt);
 
         return $stmt;
+    }
+
+    /** @param list<string> $execCalls populated by reference with each exec() call */
+    private function recordingPdoStub(
+        string $driver,
+        array &$execCalls,
+        PDOException|null $lastInsertIdError = null,
+    ): PDO {
+        $execCalls = [];
+        $conn = $this->createStub(PDO::class);
+        $conn->method('getAttribute')->willReturn($driver);
+        $conn->method('inTransaction')->willReturn(true);
+        $conn->method('beginTransaction')->willReturn(true);
+        $conn->method('commit')->willReturn(true);
+
+        $stmt = $this->createStub(PDOStatement::class);
+        $stmt->method('execute')->willReturn(true);
+        $conn->method('prepare')->willReturn($stmt);
+
+        $conn->method('exec')->willReturnCallback(static function (string $sql) use (&$execCalls): int {
+            $execCalls[] = $sql;
+
+            return 0;
+        });
+
+        if ($lastInsertIdError !== null) {
+            $conn->method('lastInsertId')->willThrowException($lastInsertIdError);
+        } else {
+            $conn->method('lastInsertId')->willReturn('1');
+        }
+
+        return $conn;
+    }
+
+    private function persistOneAuthor(PDO $conn): void
+    {
+        $mapper = new Mapper($conn, new PrestyledAssoc(new EntityFactory(
+            entityNamespace: 'Respect\\Relational\\',
+        )));
+        $author = new Author();
+        $author->name = 'Pat';
+        $mapper->persist($author, $mapper->author());
+        $mapper->flush();
     }
 }

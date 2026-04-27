@@ -48,6 +48,30 @@ No test should fail.
 You can tweak the PHPUnit's settings by copying `phpunit.xml.dist` to `phpunit.xml`
 and changing it according to your needs.
 
+### Running tests against MySQL and PostgreSQL
+
+The default `vendor/bin/phpunit` run uses an in-memory SQLite database. To
+exercise the full testsuite against MySQL and PostgreSQL as well, start the
+bundled containers and use the driver-specific composer scripts:
+
+```shell
+docker compose up -d
+composer phpunit:sqlite
+composer phpunit:mysql
+composer phpunit:pgsql
+# or all three in sequence:
+composer phpunit:all
+```
+
+The `docker-compose.yml` exposes MySQL on host port `33306` and PostgreSQL on
+`55432` (non-default to avoid conflicts with locally installed databases).
+The composer scripts hard-code the credentials defined in `docker-compose.yml`;
+override `DB_DRIVER`, `DB_DSN`, `DB_USER`, and `DB_PASSWORD` to point at a
+different setup — see `.env.example` for the supported variables.
+
+CI runs the same three-driver matrix on every push and pull request via
+GitHub Actions services (no Docker required in CI).
+
 ## Standards
 
 We are trying to follow the [PHP-FIG](http://www.php-fig.org)'s standards, so

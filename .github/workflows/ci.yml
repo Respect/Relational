@@ -6,16 +6,79 @@ on:
   pull_request:
 
 jobs:
-  tests:
-    name: Tests
+  tests-sqlite:
+    name: Tests (sqlite)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.5'
+          extensions: pdo_sqlite
       - uses: ramsey/composer-install@v3
       - run: composer phpunit
+        env:
+          DB_DRIVER: sqlite
+
+  tests-mysql:
+    name: Tests (mysql)
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: test
+          MYSQL_DATABASE: relational_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -ptest"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: pdo_mysql
+      - uses: ramsey/composer-install@v3
+      - run: composer phpunit
+        env:
+          DB_DRIVER: mysql
+          DB_DSN: mysql:host=127.0.0.1;port=3306;dbname=relational_test
+          DB_USER: root
+          DB_PASSWORD: test
+
+  tests-pgsql:
+    name: Tests (pgsql)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: relational_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d relational_test"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: pdo_pgsql
+      - uses: ramsey/composer-install@v3
+      - run: composer phpunit
+        env:
+          DB_DRIVER: pgsql
+          DB_DSN: pgsql:host=127.0.0.1;port=5432;dbname=relational_test
+          DB_USER: postgres
+          DB_PASSWORD: test
 
   code-coverage:
     name: Code Coverage

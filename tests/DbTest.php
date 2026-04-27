@@ -6,33 +6,39 @@ namespace Respect\Relational;
 
 use PDO;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\TestCase;
+use Respect\Relational\Database\DatabaseTestCase;
+use Respect\Relational\Database\Schema;
 
 use function count;
-use function in_array;
 use function is_array;
 
 #[CoversClass(Db::class)]
-class DbTest extends TestCase
+class DbTest extends DatabaseTestCase
 {
     protected Db $object;
 
     protected function setUp(): void
     {
-        if (!in_array('sqlite', PDO::getAvailableDrivers())) {
-            $this->markTestSkipped('PDO_SQLITE is not available');
-        }
+        parent::setUp();
 
-        $db = new PDO('sqlite::memory:');
-        $db->query('CREATE TABLE unit (testez INTEGER PRIMARY KEY AUTOINCREMENT, testa INT, testb VARCHAR(255))');
-        $db->query("INSERT INTO unit (testa, testb) VALUES (10, 'abc')");
-        $db->query("INSERT INTO unit (testa, testb) VALUES (20, 'def')");
-        $db->query("INSERT INTO unit (testa, testb) VALUES (30, 'ghi')");
-        $this->object = new Db($db);
+        $this->resetTables('unit');
+        $this->conn->exec((string) Sql::createTable('unit', [
+            'testez ' . Schema::pkAuto($this->driver),
+            'testa INT',
+            'testb VARCHAR(255)',
+        ]));
+        $this->conn->exec("INSERT INTO unit (testa, testb) VALUES (10, 'abc')");
+        $this->conn->exec("INSERT INTO unit (testa, testb) VALUES (20, 'def')");
+        $this->conn->exec("INSERT INTO unit (testa, testb) VALUES (30, 'ghi')");
+        $this->object = new Db($this->conn);
     }
 
     public function testBasicStatement(): void
     {
+        if ($this->driver !== 'sqlite') {
+            $this->markTestSkipped('sqlite_master is a SQLite-specific catalog table');
+        }
+
         $this->assertEquals(
             'unit',
             $this->object->select('*')->from('sqlite_master')->fetch()->tbl_name,
