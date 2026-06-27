@@ -24,7 +24,7 @@ use function is_scalar;
 use function iterator_to_array;
 
 /** Maps objects to database operations */
-final class Mapper extends AbstractMapper
+class Mapper extends AbstractMapper
 {
     public readonly Db $db;
 
@@ -168,7 +168,7 @@ final class Mapper extends AbstractMapper
         $condition = $this->guessCondition($columns, $scope);
 
         return $this->db
-            ->deleteFrom($scope->name)
+            ->deleteFrom($this->style->realName($scope->name))
             ->where($condition)
             ->exec();
     }
@@ -179,7 +179,7 @@ final class Mapper extends AbstractMapper
         $condition = $this->guessCondition($columns, $scope);
 
         return $this->db
-            ->update($scope->name)
+            ->update($this->style->realName($scope->name))
             ->set($columns)
             ->where($condition)
             ->exec();
@@ -192,7 +192,7 @@ final class Mapper extends AbstractMapper
         object|null $entity = null,
     ): bool {
         $result = $this->db
-            ->insertInto($scope->name, array_keys($columns))
+            ->insertInto($this->style->realName($scope->name), array_keys($columns))
             ->values(array_values($columns))
             ->exec();
 
@@ -362,18 +362,21 @@ final class Mapper extends AbstractMapper
 
         //No parent scope means it's the first table in the query
         if ($parentAlias === null) {
-            $sql->from($entity);
+            $sql->from($s->realName($entity));
+            if ($s->realName($entity) !== $alias) {
+                $sql->as($alias);
+            }
 
             return;
         }
 
         if ($scope->required) {
-            $sql->innerJoin($entity);
+            $sql->innerJoin($s->realName($entity));
         } else {
-            $sql->leftJoin($entity);
+            $sql->leftJoin($s->realName($entity));
         }
 
-        if ($alias !== $entity) {
+        if ($s->realName($entity) !== $alias) {
             $sql->as($alias);
         }
 
@@ -396,9 +399,10 @@ final class Mapper extends AbstractMapper
         foreach ($scope->with as $child) {
             $connected = $child->name;
 
+            $table = $this->style->realName($entity);
             if (
-                $entity === $this->style->composed($parent, $connected)
-                || $entity === $this->style->composed($connected, $parent)
+                $table === $this->style->composed($parent, $connected)
+                || $table === $this->style->composed($connected, $parent)
             ) {
                 return true;
             }

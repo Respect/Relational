@@ -365,7 +365,7 @@ class MapperTest extends DatabaseTestCase
     {
         $mapper = $this->mapper;
         $comments = $mapper->fetchAll($mapper->comment([
-            $mapper->post([$mapper->post_category([$mapper->category(filter: 2)])]),
+            $mapper->post([$mapper->postCategory([$mapper->category(filter: 2)])]),
         ]));
         $comment = current($comments);
         $this->assertEquals(1, count($comments));
@@ -379,9 +379,22 @@ class MapperTest extends DatabaseTestCase
     public function testManyToManyReverse(): void
     {
         $mapper = $this->mapper;
-        $cat = $mapper->fetch($mapper->category([$mapper->post_category([$mapper->post(filter: 5)])]));
+        $cat = $mapper->fetch($mapper->category([$mapper->postCategory([$mapper->post(filter: 5)])]));
         $this->assertEquals(2, $cat->id);
         $this->assertEquals('Sample Category', $cat->name);
+    }
+
+    public function testFetchMultiWordEntityAsRoot(): void
+    {
+        // A multi-word root scope (postCategory → table post_category) must emit
+        // `FROM post_category AS postCategory`: realName differs from the PHP
+        // alias, so the root needs its own AS just like joined tables do.
+        $mapper = $this->mapper;
+        $junction = $mapper->fetch($mapper->postCategory(filter: 66));
+        // The fetch succeeding at all proves the alias was emitted: without the
+        // root AS the query would be `FROM post_category` while SELECT references
+        // an undefined `postCategory.id`.
+        $this->assertEquals(66, $junction->id);
     }
 
     public function testSimplePersist(): void
